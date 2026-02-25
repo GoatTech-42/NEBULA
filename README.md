@@ -1,2 +1,2 @@
 # NEBULA
-This is a portal for some games and secret links for "educational purposes only" trust.
+This is a cool portal with discord-style chat, games, proxy links, and everything you'd need!

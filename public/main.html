@@ -1,978 +1,434 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Home - Google Drive</title>
-    <link rel="icon" type="image/x-icon" href="https://ssl.gstatic.com/images/branding/product/1x/drive_2020q4_32dp.png">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --glass-bg: rgba(2, 6, 23, 0.75);
-            --glass-border: rgba(56, 189, 248, 0.2);
-            --accent: #38bdf8;
-            --accent-glow: rgba(56, 189, 248, 0.4);
-            --accent-dim: rgba(56, 189, 248, 0.12);
-            --bg-deep: #01040a;
-            --danger: #ef4444;
-            --danger-glow: rgba(239, 68, 68, 0.3);
-            --success: #10b981;
-            --success-glow: rgba(16, 185, 129, 0.3);
-            --warning: #f59e0b;
-            --nebula-grad: linear-gradient(135deg, #ffffff 0%, #38bdf8 100%);
-            --text-primary: #f1f5f9;
-            --text-muted: rgba(255,255,255,0.45);
-            --text-faint: rgba(255,255,255,0.22);
-            --r-sm: 8px; --r-md: 12px; --r-lg: 16px; --r-xl: 24px;
-            --t-fast: 0.15s ease; --t-med: 0.25s ease;
-            --t-slow: 0.4s cubic-bezier(0.16,1,0.3,1);
-        }
-        *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
-        body {
-            background: var(--bg-deep); color: var(--text-primary);
-            font-family: 'Inter', sans-serif; min-height: 100vh;
-            overflow-x: hidden; -webkit-font-smoothing: antialiased;
-        }
-        body::before {
-            content:''; position:fixed; inset:0; z-index:-2;
-            background:
-                radial-gradient(ellipse at 20% 30%, rgba(56,189,248,0.13) 0%, transparent 55%),
-                radial-gradient(ellipse at 80% 70%, rgba(147,51,234,0.12) 0%, transparent 55%),
-                radial-gradient(ellipse at 50% 50%, rgba(236,72,153,0.08) 0%, transparent 55%);
-            animation: bgShift 22s ease infinite;
-        }
-        body::after {
-            content:''; position:fixed; inset:0; z-index:-1;
-            background: radial-gradient(circle at top right, #061929, var(--bg-deep));
-            opacity: 0.85;
-        }
-        @keyframes bgShift { 0%,100%{filter:hue-rotate(0deg)} 33%{filter:hue-rotate(14deg)} 66%{filter:hue-rotate(-10deg)} }
-
-        .gradient-text { background:var(--nebula-grad); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; font-weight:800; }
-        .hidden { display:none !important; }
-
-        /* Particles */
-        #particles-container { position:fixed; inset:0; z-index:-1; pointer-events:none; }
-        .particle { position:absolute; background:#fff; border-radius:50%; animation:floatUp linear infinite; }
-        @keyframes floatUp {
-            0%   { transform:translateY(0) translateX(0) scale(1); opacity:0; }
-            8%   { opacity:0.35; }
-            92%  { opacity:0.35; }
-            100% { transform:translateY(-115vh) translateX(25px) scale(0.5); opacity:0; }
-        }
-
-        /* Nav */
-        nav {
-            position:fixed; top:1.2rem; left:50%; transform:translateX(-50%);
-            width:88%; max-width:960px; height:62px;
-            display:none; justify-content:space-between; align-items:center;
-            padding:0 2rem;
-            background:rgba(2,6,23,0.82); backdrop-filter:blur(30px) saturate(180%);
-            border:1px solid var(--glass-border); border-radius:100px;
-            z-index:2000; box-shadow:0 8px 32px rgba(0,0,0,0.55), 0 0 0 1px rgba(56,189,248,0.04) inset;
-            transition:box-shadow var(--t-med);
-        }
-        nav:hover { box-shadow:0 12px 40px rgba(0,0,0,0.65), 0 0 0 1px rgba(56,189,248,0.09) inset; }
-        .nav-logo { font-size:1.35rem; letter-spacing:4px; cursor:pointer; transition:opacity var(--t-fast); }
-        .nav-logo:hover { opacity:0.75; }
-        .nav-links { display:flex; gap:4px; }
-        .nav-links a {
-            color:white; text-decoration:none; font-size:0.72rem; font-weight:700;
-            opacity:0.38; text-transform:uppercase; cursor:pointer;
-            transition:all var(--t-fast); letter-spacing:1.1px;
-            padding:0.48rem 0.85rem; border-radius:50px;
-        }
-        .nav-links a:hover { opacity:0.82; background:rgba(255,255,255,0.05); }
-        .nav-links a.active { opacity:1; color:var(--accent); background:rgba(56,189,248,0.1); }
-
-        /* Views */
-        .view-section { width:100%; min-height:100vh; padding:124px 5% 80px; display:none; flex-direction:column; align-items:center; }
-        .view-section.active { display:flex; }
-
-        /* Animations */
-        @keyframes fadeInUp { from{opacity:0;transform:translateY(22px)} to{opacity:1;transform:translateY(0)} }
-        @keyframes fadeIn   { from{opacity:0} to{opacity:1} }
-        @keyframes slideDown{ from{opacity:0;transform:translateY(-10px)} to{opacity:1;transform:translateY(0)} }
-        @keyframes shake    { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-6px)} 40%{transform:translateX(6px)} 60%{transform:translateX(-4px)} 80%{transform:translateX(4px)} }
-        @keyframes badgePop { 0%{transform:scale(0)} 70%{transform:scale(1.2)} 100%{transform:scale(1)} }
-        @keyframes sendPulse{ 0%{transform:scale(1)} 50%{transform:scale(0.94)} 100%{transform:scale(1)} }
-        .animate-fade { animation:fadeInUp 0.7s cubic-bezier(0.16,1,0.3,1) forwards; }
-
-        /* Access wall */
-        #access-wall { position:fixed; inset:0; z-index:10000; background:var(--bg-deep); display:flex; align-items:center; justify-content:center; padding:20px; }
-        .nebula-title-login { font-size:clamp(4rem,20vw,12rem); line-height:0.9; margin-bottom:1rem; }
-        #pass-input {
-            width:100%; padding:1.1rem 1.4rem;
-            background:rgba(255,255,255,0.04); border:1px solid var(--glass-border);
-            color:white; border-radius:var(--r-lg); text-align:center;
-            font-size:1rem; letter-spacing:3px; outline:none;
-            transition:all var(--t-med); font-family:'Inter',sans-serif;
-        }
-        #pass-input:focus { border-color:var(--accent); background:rgba(56,189,248,0.06); box-shadow:0 0 0 3px rgba(56,189,248,0.12); }
-        #pass-input.shake { animation:shake 0.38s ease; }
-
-        /* Glass card */
-        .glass-card {
-            background:var(--glass-bg); border:1px solid var(--glass-border);
-            border-radius:var(--r-xl); padding:2rem; transition:all var(--t-slow);
-            position:relative; overflow:hidden;
-        }
-        .glass-card::before {
-            content:''; position:absolute; top:0; left:0; right:0; height:1px;
-            background:linear-gradient(90deg,transparent,rgba(56,189,248,0.3),transparent);
-            opacity:0; transition:opacity var(--t-med);
-        }
-        .glass-card:hover { border-color:rgba(56,189,248,0.32); box-shadow:0 8px 40px rgba(0,0,0,0.38), 0 0 28px rgba(56,189,248,0.07); transform:translateY(-2px); }
-        .glass-card:hover::before { opacity:1; }
-
-        .grid-container { width:100%; max-width:1200px; display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:20px; margin-top:26px; }
-
-        .blurred-link {
-            word-break:break-all; display:block; width:100%;
-            padding:0.72rem 0.95rem; margin-top:0.72rem;
-            background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.07);
-            border-radius:var(--r-md); color:var(--accent); text-decoration:none;
-            font-size:13px; filter:blur(5px); transition:all var(--t-med); cursor:pointer;
-        }
-        .blurred-link:hover { filter:blur(0); background:rgba(56,189,248,0.08); border-color:rgba(56,189,248,0.32); box-shadow:0 2px 12px rgba(56,189,248,0.1); }
-
-        /* Button */
-        .nebula-btn {
-            padding:0.8rem 2rem; border-radius:var(--r-md); border:none;
-            background:var(--accent); color:#01040a; font-weight:800;
-            cursor:pointer; text-transform:uppercase; transition:all var(--t-med);
-            letter-spacing:0.5px; font-family:'Inter',sans-serif; font-size:0.8rem;
-            position:relative; overflow:hidden;
-        }
-        .nebula-btn::after { content:''; position:absolute; inset:0; background:rgba(255,255,255,0); transition:background var(--t-fast); }
-        .nebula-btn:hover { transform:translateY(-2px); box-shadow:0 6px 24px var(--accent-glow); }
-        .nebula-btn:hover::after { background:rgba(255,255,255,0.08); }
-        .nebula-btn:active { animation:sendPulse 0.18s ease; }
-        .nebula-btn:disabled { opacity:0.42; cursor:not-allowed; transform:none; box-shadow:none; }
-        .nebula-btn:disabled::after { display:none; }
-
-        /* Tooltip */
-        #tooltip-display { position:relative; height:1.6rem; overflow:hidden; display:flex; align-items:center; justify-content:center; }
-        .tooltip-text { position:absolute; width:100%; text-align:center; font-weight:600; font-size:1rem; letter-spacing:2.5px; color:var(--text-muted); pointer-events:none; }
-        @keyframes tooltipEnter { 0%{transform:translateY(120%);opacity:0;filter:blur(8px)} 60%{opacity:1;filter:blur(0)} 100%{transform:translateY(0);opacity:1;filter:blur(0)} }
-        @keyframes tooltipExit  { 0%{transform:translateY(0);opacity:1;filter:blur(0)} 100%{transform:translateY(-120%);opacity:0;filter:blur(8px)} }
-        @keyframes tooltipGlow  { 0%,100%{text-shadow:none} 50%{text-shadow:0 0 20px rgba(56,189,248,0.5)} }
-        .tooltip-text.state-enter   { animation:tooltipEnter 0.75s cubic-bezier(0.16,1,0.3,1) forwards; }
-        .tooltip-text.state-visible { animation:tooltipGlow 4s ease-in-out infinite; }
-        .tooltip-text.state-exit    { animation:tooltipExit 0.5s cubic-bezier(0.4,0,1,1) forwards; }
-
-        /* Thread selector */
-        .thread-selector { display:flex; gap:8px; margin-bottom:1.2rem; overflow-x:auto; white-space:nowrap; justify-content:center; padding-bottom:4px; width:100%; max-width:1000px; scrollbar-width:none; }
-        .thread-selector::-webkit-scrollbar { display:none; }
-        .thread-btn {
-            padding:0.62rem 1.35rem; border-radius:50px;
-            border:1px solid var(--glass-border); background:rgba(255,255,255,0.03);
-            color:var(--text-muted); cursor:pointer; transition:all var(--t-med);
-            font-weight:700; font-size:0.72rem; text-transform:uppercase;
-            letter-spacing:1px; position:relative; flex-shrink:0;
-        }
-        .thread-btn:not(.locked):hover { background:rgba(56,189,248,0.1); color:var(--accent); border-color:rgba(56,189,248,0.32); }
-        .thread-btn.active { background:var(--accent); color:#01040a; border-color:var(--accent); box-shadow:0 0 20px var(--accent-glow); }
-        .thread-btn.locked { opacity:0.27; cursor:not-allowed; }
-        .thread-unread-dot {
-            position:absolute; top:-3px; right:-3px;
-            width:10px; height:10px; border-radius:50%;
-            background:var(--danger); border:2px solid var(--bg-deep);
-            animation:badgePop 0.3s cubic-bezier(0.16,1,0.3,1);
-        }
-
-        /* Chat wrapper */
-        .chat-container-wrapper {
-            width:100%; max-width:1000px;
-            background:rgba(1,4,15,0.72); border-radius:var(--r-lg);
-            border:1px solid var(--glass-border); overflow:hidden;
-            box-shadow:0 24px 64px rgba(0,0,0,0.58), 0 0 0 1px rgba(56,189,248,0.04) inset;
-            backdrop-filter:blur(24px) saturate(150%); position:relative;
-        }
-
-        /* Chat box */
-        #chat-box {
-            width:100%; height:62vh; overflow-y:auto;
-            display:flex; flex-direction:column; gap:0;
-            padding:0.8rem 0; scroll-behavior:smooth;
-            transition:opacity 0.2s ease, transform 0.22s cubic-bezier(0.16,1,0.3,1);
-        }
-        #chat-box.thread-switching { opacity:0; transform:translateY(8px); pointer-events:none; }
-        #chat-box::-webkit-scrollbar { width:5px; }
-        #chat-box::-webkit-scrollbar-track { background:transparent; }
-        #chat-box::-webkit-scrollbar-thumb { background:rgba(56,189,248,0.25); border-radius:10px; }
-        #chat-box::-webkit-scrollbar-thumb:hover { background:rgba(56,189,248,0.45); }
-
-        /* Messages */
-        .chat-msg {
-            padding:0.28rem 1.4rem;
-            border-left:2px solid transparent; position:relative;
-            transition:background var(--t-fast), border-color var(--t-fast);
-        }
-        .chat-msg.first-in-group { padding-top:0.88rem; margin-top:0.4rem; }
-        .chat-msg:hover { background:rgba(56,189,248,0.04); border-left-color:rgba(56,189,248,0.45); }
-        .chat-msg:hover .message-actions { opacity:1; pointer-events:all; }
-        .chat-msg:hover .chat-timestamp-right { opacity:1; }
-        .chat-msg.being-edited { background:rgba(56,189,248,0.07); border-left-color:var(--accent); }
-        .chat-msg.deleted-msg { opacity:0.28; pointer-events:none; }
-        @keyframes msgSlideIn { from{opacity:0;transform:translateY(9px)} to{opacity:1;transform:translateY(0)} }
-        .chat-msg.msg-new { animation:msgSlideIn 0.32s cubic-bezier(0.16,1,0.3,1); }
-
-        .chat-msg-header { display:flex; align-items:center; gap:0.68rem; margin-bottom:0.28rem; }
-        .chat-msg.not-first-in-group .chat-msg-header { max-height:0; opacity:0; margin:0; overflow:hidden; transition:max-height 0.22s ease, opacity 0.16s ease, margin 0.22s ease; }
-        .chat-msg.not-first-in-group:hover .chat-msg-header { max-height:40px; opacity:0.36; margin-bottom:0.18rem; }
-
-        .user-avatar {
-            width:30px; height:30px; border-radius:50%;
-            display:flex; align-items:center; justify-content:center;
-            font-weight:800; font-size:0.78rem; flex-shrink:0;
-            color:#01040a; text-transform:uppercase;
-            box-shadow:0 2px 8px rgba(0,0,0,0.4);
-        }
-        .chat-msg.not-first-in-group .user-avatar { width:18px; height:18px; font-size:0.55rem; }
-
-        .chat-user { font-weight:700; color:#fff; font-size:0.9rem; letter-spacing:0.2px; }
-        .admin-badge { background:linear-gradient(135deg,#fbbf24,#f59e0b); color:#000; padding:0.11rem 0.44rem; border-radius:6px; font-size:0.61rem; font-weight:800; text-transform:uppercase; letter-spacing:0.5px; }
-
-        /* Timestamps */
-        .chat-timestamp-inline { font-size:0.66rem; color:var(--text-faint); font-weight:500; }
-        .chat-timestamp-right {
-            position:absolute; right:1.1rem;
-            top:50%; transform:translateY(-50%);
-            font-size:0.66rem; color:var(--text-muted); font-weight:600;
-            letter-spacing:0.3px; opacity:0; transition:opacity var(--t-fast);
-            pointer-events:none; white-space:nowrap;
-            background:rgba(1,4,15,0.88); padding:0.22rem 0.55rem;
-            border-radius:6px; border:1px solid rgba(56,189,248,0.12);
-            backdrop-filter:blur(8px);
-        }
-        .chat-msg.first-in-group .chat-timestamp-right { top:auto; bottom:0.38rem; }
-        .edited-label { font-size:0.61rem; color:var(--text-faint); font-style:italic; margin-left:2px; }
-
-        /* Message actions */
-        .message-actions {
-            position:absolute; top:0.22rem; right:0.9rem;
-            opacity:0; transition:opacity var(--t-fast);
-            display:flex; gap:3px;
-            background:rgba(2,6,23,0.97);
-            padding:0.26rem 0.42rem; border-radius:10px;
-            border:1px solid rgba(56,189,248,0.16);
-            pointer-events:none; z-index:10;
-            box-shadow:0 4px 20px rgba(0,0,0,0.6);
-            backdrop-filter:blur(12px);
-        }
-        .message-action-btn {
-            background:none; border:none; color:var(--text-muted);
-            cursor:pointer; font-size:0.7rem; padding:0.2rem 0.46rem;
-            transition:all var(--t-fast); border-radius:5px;
-            font-weight:700; letter-spacing:0.5px; font-family:'Inter',sans-serif;
-        }
-        .message-action-btn:hover { background:rgba(255,255,255,0.08); color:var(--accent); }
-        .message-action-btn.danger:hover { background:rgba(239,68,68,0.14); color:var(--danger); }
-
-        .chat-msg-content { font-size:0.92rem; line-height:1.56; word-wrap:break-word; margin-left:42px; color:rgba(226,232,240,0.9); }
-
-        /* Inline edit */
-        .edit-input-wrapper { margin-left:42px; margin-top:0.32rem; display:flex; gap:7px; align-items:center; }
-        .edit-input { flex:1; background:rgba(56,189,248,0.07); border:1px solid var(--accent); border-radius:var(--r-sm); color:white; font-size:0.92rem; outline:none; padding:0.54rem 0.88rem; font-family:'Inter',sans-serif; box-shadow:0 0 0 3px rgba(56,189,248,0.11); transition:box-shadow var(--t-fast); }
-        .edit-input:focus { box-shadow:0 0 0 4px rgba(56,189,248,0.18); }
-        .edit-save-btn   { padding:0.5rem 0.95rem; border-radius:var(--r-sm); border:none; background:var(--accent); color:#01040a; font-weight:800; cursor:pointer; font-size:0.7rem; transition:all var(--t-fast); text-transform:uppercase; font-family:'Inter',sans-serif; }
-        .edit-save-btn:hover { opacity:0.82; }
-        .edit-cancel-btn { padding:0.5rem 0.82rem; border-radius:var(--r-sm); border:1px solid var(--glass-border); background:transparent; color:var(--text-muted); font-weight:700; cursor:pointer; font-size:0.7rem; transition:all var(--t-fast); text-transform:uppercase; font-family:'Inter',sans-serif; }
-        .edit-cancel-btn:hover { background:rgba(255,255,255,0.06); color:white; }
-
-        /* Date divider */
-        .date-divider { display:flex; align-items:center; justify-content:center; margin:1.35rem 0 0.75rem; }
-        .date-divider::before, .date-divider::after { content:''; flex:1; height:1px; background:linear-gradient(to right,transparent,rgba(56,189,248,0.17),transparent); }
-        .date-divider span { padding:0.26rem 0.88rem; background:rgba(0,0,0,0.55); border:1px solid rgba(56,189,248,0.14); border-radius:50px; font-size:0.63rem; font-weight:700; text-transform:uppercase; letter-spacing:1px; color:rgba(56,189,248,0.65); margin:0 1rem; }
-
-        /* ── NEW MESSAGES BANNER ── */
-        #new-msg-banner {
-            position:absolute; top:10px; left:50%; transform:translateX(-50%);
-            background:rgba(56,189,248,0.14); border:1px solid rgba(56,189,248,0.42);
-            color:var(--accent); padding:0.44rem 1.35rem; border-radius:50px;
-            font-size:0.7rem; font-weight:800; letter-spacing:0.8px;
-            cursor:pointer; z-index:30; backdrop-filter:blur(12px);
-            box-shadow:0 4px 22px rgba(56,189,248,0.22);
-            white-space:nowrap; transition:all var(--t-med);
-            animation:slideDown 0.28s cubic-bezier(0.16,1,0.3,1);
-        }
-        #new-msg-banner:hover { background:rgba(56,189,248,0.24); box-shadow:0 6px 28px rgba(56,189,248,0.35); transform:translateX(-50%) translateY(1px); }
-        @keyframes bannerExit { to{opacity:0;transform:translateX(-50%) translateY(-10px)} }
-        #new-msg-banner.banner-exit { animation:bannerExit 0.22s ease forwards; }
-
-        /* Scroll button */
-        #scroll-to-bottom {
-            position:absolute; bottom:86px; right:13px;
-            width:36px; height:36px; border-radius:50%;
-            background:rgba(2,6,23,0.92); border:1px solid var(--glass-border);
-            color:var(--accent); cursor:pointer; display:flex; align-items:center; justify-content:center;
-            font-size:0.95rem; line-height:1; transition:all var(--t-med);
-            box-shadow:0 4px 20px rgba(0,0,0,0.5); backdrop-filter:blur(12px); z-index:20;
-            opacity:0; pointer-events:none; transform:translateY(10px) scale(0.88);
-        }
-        #scroll-to-bottom.visible { opacity:1; pointer-events:all; transform:translateY(0) scale(1); }
-        #scroll-to-bottom:hover { background:rgba(56,189,248,0.18); border-color:rgba(56,189,248,0.45); transform:translateY(-1px) scale(1.05); box-shadow:0 6px 22px rgba(56,189,248,0.28); }
-        #scroll-to-bottom .unread-dot { position:absolute; top:-5px; right:-5px; width:17px; height:17px; border-radius:50%; background:var(--danger); color:white; font-size:0.57rem; font-weight:800; display:flex; align-items:center; justify-content:center; border:2px solid var(--bg-deep); animation:badgePop 0.28s cubic-bezier(0.16,1,0.3,1); }
-
-        /* Input area */
-        .chat-input-container { width:100%; display:flex; flex-direction:column; }
-        .chat-input-wrapper { width:100%; background:rgba(0,0,0,0.46); border-top:1px solid rgba(56,189,248,0.14); padding:0.95rem 1.15rem; display:flex; gap:9px; align-items:center; }
-        #chat-input { flex-grow:1; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.09); border-radius:var(--r-md); color:white; font-size:0.92rem; outline:none; padding:0.78rem 1rem; transition:all var(--t-med); font-family:'Inter',sans-serif; }
-        #chat-input:focus { background:rgba(255,255,255,0.08); border-color:rgba(56,189,248,0.42); box-shadow:0 0 0 3px rgba(56,189,248,0.1); }
-        #chat-input::placeholder { color:rgba(255,255,255,0.26); }
-        #chat-input.shake { animation:shake 0.34s ease; }
-
-        .char-counter { font-size:0.66rem; font-weight:700; letter-spacing:0.5px; transition:color var(--t-fast); min-width:40px; text-align:right; align-self:center; font-variant-numeric:tabular-nums; }
-        .char-counter.ok     { color:var(--text-faint); }
-        .char-counter.warn   { color:var(--warning); }
-        .char-counter.danger { color:var(--danger); }
-        #send-btn { padding:0.78rem 1.7rem; min-width:82px; border-radius:var(--r-md); font-size:0.78rem; }
-
-        /* Username gate */
-        .username-gate { background:var(--glass-bg); padding:2.8rem; border-radius:var(--r-xl); border:1px solid var(--glass-border); text-align:center; width:100%; max-width:430px; box-shadow:0 20px 60px rgba(0,0,0,0.5); }
-        .username-input-wrapper { position:relative; margin-bottom:1.15rem; }
-        #username-input { width:100%; padding:0.94rem 2.8rem 0.94rem 1.1rem; background:rgba(255,255,255,0.04); border:1px solid var(--glass-border); color:white; border-radius:var(--r-md); text-align:center; font-size:0.93rem; outline:none; transition:all var(--t-med); font-family:'Inter',sans-serif; }
-        #username-input:focus { border-color:rgba(56,189,248,0.4); background:rgba(56,189,248,0.05); box-shadow:0 0 0 3px rgba(56,189,248,0.1); }
-        .username-status { position:absolute; right:1rem; top:50%; transform:translateY(-50%); font-size:0.68rem; font-weight:800; letter-spacing:0.5px; transition:all var(--t-fast); }
-        .username-status.checking  { color:var(--text-faint); }
-        .username-status.available { color:var(--success); }
-        .username-status.taken     { color:var(--danger); }
-
-        #rate-limit-indicator { margin-top:0.7rem; font-size:0.7rem; color:var(--warning); font-weight:700; letter-spacing:0.3px; text-align:center; }
-
-        /* Notifications */
-        .notification { position:fixed; top:90px; right:16px; z-index:5000; background:rgba(2,6,23,0.94); backdrop-filter:blur(24px); border:1px solid var(--glass-border); border-radius:var(--r-lg); padding:0.85rem 1.25rem; min-width:230px; max-width:310px; animation:notifIn 0.28s cubic-bezier(0.16,1,0.3,1); box-shadow:0 8px 30px rgba(0,0,0,0.5); }
-        @keyframes notifIn { from{transform:translateX(120%) scale(0.94);opacity:0} to{transform:translateX(0) scale(1);opacity:1} }
-        .notification.error   { border-color:rgba(239,68,68,0.45); }
-        .notification.success { border-color:rgba(16,185,129,0.45); }
-        .notification.warning { border-color:rgba(245,158,11,0.45); }
-        .notif-type { font-weight:800; font-size:0.63rem; text-transform:uppercase; margin-bottom:0.22rem; letter-spacing:1px; }
-        .notification.error   .notif-type { color:var(--danger); }
-        .notification.success .notif-type { color:var(--success); }
-        .notification.warning .notif-type { color:var(--warning); }
-        .notification:not(.error):not(.success):not(.warning) .notif-type { color:var(--accent); }
-        .notif-msg { font-size:0.82rem; color:rgba(255,255,255,0.84); line-height:1.4; }
-
-        .chat-badge { position:absolute; top:-5px; right:-5px; background:var(--danger); color:white; border-radius:50%; width:17px; height:17px; display:flex; align-items:center; justify-content:center; font-size:0.59rem; font-weight:800; }
-        @keyframes badgePulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.1)} }
-
-        #edit-toggle { position:fixed; bottom:1.5rem; right:1.5rem; z-index:3000; background:rgba(255,255,255,0.04); border:1px solid var(--glass-border); color:var(--text-faint); padding:0.54rem 1.1rem; border-radius:50px; font-size:0.62rem; font-weight:700; letter-spacing:1px; backdrop-filter:blur(12px); transition:all var(--t-med); cursor:pointer; font-family:'Inter',sans-serif; }
-        #edit-toggle:hover { background:rgba(255,255,255,0.07); color:var(--text-muted); }
-
-        #game-vault { position:fixed; inset:0; background:#000; z-index:9999; display:none; flex-direction:column; }
-        #game-frame { border:none; width:100%; flex-grow:1; background:#000; }
-        .game-header { height:56px; background:rgba(1,4,15,0.96); display:flex; justify-content:space-between; align-items:center; padding:0 26px; border-bottom:1px solid var(--glass-border); backdrop-filter:blur(12px); }
-
-        /* Delete modal */
-        .delete-confirm-overlay { position:fixed; inset:0; z-index:8000; background:rgba(0,0,0,0.76); backdrop-filter:blur(10px); display:flex; align-items:center; justify-content:center; animation:fadeIn 0.2s ease; }
-        .delete-confirm-box { background:rgba(2,6,23,0.98); border:1px solid rgba(239,68,68,0.38); border-radius:var(--r-xl); padding:2.3rem; max-width:370px; width:90%; text-align:center; animation:fadeInUp 0.28s cubic-bezier(0.16,1,0.3,1); box-shadow:0 24px 60px rgba(0,0,0,0.7), 0 0 36px rgba(239,68,68,0.07); }
-        .delete-confirm-box h3 { font-size:1.12rem; margin-bottom:0.7rem; color:var(--danger); }
-        .delete-confirm-box p  { color:var(--text-muted); font-size:0.82rem; margin-bottom:1.75rem; line-height:1.6; }
-        .delete-confirm-actions { display:flex; gap:9px; justify-content:center; }
-
-        #blog-editor input, #blog-editor textarea, #proxy-editor-main input { width:100%; padding:0.92rem 1.05rem; background:rgba(0,0,0,0.4); border:1px solid var(--glass-border); color:white; border-radius:var(--r-md); margin-bottom:0.95rem; outline:none; font-family:'Inter',sans-serif; font-size:0.88rem; transition:border-color var(--t-fast); }
-        #blog-editor input:focus, #blog-editor textarea:focus, #proxy-editor-main input:focus { border-color:rgba(56,189,248,0.4); }
-        #blog-editor textarea { height:95px; resize:vertical; }
-        #blog-editor, #proxy-editor-main { width:100%; max-width:800px; margin-bottom:2rem; border-style:dashed !important; }
-
-        #wipe-chat { margin-top:1.35rem; background:rgba(239,68,68,0.12) !important; color:var(--danger) !important; border:1px solid rgba(239,68,68,0.28) !important; font-size:0.62rem !important; padding:0.52rem 1.05rem !important; transition:all var(--t-med) !important; }
-        #wipe-chat:hover { background:var(--danger) !important; color:white !important; border-color:var(--danger) !important; box-shadow:0 4px 18px var(--danger-glow) !important; }
-
-        @media (max-width:768px) {
-            .grid-container { grid-template-columns:1fr; }
-            .nebula-title-login { font-size:8rem; }
-            nav { width:95%; padding:0 1rem; }
-            .nav-links { gap:2px; }
-            .nav-links a { font-size:0.63rem; padding:0.42rem 0.6rem; }
-            .thread-selector { justify-content:flex-start; }
-            .thread-btn { padding:0.52rem 0.88rem; font-size:0.66rem; }
-            #chat-box { height:52vh; }
-            .chat-msg-content { margin-left:34px; }
-            .chat-timestamp-right { display:none; }
-            .message-actions { right:0.5rem; }
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>NEBULA</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌌</text></svg>">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-<div id="particles-container"></div>
+<div class="notif-stack" id="notif-stack"></div>
+<div id="particles"></div>
 
-<!-- ACCESS WALL -->
-<div id="access-wall">
-    <div class="login-content animate-fade" style="text-align:center;">
-        <h1 class="gradient-text nebula-title-login">NEBULA</h1>
-        <p style="color:var(--text-faint);font-size:0.77rem;letter-spacing:6px;margin-bottom:4rem;text-transform:uppercase;">System Encryption Active</p>
-        <div style="max-width:365px;margin:0 auto;display:flex;flex-direction:column;gap:1rem;">
-            <input type="password" id="pass-input" autocomplete="current-password" aria-label="Enter password" placeholder="••••••••">
-            <button id="init-btn" class="nebula-btn" style="width:100%;padding:1rem;">DECRYPT</button>
+<!-- ═══════════════ AUTH ═══════════════ -->
+<div id="auth-screen">
+  <div class="auth-glow"></div>
+  <div class="auth-inner">
+    <div class="auth-logo">NEBULA</div>
+    <div class="auth-sub">GoatTech Industries</div>
+    <div class="auth-card">
+      <div class="auth-tabs">
+        <button class="auth-tab active" id="tab-signin" onclick="authTab('signin')">Sign In</button>
+        <button class="auth-tab" id="tab-signup" onclick="authTab('signup')">Sign Up</button>
+      </div>
+      <div id="panel-signin">
+        <div class="field-group">
+          <label class="field-label">Username</label>
+          <input type="text" id="si-user" class="field-input" placeholder="username" autocomplete="off" spellcheck="false">
         </div>
+        <div class="field-group">
+          <label class="field-label">Password</label>
+          <input type="password" id="si-pass" class="field-input" placeholder="••••••••" autocomplete="off" data-form-type="other">
+        </div>
+        <button class="btn btn-full" onclick="doSignIn()">Sign In</button>
+        <div class="auth-err" id="si-err"></div>
+      </div>
+      <div id="panel-signup" class="hidden">
+        <div class="field-group">
+          <label class="field-label">Full Name</label>
+          <input type="text" id="su-name" class="field-input" placeholder="Your Name" autocomplete="off">
+        </div>
+        <div class="field-group">
+          <label class="field-label">Username</label>
+          <input type="text" id="su-user" class="field-input" placeholder="lowercase_only" autocomplete="off" spellcheck="false">
+        </div>
+        <div class="field-group">
+          <label class="field-label">Password</label>
+          <input type="password" id="su-pass" class="field-input" placeholder="6+ characters" autocomplete="off" data-form-type="other">
+        </div>
+        <div class="field-group">
+          <label class="field-label">Confirm Password</label>
+          <input type="password" id="su-pass2" class="field-input" placeholder="••••••••" autocomplete="off" data-form-type="other">
+        </div>
+        <button class="btn btn-full" onclick="doSignUp()">Request Account</button>
+        <div class="auth-err" id="su-err"></div>
+      </div>
     </div>
+    <div class="auth-foot">© GoatTech Industries</div>
+  </div>
 </div>
 
-<!-- APP -->
-<div id="app-content" class="hidden">
-    <nav id="main-nav">
-        <div class="gradient-text nav-logo" onclick="showView('hero-section')">NEBULA</div>
-        <div class="nav-links">
-            <a onclick="showView('hero-section')"  class="nav-a" id="n-hero-section">Home</a>
-            <a onclick="showView('updates-view')"  class="nav-a" id="n-updates-view">Updates</a>
-            <a onclick="showView('proxy-view')"    class="nav-a" id="n-proxy-view">Proxies</a>
-            <a onclick="showView('games-view')"    class="nav-a" id="n-games-view">Games</a>
-            <a onclick="showView('chat-view')"     class="nav-a" id="n-chat-view" style="position:relative;">
-                Chat
-                <span id="chat-notification-badge" class="chat-badge hidden">0</span>
-            </a>
-        </div>
+<!-- ═══════════════ PENDING ═══════════════ -->
+<div id="pending-screen" class="hidden">
+  <div class="pending-inner">
+    <div class="pending-icon">⏳</div>
+    <h2>Account Pending</h2>
+    <p>Your account is awaiting moderator approval. Check back soon.</p>
+    <button class="btn" onclick="signOut()">Sign Out</button>
+  </div>
+</div>
+
+<!-- ═══════════════ APP ═══════════════ -->
+<div id="app" class="hidden">
+
+  <!-- SIDEBAR -->
+  <div id="sidebar">
+    <div class="sidebar-logo" onclick="showSection('home')">
+      <span class="logo-text">NEBULA</span>
+      <span class="logo-dot"></span>
+    </div>
+    <nav class="sidebar-nav">
+      <button class="snav-item active" id="snav-home"          onclick="showSection('home')">
+        <span class="snav-icon">⌂</span><span class="snav-label">Home</span>
+      </button>
+      <button class="snav-item" id="snav-chat"                 onclick="showSection('chat')">
+        <span class="snav-icon">💬</span><span class="snav-label">Chat</span>
+        <span class="snav-badge hidden" id="chat-badge">0</span>
+      </button>
+      <button class="snav-item" id="snav-dms"                  onclick="showSection('dms')">
+        <span class="snav-icon">✉</span><span class="snav-label">Messages</span>
+        <span class="snav-badge hidden" id="dm-badge">0</span>
+      </button>
+      <button class="snav-item" id="snav-games"                onclick="showSection('games')">
+        <span class="snav-icon">🎮</span><span class="snav-label">Vault</span>
+      </button>
+      <button class="snav-item hidden" id="snav-proxy"         onclick="showSection('proxy')">
+        <span class="snav-icon">🔗</span><span class="snav-label">Proxies</span>
+      </button>
+      <button class="snav-item" id="snav-notifications"        onclick="showSection('notifications')">
+        <span class="snav-icon">🔔</span><span class="snav-label">Alerts</span>
+      </button>
+      <button class="snav-item hidden" id="snav-admin"         onclick="showSection('admin')">
+        <span class="snav-icon">👑</span><span class="snav-label">Admin</span>
+      </button>
     </nav>
+    <div class="sidebar-profile" id="sidebar-profile" onclick="showSection('profile')">
+      <div class="sp-ava" id="sp-ava">?</div>
+      <div class="sp-info">
+        <div class="sp-name" id="sp-name">—</div>
+        <div class="sp-rank" id="sp-rank"></div>
+      </div>
+      <button class="sp-signout" onclick="signOut();event.stopPropagation();" title="Sign out">⏻</button>
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <div id="main">
 
     <!-- HOME -->
-    <section id="hero-section" class="view-section active" style="justify-content:center;text-align:center;">
-        <div class="animate-fade">
-            <h1 class="gradient-text" style="font-size:clamp(5rem,18vw,10rem);line-height:1;">NEBULA</h1>
-            <div id="tooltip-display" style="margin:2rem 0 4rem;"></div>
-            <div style="display:flex;gap:1.2rem;justify-content:center;flex-wrap:wrap;">
-                <button onclick="showView('proxy-view')" class="nebula-btn" style="min-width:200px;">Enter Portal</button>
-                <button onclick="showView('games-view')" class="nebula-btn" style="background:rgba(255,255,255,0.05);color:white;border:1px solid var(--glass-border);min-width:200px;">Vault</button>
-            </div>
-            <div style="margin-top:4rem;font-size:0.66rem;color:var(--text-faint);letter-spacing:3px;">© GOATTECH INDUSTRIES</div>
+    <div class="section active" id="section-home">
+      <div class="home-hero">
+        <div class="home-title">NEBULA</div>
+        <div id="tt-wrap"></div>
+        <div class="home-cards">
+          <div class="home-card" onclick="showSection('chat')">
+            <div class="hcard-icon">💬</div>
+            <div class="hcard-title">Chat</div>
+            <div class="hcard-sub">Community channels</div>
+          </div>
+          <div class="home-card" onclick="showSection('dms')">
+            <div class="hcard-icon">✉</div>
+            <div class="hcard-title">Messages</div>
+            <div class="hcard-sub">Direct messages</div>
+          </div>
+          <div class="home-card" onclick="showSection('games')">
+            <div class="hcard-icon">🎮</div>
+            <div class="hcard-title">Vault</div>
+            <div class="hcard-sub">Play games</div>
+          </div>
         </div>
-    </section>
-
-    <!-- PROXIES -->
-    <section id="proxy-view" class="view-section">
-        <h2 class="gradient-text" style="font-size:2.4rem;margin-bottom:1rem;">PR0XY LINKS</h2>
-        <div id="proxy-editor-main" class="glass-card hidden">
-            <input type="text" id="new-cat-name" placeholder="Category Name">
-            <button onclick="addCategory()" class="nebula-btn" style="width:100%;">Create Category</button>
-        </div>
-        <div class="grid-container" id="proxy-list"></div>
-    </section>
-
-    <!-- UPDATES -->
-    <section id="updates-view" class="view-section">
-        <h2 class="gradient-text" style="font-size:2.4rem;margin-bottom:2rem;">SYSTEM LOGS</h2>
-        <div id="blog-editor" class="glass-card hidden">
-            <input type="text" id="manual-post-title" placeholder="Log Title">
-            <textarea id="manual-post-content" placeholder="Message Body"></textarea>
-            <button onclick="manualPost()" class="nebula-btn" style="width:100%;">Push Log</button>
-        </div>
-        <div id="blog-feed" style="width:100%;max-width:850px;display:flex;flex-direction:column;gap:17px;"></div>
-    </section>
+        <div class="home-copy">© GoatTech Industries</div>
+      </div>
+    </div>
 
     <!-- CHAT -->
-    <section id="chat-view" class="view-section">
-        <h2 class="gradient-text" style="font-size:2.4rem;margin-bottom:2rem;">CHAT</h2>
-        <div id="user-gate" class="username-gate">
-            <h3 style="margin-bottom:1.35rem;font-size:1.08rem;">Username Required</h3>
-            <div class="username-input-wrapper">
-                <input type="text" id="username-input" maxlength="20" placeholder="Enter Handle...">
-                <span id="username-status" class="username-status"></span>
-            </div>
-            <button onclick="saveHandle()" class="nebula-btn" style="width:100%;">Save</button>
-            <p id="admin-hint" class="hidden" style="margin-top:1rem;font-size:0.68rem;color:var(--text-faint);">Your username will appear as [ADMIN] YourName</p>
+    <div class="section" id="section-chat">
+      <div class="chat-layout">
+        <div class="thread-sidebar" id="thread-sidebar">
+          <div class="ts-header">
+            <span class="ts-title">Channels</span>
+            <button class="ts-add hidden" id="ts-add-btn" onclick="openCreateThread()" title="New channel">+</button>
+          </div>
+          <div class="ts-list" id="thread-list"></div>
         </div>
-        <div id="chat-interface" class="hidden" style="width:100%;display:flex;flex-direction:column;align-items:center;">
-            <div class="thread-selector" id="thread-selector">
-                <button class="thread-btn" data-thread="basic" onclick="switchThread('basic')">🌟 GOATED</button>
-                <button class="thread-btn locked" data-thread="user"  onclick="switchThread('user')">🔥 LEGENDS</button>
-                <button class="thread-btn locked" data-thread="admin" onclick="switchThread('admin')">👑 ADMIN</button>
+        <div class="chat-area">
+          <div class="chat-no-select" id="chat-no-select">
+            <div class="cns-icon">💬</div>
+            <div class="cns-title">Select a channel</div>
+            <div class="cns-sub">Choose a channel from the left to start chatting</div>
+          </div>
+          <div class="chat-window hidden" id="chat-window">
+            <div class="chat-topbar">
+              <div class="ctb-left">
+                <span class="ctb-hash">#</span>
+                <span class="ctb-name" id="ctb-name">general</span>
+                <span class="ctb-announce hidden" id="ctb-announce">📢 announce only</span>
+              </div>
+              <div class="ctb-right" id="ctb-right"></div>
             </div>
-            <div class="chat-container-wrapper">
-                <div class="chat-input-container">
-                    <div id="chat-box"></div>
-                    <div id="new-msg-banner" class="hidden" onclick="dismissBanner()">
-                        ↓ &nbsp;<span id="banner-count">0</span> new message<span id="banner-plural"></span> — tap to scroll
-                    </div>
-                    <button id="scroll-to-bottom" onclick="scrollToBottom(true)" title="Jump to latest">
-                        ↓
-                        <span id="unread-scroll-dot" class="unread-dot hidden">0</span>
-                    </button>
-                    <div class="chat-input-wrapper">
-                        <input type="text" id="chat-input" placeholder="Message #goated..." maxlength="500">
-                        <span id="char-counter" class="char-counter ok"></span>
-                        <button id="send-btn" onclick="sendChat()" class="nebula-btn">Send</button>
-                    </div>
-                </div>
+            <div class="messages-wrap" id="messages-wrap">
+              <div class="messages" id="messages"></div>
             </div>
-            <div id="rate-limit-indicator" class="hidden"></div>
-            <button id="wipe-chat" class="nebula-btn hidden" onclick="wipeChat()">Wipe History</button>
+            <div class="chat-input-area" id="chat-input-area">
+              <div class="chat-input-wrap">
+                <input type="text" id="chat-input" placeholder="Message…" maxlength="500" autocomplete="off" spellcheck="false">
+                <span class="char-ctr" id="char-ctr"></span>
+                <button class="send-btn" id="send-btn" onclick="sendMessage()">
+                  <svg viewBox="0 0 24 24" fill="currentColor"><path d="M2 21l21-9L2 3v7l15 2-15 2z"/></svg>
+                </button>
+              </div>
+              <div class="rate-msg hidden" id="rate-msg"></div>
+            </div>
+          </div>
         </div>
-    </section>
+        <div class="members-sidebar" id="members-sidebar">
+          <div class="ms-header">Members</div>
+          <div class="ms-list" id="members-list"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- DMs -->
+    <div class="section" id="section-dms">
+      <div class="chat-layout">
+        <div class="thread-sidebar">
+          <div class="ts-header">
+            <span class="ts-title">Direct Messages</span>
+            <button class="ts-add" onclick="openNewDM()" title="New DM">+</button>
+          </div>
+          <div class="ts-list" id="dm-list"></div>
+        </div>
+        <div class="chat-area">
+          <div class="chat-no-select" id="dm-no-select">
+            <div class="cns-icon">✉</div>
+            <div class="cns-title">Select a conversation</div>
+            <div class="cns-sub">Pick someone from the left to message</div>
+          </div>
+          <div class="chat-window hidden" id="dm-window">
+            <div class="chat-topbar">
+              <div class="ctb-left">
+                <span class="ctb-hash">@</span>
+                <span class="ctb-name" id="dm-ctb-name">user</span>
+              </div>
+            </div>
+            <div class="messages-wrap" id="dm-messages-wrap">
+              <div class="messages" id="dm-messages"></div>
+            </div>
+            <div class="chat-input-area">
+              <div class="chat-input-wrap">
+                <input type="text" id="dm-input" placeholder="Message…" maxlength="500" autocomplete="off" spellcheck="false">
+                <span class="char-ctr" id="dm-char-ctr"></span>
+                <button class="send-btn" onclick="sendDM()">
+                  <svg viewBox="0 0 24 24" fill="currentColor"><path d="M2 21l21-9L2 3v7l15 2-15 2z"/></svg>
+                </button>
+              </div>
+              <div class="rate-msg hidden" id="dm-rate-msg"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <!-- GAMES -->
-    <section id="games-view" class="view-section">
-        <h2 class="gradient-text" style="font-size:2.4rem;margin-bottom:2rem;">GAME VAULT</h2>
-        <div class="grid-container" id="game-list"></div>
-    </section>
+    <div class="section" id="section-games">
+      <div class="vault-scroll" id="vault-scroll">
+        <div class="vault-topbar">
+          <div class="vault-search-wrap">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+            <input type="text" id="vault-search" placeholder="Search games…" autocomplete="off" spellcheck="false" oninput="handleVaultSearch()">
+          </div>
+          <button id="fav-filter-btn" onclick="toggleFavFilter()">❤ Favorites</button>
+        </div>
+        <div id="vault-loading" class="vault-loading">Loading games…</div>
+        <div id="game-grid"></div>
+      </div>
+    </div>
 
-    <button id="edit-toggle" class="hidden" onclick="toggleEdit()">EDIT_MODE</button>
+    <!-- PROXIES -->
+    <div class="section hidden" id="section-proxy">
+      <div class="pad">
+        <div class="pg-title">Proxies</div>
+        <div class="pg-sub">Hover a link to reveal — click to open in a new tab</div>
+        <div class="card hidden" id="proxy-editor" style="max-width:520px;margin-bottom:1.4rem;border-style:dashed;">
+          <input type="text" class="sinput" id="new-cat-name" placeholder="Category name…" autocomplete="off">
+          <button class="btn btn-sm" style="margin-top:.4rem;" onclick="addCat()">Create Category</button>
+        </div>
+        <div class="proxy-grid" id="proxy-list"></div>
+      </div>
+    </div>
+
+    <!-- NOTIFICATIONS -->
+    <div class="section" id="section-notifications">
+      <div class="pad" style="max-width:640px;">
+        <div class="pg-title">Notifications</div>
+        <div class="pg-sub">Choose what you want to be notified about</div>
+
+        <div class="notif-section-card">
+          <div class="nsc-header">
+            <div class="nsc-icon">🔔</div>
+            <div>
+              <div class="nsc-title">Browser Notifications</div>
+              <div class="nsc-sub">Required to receive alerts when the tab is in the background</div>
+            </div>
+            <button class="btn btn-sm" id="notif-perm-btn" onclick="requestNotifPerm()">Enable</button>
+          </div>
+          <div class="nsc-status" id="notif-perm-status"></div>
+        </div>
+
+        <div class="notif-section-card">
+          <div class="nsc-header">
+            <div class="nsc-icon">✉</div>
+            <div style="flex:1">
+              <div class="nsc-title">Direct Messages</div>
+              <div class="nsc-sub">Get notified when someone messages you</div>
+            </div>
+            <label class="toggle-switch">
+              <input type="checkbox" id="ntog-dms" onchange="saveNotifPrefs()">
+              <span class="toggle-track"></span>
+            </label>
+          </div>
+        </div>
+
+        <div class="notif-section-card">
+          <div class="nsc-header" style="margin-bottom:.75rem;">
+            <div class="nsc-icon">💬</div>
+            <div style="flex:1">
+              <div class="nsc-title">Channel Subscriptions</div>
+              <div class="nsc-sub">Pick which channels send you notifications</div>
+            </div>
+          </div>
+          <div id="notif-channel-list"></div>
+        </div>
+
+        <div class="notif-section-card">
+          <div class="nsc-header">
+            <div class="nsc-icon">🔕</div>
+            <div style="flex:1">
+              <div class="nsc-title">Mute All</div>
+              <div class="nsc-sub">Override everything — no notifications at all</div>
+            </div>
+            <label class="toggle-switch">
+              <input type="checkbox" id="ntog-mute" onchange="saveNotifPrefs()">
+              <span class="toggle-track"></span>
+            </label>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PROFILE -->
+    <div class="section" id="section-profile">
+      <div class="pad">
+        <div class="pg-title">Profile</div>
+        <div class="profile-card" id="profile-card"></div>
+      </div>
+    </div>
+
+    <!-- ADMIN -->
+    <div class="section hidden" id="section-admin">
+      <div class="pad">
+        <div class="pg-title">Admin Panel</div>
+        <div class="admin-tabs">
+          <button class="adm-tab active" onclick="admTab('users')">Users</button>
+          <button class="adm-tab" onclick="admTab('pending')">Pending <span id="pending-ct"></span></button>
+          <button class="adm-tab" onclick="admTab('channels')">Channels</button>
+          <button class="adm-tab" onclick="admTab('proxy-access')">Proxy Access</button>
+        </div>
+        <div id="adm-users"        class="adm-panel active"></div>
+        <div id="adm-pending"      class="adm-panel"></div>
+        <div id="adm-channels"     class="adm-panel"></div>
+        <div id="adm-proxy-access" class="adm-panel"></div>
+      </div>
+    </div>
+
+  </div>
 </div>
 
-<!-- GAME FRAME -->
+<!-- GAME VIEWER -->
 <div id="game-vault">
-    <div class="game-header">
-        <h2 id="vault-title" class="gradient-text" style="font-size:0.93rem;letter-spacing:2px;">NEBULA VAULT</h2>
-        <div style="display:flex;gap:9px;">
-            <button onclick="toggleFullscreen()" class="nebula-btn" style="background:rgba(255,255,255,0.05);color:white;border:1px solid var(--glass-border);font-size:0.58rem;padding:0.38rem 0.75rem;">FULLSCREEN</button>
-            <button onclick="closeGame()" class="nebula-btn" style="background:rgba(239,68,68,0.14);color:var(--danger);border:1px solid rgba(239,68,68,0.28);font-size:0.58rem;padding:0.38rem 0.75rem;">CLOSE</button>
-        </div>
+  <div class="ghdr">
+    <span class="ghdr-logo" id="vault-title">NEBULA VAULT</span>
+    <div style="display:flex;gap:8px;">
+      <button class="btn btn-ghost btn-sm" onclick="toggleFS()">⛶ Fullscreen</button>
+      <button class="btn btn-danger btn-sm" onclick="closeGame()">✕ Close</button>
     </div>
-    <iframe id="game-frame"></iframe>
+  </div>
+  <iframe id="game-frame"></iframe>
 </div>
 
-<!-- DELETE MODAL -->
-<div id="delete-confirm-overlay" class="delete-confirm-overlay hidden">
-    <div class="delete-confirm-box">
-        <h3>Delete Message?</h3>
-        <p>This action cannot be undone. The message will be permanently removed.</p>
-        <div class="delete-confirm-actions">
-            <button onclick="cancelDelete()" class="nebula-btn" style="background:rgba(255,255,255,0.05);color:white;border:1px solid var(--glass-border);">Cancel</button>
-            <button onclick="confirmDelete()" class="nebula-btn" style="background:var(--danger);color:white;">Delete</button>
-        </div>
+<!-- ═══════ MODALS ═══════ -->
+<div id="modal-overlay" class="hidden" onclick="closeTopModal()"></div>
+
+<div id="del-modal" class="modal hidden">
+  <div class="modal-box">
+    <h3>Delete Message?</h3>
+    <p class="modal-p">This cannot be undone.</p>
+    <div class="modal-actions">
+      <button class="btn btn-ghost btn-sm" onclick="cancelDel()">Cancel</button>
+      <button class="btn btn-danger btn-sm" onclick="confirmDel()">Delete</button>
     </div>
+  </div>
 </div>
 
-<script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
-    import { getFirestore, doc, onSnapshot, setDoc } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+<div id="ct-modal" class="modal hidden">
+  <div class="modal-box">
+    <h3>Create Channel</h3>
+    <input type="text" class="field-input" id="ct-name" placeholder="channel-name" maxlength="24" autocomplete="off" style="margin-bottom:.6rem;">
+    <input type="text" class="field-input" id="ct-emoji" placeholder="Emoji icon (e.g. 💬)" maxlength="4" style="margin-bottom:.6rem;">
+    <label style="display:flex;align-items:center;gap:.6rem;margin-bottom:.65rem;cursor:pointer;">
+      <input type="checkbox" id="ct-announce" style="accent-color:var(--accent);width:15px;height:15px;">
+      <span style="font-size:.78rem;color:var(--text-muted);">Announce-only (mods post, others react)</span>
+    </label>
+    <div class="modal-actions">
+      <button class="btn btn-ghost btn-sm" onclick="closeCT()">Cancel</button>
+      <button class="btn btn-sm" onclick="submitCT()">Create</button>
+    </div>
+    <div class="merr" id="ct-err"></div>
+  </div>
+</div>
 
-    const firebaseConfig = {
-        apiKey:"AIzaSyDd578sgxhJCltHmSZbyVKQOso67CWh_0M",
-        authDomain:"goattechneverdies.firebaseapp.com",
-        projectId:"goattechneverdies",
-        storageBucket:"goattechneverdies.firebasestorage.app",
-        messagingSenderId:"1090005757417",
-        appId:"1:1090005757417:web:8698673d23f79fb9886f78"
-    };
-    const app    = initializeApp(firebaseConfig);
-    const db     = getFirestore(app);
-    const docRef = doc(db,"portal","data");
+<div id="tpass-modal" class="modal hidden">
+  <div class="modal-box">
+    <h3>🔒 Private Channel</h3>
+    <p class="modal-p">Enter the password to join this channel.</p>
+    <input type="password" class="field-input" id="tpass-inp" placeholder="Password…" autocomplete="off" data-form-type="other" style="margin-bottom:.6rem;">
+    <div class="modal-actions">
+      <button class="btn btn-ghost btn-sm" onclick="closeTPass()">Cancel</button>
+      <button class="btn btn-sm" onclick="submitTPass()">Enter</button>
+    </div>
+    <div class="merr" id="tp-err"></div>
+  </div>
+</div>
 
-    const MAX_MSG  = 500;
-    const WARN_MSG = 400;
+<div id="newdm-modal" class="modal hidden">
+  <div class="modal-box">
+    <h3>New Message</h3>
+    <p class="modal-p">Search for a user to start a conversation.</p>
+    <input type="text" class="field-input" id="dm-search-inp" placeholder="Search username…" autocomplete="off" oninput="filterDMSearch()" style="margin-bottom:.6rem;">
+    <div id="dm-search-results" style="max-height:200px;overflow-y:auto;"></div>
+    <div class="modal-actions" style="margin-top:.65rem;">
+      <button class="btn btn-ghost btn-sm" onclick="closeNewDM()">Cancel</button>
+    </div>
+  </div>
+</div>
 
-    let DB_DATA       = {proxies:[],blog:[],chat_basic:[],chat_user:[],chat_admin:[]};
-    let isEdit        = false, accessLevel = "none", myHandle = "";
-    let currentThread = "basic";
-    let lastMsgCount  = {basic:0,user:0,admin:0};
-    let unreadCounts  = {basic:0,user:0,admin:0};
-    let isOnChatView  = false, userAtBottom = true;
-    let newMsgWhileScrolled = 0;
-    let pendingDeleteIndex  = null, pendingDeleteThread = null;
-    let isSwitchingThread   = false;
-    let rateLimitTimestamps = [];
-    const el = {};
+<div id="rank-modal" class="modal hidden">
+  <div class="modal-box">
+    <h3>Change Rank</h3>
+    <p class="modal-p" id="rank-mdesc"></p>
+    <button class="rank-btn planetary" onclick="grantRank('planetary')">🌍 Planetary</button>
+    <button class="rank-btn solar"     onclick="grantRank('solar')">☀️ Solar</button>
+    <button class="rank-btn galactic"  onclick="grantRank('galactic')">🌌 Galactic</button>
+    <button class="rank-btn universal" onclick="grantRank('universal')">✦ Universal</button>
+    <button class="btn btn-ghost btn-sm" style="width:100%;margin-top:.4rem;" onclick="closeRankModal()">Cancel</button>
+  </div>
+</div>
 
-    const GAMES = [
-        {name:"Basket Random",      path:"games/brandom/index.html"},
-        {name:"Bitlife",            path:"games/bitlife.html"},
-        {name:"Drive Mad",          path:"games/drivemad.html"},
-        {name:"Eaglercraft 1.12.2", path:"games/eaglercraft.html"},
-        {name:"Polytrack 0.5.2",    path:"games/polytrack.html"},
-        {name:"Ragdoll Archer",     path:"games/ragdollarcher/index.html"},
-        {name:"Retro Bowl",         path:"games/retrobowl.html"},
-        {name:"Snow Rider 3D",      path:"games/snowrider.html"},
-        {name:"Survival Race",      path:"games/carking.html"},
-    ];
+<div id="epicker" class="epicker hidden"></div>
 
-    const RATE_LIMITS = {basic:{maxMessages:5,timeWindow:60000},user:{maxMessages:10,timeWindow:60000},admin:{maxMessages:50,timeWindow:60000}};
-    const PROFANITY   = ['fuck','shit','bitch','damn','dick','cock','pussy','bastard','slut','whore','fag','nigga','nigger','retard','cunt','asshole'];
-
-    const debounce = (fn,w)=>{ let t; return (...a)=>{ clearTimeout(t); t=setTimeout(()=>fn(...a),w); }; };
-    const escapeHtml = s=>{ const d=document.createElement('div'); d.textContent=s; return d.innerHTML; };
-    const filterProfanity = t=>{ PROFANITY.forEach(w=>{t=t.replace(new RegExp(w,'gi'),'*'.repeat(w.length))}); return t; };
-    const isAdminUser = u=>u.includes('[ADMIN]');
-    const canAct      = u=>accessLevel==='admin'||u===myHandle;
-
-    function getUserColor(u) {
-        let h=0; for(let i=0;i<u.length;i++) h=u.charCodeAt(i)+((h<<5)-h);
-        const c=['linear-gradient(135deg,#667eea,#764ba2)','linear-gradient(135deg,#f093fb,#f5576c)','linear-gradient(135deg,#4facfe,#00f2fe)','linear-gradient(135deg,#43e97b,#38f9d7)','linear-gradient(135deg,#fa709a,#fee140)','linear-gradient(135deg,#30cfd0,#330867)','linear-gradient(135deg,#a8edea,#fed6e3)','linear-gradient(135deg,#ff9a9e,#fecfef)','linear-gradient(135deg,#ffecd2,#fcb69f)','linear-gradient(135deg,#ff6e7f,#bfe9ff)'];
-        return c[Math.abs(h)%c.length];
-    }
-    const getAvatarLetter = u=>u.replace('[ADMIN]','').trim().charAt(0).toUpperCase();
-
-    function getRelativeTime(ts) {
-        if(!ts) return '';
-        const now=new Date(), [time,period]=ts.split(' '), [hh,mm]=time.split(':').map(Number);
-        let h24=hh; if(period==='PM'&&hh!==12) h24+=12; if(period==='AM'&&hh===12) h24=0;
-        const md=new Date(); md.setHours(h24,mm,0,0); if(md>now) md.setDate(md.getDate()-1);
-        const diff=now-md, mins=Math.floor(diff/60000), hours=Math.floor(diff/3600000), days=Math.floor(diff/86400000);
-        if(mins<1) return 'Just now'; if(mins<60) return `${mins}m ago`; if(hours<6) return `${hours}h ago`;
-        if(days===0) return `Today at ${ts}`; if(days===1) return `Yesterday at ${ts}`;
-        const M=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-        return `${M[md.getMonth()]} ${md.getDate()} at ${ts}`;
-    }
-
-    function showNotification(msg, type='info') {
-        const n=document.createElement('div'); n.className=`notification ${type}`;
-        n.innerHTML=`<div class="notif-type">${type}</div><div class="notif-msg">${msg}</div>`;
-        document.body.appendChild(n);
-        setTimeout(()=>{ n.style.animation='notifIn 0.24s ease reverse'; setTimeout(()=>n.remove(),240); },3000);
-    }
-
-    function getMessageCost(t) {
-        if(accessLevel==='admin') return 0.1;
-        let c=1; if(t.length<15)c=0.5; if(t.length>200)c=2;
-        if(t.includes('http'))c+=1; if(/(.)\1{4,}/.test(t))c+=1.5;
-        if(t===t.toUpperCase()&&t.length>10)c+=0.5; return c;
-    }
-    function checkRateLimit(text='') {
-        const now=Date.now(), limit=RATE_LIMITS[accessLevel]||RATE_LIMITS.basic;
-        rateLimitTimestamps=rateLimitTimestamps.filter(e=>now-e.timestamp<limit.timeWindow);
-        const cur=rateLimitTimestamps.reduce((s,e)=>s+e.cost,0), cost=getMessageCost(text);
-        if(cur+cost>limit.maxMessages){ const rem=Math.ceil((limit.timeWindow-(now-rateLimitTimestamps[0].timestamp))/1000); return {allowed:false,timeRemaining:rem,currentCost:cur,limit:limit.maxMessages}; }
-        rateLimitTimestamps.push({timestamp:now,cost}); return {allowed:true,currentCost:cur+cost,limit:limit.maxMessages};
-    }
-
-    function getAllActiveUsernames() {
-        const s=new Set();
-        ['basic','user','admin'].forEach(t=>(DB_DATA[`chat_${t}`]||[]).slice(-50).forEach(m=>{ if(m.user&&!m.deleted)s.add(m.user.toLowerCase()); }));
-        return s;
-    }
-    let usernameCheckTimer=null;
-    function setupUsernameCheck() {
-        const input=document.getElementById('username-input'), status=document.getElementById('username-status');
-        if(!input||!status) return;
-        input.oninput=()=>{
-            clearTimeout(usernameCheckTimer);
-            const v=input.value.trim(); if(v.length<2){status.textContent='';status.className='username-status';return;}
-            status.textContent='...'; status.className='username-status checking';
-            usernameCheckTimer=setTimeout(()=>{
-                if(accessLevel==='admin'){status.textContent='✓ ADMIN';status.className='username-status available';return;}
-                if(v.toLowerCase().includes('admin')){status.textContent='✕ RESERVED';status.className='username-status taken';return;}
-                const taken=getAllActiveUsernames().has(v.toLowerCase());
-                status.textContent=taken?'✕ TAKEN':'✓ FREE'; status.className=`username-status ${taken?'taken':'available'}`;
-            },380);
-        };
-    }
-
-    // Thread dots
-    function updateThreadDots() {
-        document.querySelectorAll('.thread-btn').forEach(btn=>{
-            const t=btn.dataset.thread, existing=btn.querySelector('.thread-unread-dot');
-            if(unreadCounts[t]>0&&t!==currentThread){ if(!existing){const d=document.createElement('span');d.className='thread-unread-dot';btn.appendChild(d);} }
-            else { if(existing) existing.remove(); }
-        });
-    }
-    function updateChatBadge() {
-        if(!el.chatBadge) return;
-        const total=Object.values(unreadCounts).reduce((s,c)=>s+c,0);
-        if(total>0&&!isOnChatView){ el.chatBadge.textContent=total>9?'9+':total; el.chatBadge.classList.remove('hidden'); }
-        else el.chatBadge.classList.add('hidden');
-    }
-    function updateThreadButtons() {
-        document.querySelectorAll('.thread-btn').forEach(btn=>{
-            const t=btn.dataset.thread, locked=!canAccessThread(t);
-            btn.classList.toggle('locked',locked); btn.onclick=locked?null:()=>switchThread(t);
-            btn.classList.toggle('active',t===currentThread);
-        }); updateThreadDots();
-    }
-    const canAccessThread = t=>{ if(accessLevel==='admin')return true; if(t==='admin')return false; if(t==='user')return accessLevel==='user'||accessLevel==='admin'; return true; };
-
-    // Banner
-    function showBanner(count) {
-        const b=document.getElementById('new-msg-banner'); if(!b)return;
-        document.getElementById('banner-count').textContent=count;
-        document.getElementById('banner-plural').textContent=count===1?'':'s';
-        b.classList.remove('hidden','banner-exit');
-    }
-    function hideBanner() {
-        const b=document.getElementById('new-msg-banner'); if(!b||b.classList.contains('hidden'))return;
-        b.classList.add('banner-exit'); setTimeout(()=>b.classList.add('hidden'),230);
-    }
-    window.dismissBanner=()=>{ hideBanner(); scrollToBottom(true); };
-
-    // Scroll
-    window.scrollToBottom=(smooth=true)=>{ if(!el.chatBox)return; el.chatBox.scrollTo({top:el.chatBox.scrollHeight,behavior:smooth?'smooth':'instant'}); newMsgWhileScrolled=0; updateScrollBtn(); hideBanner(); };
-    function updateScrollBtn() {
-        if(!el.chatBox||!el.scrollBtn) return;
-        const {scrollTop,scrollHeight,clientHeight}=el.chatBox;
-        userAtBottom=scrollHeight-scrollTop<=clientHeight+90;
-        if(!userAtBottom){
-            el.scrollBtn.classList.add('visible');
-            if(newMsgWhileScrolled>0){ el.unreadDot.textContent=newMsgWhileScrolled>9?'9+':newMsgWhileScrolled; el.unreadDot.classList.remove('hidden'); }
-            else el.unreadDot.classList.add('hidden');
-        } else { el.scrollBtn.classList.remove('visible'); el.unreadDot.classList.add('hidden'); newMsgWhileScrolled=0; hideBanner(); }
-    }
-
-    function updateCharCounter(text) {
-        if(!el.charCounter) return;
-        const rem=MAX_MSG-text.length;
-        if(text.length>=WARN_MSG){ el.charCounter.textContent=rem; el.charCounter.className=`char-counter ${rem<=0?'danger':'warn'}`; }
-        else { el.charCounter.textContent=''; el.charCounter.className='char-counter ok'; }
-    }
-
-    // Animated thread switch
-    window.switchThread=async(thread)=>{
-        if(!canAccessThread(thread)||thread===currentThread||isSwitchingThread) return;
-        isSwitchingThread=true;
-        if(el.chatBox){ el.chatBox.classList.add('thread-switching'); await new Promise(r=>setTimeout(r,210)); }
-        currentThread=thread; unreadCounts[thread]=0; newMsgWhileScrolled=0;
-        hideBanner(); updateChatBadge(); updateThreadButtons(); renderChat();
-        if(el.chatBox) el.chatBox.classList.remove('thread-switching');
-        isSwitchingThread=false;
-        const names={basic:'goated',user:'legends',admin:'admin'};
-        if(el.chatInput) el.chatInput.placeholder=`Message #${names[thread]}...`;
-    };
-
-    // Unlock
-    document.getElementById('init-btn').onclick=attemptUnlock;
-    document.getElementById('pass-input').onkeydown=e=>{ if(e.key==='Enter')attemptUnlock(); };
-    function attemptUnlock() {
-        const val=document.getElementById('pass-input').value;
-        if(val==='justgoated')     { accessLevel='admin'; currentThread='admin'; }
-        else if(val==='legendsneverdie'){ accessLevel='user'; currentThread='user'; }
-        else if(val==='goated')    { accessLevel='basic'; currentThread='basic'; }
-        else {
-            const pi=document.getElementById('pass-input');
-            pi.classList.remove('shake'); void pi.offsetWidth; pi.classList.add('shake');
-            showNotification('Invalid password','error'); return;
-        }
-        unlock();
-    }
-
-    function unlock() {
-        document.getElementById('access-wall').classList.add('hidden');
-        document.getElementById('app-content').classList.remove('hidden');
-        document.getElementById('main-nav').style.display='flex';
-
-        el.proxyList  =document.getElementById('proxy-list');
-        el.blogFeed   =document.getElementById('blog-feed');
-        el.chatBox    =document.getElementById('chat-box');
-        el.chatInput  =document.getElementById('chat-input');
-        el.sendBtn    =document.getElementById('send-btn');
-        el.rateLimit  =document.getElementById('rate-limit-indicator');
-        el.chatBadge  =document.getElementById('chat-notification-badge');
-        el.charCounter=document.getElementById('char-counter');
-        el.scrollBtn  =document.getElementById('scroll-to-bottom');
-        el.unreadDot  =document.getElementById('unread-scroll-dot');
-
-        if(accessLevel==='admin'){ document.getElementById('edit-toggle').classList.remove('hidden'); document.getElementById('wipe-chat').classList.remove('hidden'); }
-
-        el.chatInput.onkeydown=e=>{ if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendChat();} };
-        el.chatInput.oninput  =()=>updateCharCounter(el.chatInput.value);
-        el.chatBox.addEventListener('scroll',debounce(updateScrollBtn,40));
-
-        updateThreadButtons(); setupUsernameCheck();
-        const debouncedRender=debounce(render,80);
-
-        onSnapshot(docRef,snap=>{
-            if(!snap.exists()) return;
-            const newData=snap.data();
-            ['basic','user','admin'].forEach(t=>{
-                if(!canAccessThread(t)) return;
-                const key=`chat_${t}`, newCount=(newData[key]||[]).length, oldCount=lastMsgCount[t];
-                if(newCount>oldCount&&oldCount>0){
-                    const diff=newCount-oldCount;
-                    if(t!==currentThread||!isOnChatView){
-                        unreadCounts[t]+=diff;
-                        if(Notification.permission==='granted'){
-                            const names={basic:'GOATED',user:'LEGENDS',admin:'ADMIN'};
-                            new Notification(`New in ${names[t]}`,{body:'You have a new message',icon:'https://ssl.gstatic.com/images/branding/product/1x/drive_2020q4_32dp.png'});
-                        }
-                    }
-                    if(t===currentThread&&!userAtBottom){ newMsgWhileScrolled+=diff; showBanner(newMsgWhileScrolled); updateScrollBtn(); }
-                }
-                lastMsgCount[t]=newCount;
-            });
-            DB_DATA=newData; updateChatBadge(); updateThreadDots(); debouncedRender();
-        });
-        renderGames(); loadTooltips(); showNotification('Access granted','success');
-        if(Notification.permission==='default') Notification.requestPermission();
-    }
-
-    window.saveHandle=()=>{
-        const h=document.getElementById('username-input').value.trim();
-        if(h.length<2){showNotification('At least 2 chars','warning');return;}
-        if(h.length>20){showNotification('Max 20 chars','warning');return;}
-        let finalHandle;
-        if(accessLevel==='admin'){ finalHandle=`[ADMIN] ${h}`; }
-        else {
-            if(h.toLowerCase().includes('admin')){showNotification('Reserved for admins','error');return;}
-            if(getAllActiveUsernames().has(h.toLowerCase())){showNotification(`"${h}" is taken — try another`,'error');return;}
-            finalHandle=h;
-        }
-        myHandle=finalHandle;
-        document.getElementById('user-gate').classList.add('hidden');
-        document.getElementById('chat-interface').classList.remove('hidden');
-        updateThreadButtons(); showNotification(`Welcome, ${myHandle}!`,'success');
-    };
-
-    function renderChat() {
-        if(!el.chatBox) return;
-        const messages=DB_DATA[`chat_${currentThread}`]||[];
-        const wasAtBottom=el.chatBox.scrollHeight-el.chatBox.scrollTop<=el.chatBox.clientHeight+90;
-        const prevCount=el.chatBox.querySelectorAll('.chat-msg:not(.deleted-msg)').length;
-        const threadKey=`chat_${currentThread}`;
-        let html='', lastUser=null, lastDate=null;
-
-        messages.forEach((m,idx)=>{
-            if(m.deleted){
-                if(accessLevel!=='admin'){lastUser=null;return;}
-                html+=`<div class="chat-msg deleted-msg first-in-group" data-msg-idx="${idx}" data-thread="${threadKey}"><div class="chat-msg-content" style="font-style:italic;">[message deleted]</div></div>`;
-                lastUser=null; return;
-            }
-            const isFirst=m.user!==lastUser, relTime=getRelativeTime(m.time);
-            const avatarBg=getUserColor(m.user), avatarLt=getAvatarLetter(m.user);
-            const admin=isAdminUser(m.user), can=canAct(m.user);
-            const dateLabel=m.time?m.time.split(' at ')[0]:'';
-            if(dateLabel&&dateLabel!==lastDate&&(dateLabel==='Today'||dateLabel==='Yesterday'||/Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec/.test(dateLabel))){
-                html+=`<div class="date-divider"><span>${dateLabel}</span></div>`; lastDate=dateLabel;
-            }
-            html+=`
-            <div class="chat-msg ${isFirst?'first-in-group':'not-first-in-group'}" data-msg-idx="${idx}" data-thread="${threadKey}">
-                <div class="chat-msg-header">
-                    <div class="user-avatar" style="background:${avatarBg}">${avatarLt}</div>
-                    <div class="chat-user">${escapeHtml(m.user)}</div>
-                    ${admin?'<span class="admin-badge">ADMIN</span>':''}
-                    <span class="chat-timestamp-inline">${relTime}</span>
-                    ${m.edited?'<span class="edited-label">(edited)</span>':''}
-                </div>
-                <div class="chat-msg-content">${escapeHtml(m.text)}</div>
-                <span class="chat-timestamp-right">${escapeHtml(m.time||'')}</span>
-                ${can?`<div class="message-actions"><button class="message-action-btn" onclick="startEdit('${threadKey}',${idx})">✎ Edit</button><button class="message-action-btn danger" onclick="promptDelete('${threadKey}',${idx})">✕ Del</button></div>`:''}
-            </div>`;
-            lastUser=m.user;
-        });
-        el.chatBox.innerHTML=html;
-
-        // Animate newest messages
-        const newCount=messages.filter(m=>!m.deleted).length;
-        if(prevCount>0&&newCount>prevCount){
-            const allMsgs=el.chatBox.querySelectorAll('.chat-msg:not(.deleted-msg)');
-            const diff=newCount-prevCount;
-            Array.from(allMsgs).slice(-diff).forEach(m=>m.classList.add('msg-new'));
-        }
-        if(wasAtBottom){ requestAnimationFrame(()=>{ el.chatBox.scrollTop=el.chatBox.scrollHeight; updateScrollBtn(); }); }
-        else updateScrollBtn();
-    }
-
-    window.render=()=>{
-        if(el.proxyList){
-            const sorted=[...(DB_DATA.proxies||[])].sort((a,b)=>a.name.localeCompare(b.name));
-            el.proxyList.innerHTML=sorted.map(p=>{
-                const ri=(DB_DATA.proxies||[]).findIndex(x=>x.name===p.name);
-                return `<div class="glass-card animate-fade">
-                    <div style="display:flex;justify-content:space-between;margin-bottom:1.05rem;">
-                        <h3 class="gradient-text">${escapeHtml(p.name)}</h3>
-                        ${isEdit?`<button onclick="deleteCat(${ri})" style="color:var(--danger);background:none;border:none;cursor:pointer;font-size:0.58rem;font-weight:800;font-family:Inter,sans-serif;">REMOVE</button>`:''}
-                    </div>
-                    ${p.links.map((l,li)=>`<div style="display:flex;gap:7px;align-items:center;"><a href="${escapeHtml(l)}" target="_blank" rel="noopener noreferrer" class="blurred-link">${escapeHtml(l)}</a>${isEdit?`<button onclick="deleteProxy(${ri},${li})" style="color:var(--danger);background:none;border:none;cursor:pointer;font-size:1.05rem;flex-shrink:0;">×</button>`:''}</div>`).join('')}
-                    ${isEdit?`<div style="margin-top:1.35rem;border-top:1px solid var(--glass-border);padding-top:0.88rem;"><input type="text" id="link-in-${ri}" style="width:100%;padding:0.5rem;background:rgba(0,0,0,0.3);border:1px solid var(--glass-border);color:white;border-radius:8px;margin-bottom:7px;outline:none;font-family:Inter,sans-serif;" placeholder="Add URL..."><button onclick="addLink(${ri})" class="nebula-btn" style="width:100%;font-size:0.68rem;padding:0.48rem;">Save Link</button></div>`:''}
-                </div>`;
-            }).join('');
-        }
-        if(el.blogFeed){
-            el.blogFeed.innerHTML=(DB_DATA.blog||[]).slice().reverse().map((p,i)=>`
-                <div class="glass-card animate-fade">
-                    <div style="display:flex;justify-content:space-between;align-items:center;">
-                        <span style="font-size:0.7rem;color:var(--accent);font-weight:800;">${escapeHtml(p.date)}</span>
-                        ${isEdit?`<button onclick="deleteLog(${DB_DATA.blog.length-1-i})" style="color:var(--danger);background:none;border:none;cursor:pointer;font-size:0.58rem;font-weight:800;font-family:Inter,sans-serif;">REMOVE</button>`:''}
-                    </div>
-                    <h3 style="margin:0.72rem 0;font-size:1.12rem;">${escapeHtml(p.title)}</h3>
-                    <p style="color:rgba(226,232,240,0.73);font-size:0.86rem;line-height:1.6;">${escapeHtml(p.content)}</p>
-                </div>`).join('');
-        }
-        renderChat();
-    };
-
-    window.manualPost=async()=>{ const t=document.getElementById('manual-post-title'),c=document.getElementById('manual-post-content'); if(!t.value.trim()||!c.value.trim()){showNotification('Title and content required','warning');return;} try{await setDoc(docRef,{blog:[...(DB_DATA.blog||[]),{title:t.value.trim(),content:c.value.trim(),date:new Date().toLocaleDateString()}]},{merge:true});t.value='';c.value='';showNotification('Log posted','success');}catch{showNotification('Failed','error');} };
-    window.addCategory=async()=>{ const n=document.getElementById('new-cat-name'); if(!n.value.trim()){showNotification('Name required','warning');return;} try{await setDoc(docRef,{proxies:[...(DB_DATA.proxies||[]),{name:n.value.trim(),links:[]}]},{merge:true});n.value='';showNotification('Category created','success');}catch{showNotification('Failed','error');} };
-    window.addLink=async(i)=>{ const inp=document.getElementById(`link-in-${i}`),url=inp.value.trim(); if(!url){showNotification('URL required','warning');return;} try{new URL(url);}catch{showNotification('Invalid URL','error');return;} try{let p=[...DB_DATA.proxies];p[i].links.push(url);await setDoc(docRef,{proxies:p},{merge:true});inp.value='';showNotification('Link added','success');}catch{showNotification('Failed','error');} };
-    window.deleteProxy=async(ci,li)=>{ try{let p=[...DB_DATA.proxies];p[ci].links.splice(li,1);await setDoc(docRef,{proxies:p},{merge:true});showNotification('Removed','success');}catch{showNotification('Failed','error');} };
-    window.deleteCat=async(i)=>{ if(!confirm(`Delete "${DB_DATA.proxies[i].name}"?`))return; try{let p=[...DB_DATA.proxies];p.splice(i,1);await setDoc(docRef,{proxies:p},{merge:true});showNotification('Deleted','success');}catch{showNotification('Failed','error');} };
-    window.deleteLog=async(i)=>{ if(!confirm('Delete this log?'))return; try{let b=[...DB_DATA.blog];b.splice(i,1);await setDoc(docRef,{blog:b},{merge:true});showNotification('Deleted','success');}catch{showNotification('Failed','error');} };
-    window.wipeChat=async()=>{ if(!confirm('Purge entire chat history?'))return; try{await setDoc(docRef,{[`chat_${currentThread}`]:[]},{merge:true});showNotification('Chat wiped','success');}catch{showNotification('Failed','error');} };
-
-    window.sendChat=async()=>{
-        const text=el.chatInput.value.trim();
-        if(!text||!myHandle){ el.chatInput.classList.remove('shake');void el.chatInput.offsetWidth;el.chatInput.classList.add('shake');return; }
-        if(text.length>MAX_MSG){ showNotification(`Max ${MAX_MSG} chars`,'warning');el.chatInput.classList.remove('shake');void el.chatInput.offsetWidth;el.chatInput.classList.add('shake');return; }
-        const rl=checkRateLimit(text);
-        if(!rl.allowed){ el.rateLimit.textContent=`Rate limit. Wait ${rl.timeRemaining}s.`;el.rateLimit.classList.remove('hidden');el.sendBtn.disabled=true;setTimeout(()=>{el.rateLimit.classList.add('hidden');el.sendBtn.disabled=false;},rl.timeRemaining*1000);showNotification('Slow down!','warning');return; }
-        if(rl.currentCost>rl.limit*0.7){ el.rateLimit.textContent=`${(rl.limit-rl.currentCost).toFixed(1)} capacity left`;el.rateLimit.classList.remove('hidden');setTimeout(()=>el.rateLimit.classList.add('hidden'),2000); }
-        el.sendBtn.disabled=true;
-        try{
-            const filtered=filterProfanity(text);
-            const ts=new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',timeZone:'America/Los_Angeles'});
-            const key=`chat_${currentThread}`;
-            const newChat=[...(DB_DATA[key]||[]),{user:myHandle,text:filtered,time:ts}].slice(-25);
-            await setDoc(docRef,{[key]:newChat},{merge:true});
-            el.chatInput.value=''; updateCharCounter('');
-            if(text!==filtered) showNotification('Message filtered','warning');
-        }catch{ showNotification('Failed to send','error'); }
-        finally{ el.sendBtn.disabled=false; el.chatInput.focus(); }
-    };
-
-    window.startEdit=(threadKey,index)=>{
-        const msg=(DB_DATA[threadKey]||[])[index]; if(!msg||msg.deleted)return;
-        document.querySelectorAll('.being-edited').forEach(e=>e.querySelector('.edit-cancel-btn')?.click());
-        const msgEl=document.querySelector(`[data-msg-idx="${index}"][data-thread="${threadKey}"]`); if(!msgEl)return;
-        msgEl.classList.add('being-edited');
-        const contentEl=msgEl.querySelector('.chat-msg-content'); contentEl.style.display='none';
-        const wrap=document.createElement('div'); wrap.className='edit-input-wrapper';
-        const input=Object.assign(document.createElement('input'),{type:'text',className:'edit-input',value:msg.text,maxLength:MAX_MSG});
-        const save=Object.assign(document.createElement('button'),{className:'edit-save-btn',textContent:'SAVE'});
-        const cancel=Object.assign(document.createElement('button'),{className:'edit-cancel-btn',textContent:'ESC'});
-        const doSave=async()=>{ const nv=input.value.trim(); if(!nv){showNotification('Cannot be empty','warning');return;} if(nv===msg.text){doCancel();return;} save.disabled=true; try{let msgs=[...(DB_DATA[threadKey]||[])];msgs[index]={...msgs[index],text:filterProfanity(nv),edited:true};await setDoc(docRef,{[threadKey]:msgs},{merge:true});showNotification('Updated','success');}catch{showNotification('Failed','error');save.disabled=false;} };
-        const doCancel=()=>{ wrap.remove(); contentEl.style.display=''; msgEl.classList.remove('being-edited'); };
-        save.onclick=doSave; cancel.onclick=doCancel;
-        input.onkeydown=e=>{ if(e.key==='Enter')doSave(); if(e.key==='Escape')doCancel(); };
-        wrap.append(input,save,cancel); msgEl.appendChild(wrap);
-        setTimeout(()=>{ input.focus(); input.setSelectionRange(input.value.length,input.value.length); },50);
-    };
-
-    window.promptDelete=(t,i)=>{ pendingDeleteIndex=i; pendingDeleteThread=t; document.getElementById('delete-confirm-overlay').classList.remove('hidden'); };
-    window.cancelDelete=()=>{ pendingDeleteIndex=pendingDeleteThread=null; document.getElementById('delete-confirm-overlay').classList.add('hidden'); };
-    window.confirmDelete=async()=>{ if(pendingDeleteIndex===null)return; try{let msgs=[...(DB_DATA[pendingDeleteThread]||[])];msgs[pendingDeleteIndex]={...msgs[pendingDeleteIndex],text:'[message deleted]',deleted:true};await setDoc(docRef,{[pendingDeleteThread]:msgs},{merge:true});showNotification('Deleted','success');}catch{showNotification('Failed','error');}cancelDelete(); };
-
-    window.showView=(id)=>{
-        document.querySelectorAll('.view-section').forEach(s=>s.classList.remove('active'));
-        document.querySelectorAll('.nav-a').forEach(a=>a.classList.remove('active'));
-        document.getElementById(id).classList.add('active');
-        const nav=document.getElementById('n-'+id); if(nav)nav.classList.add('active');
-        isOnChatView=(id==='chat-view');
-        if(isOnChatView){ unreadCounts[currentThread]=0; updateChatBadge(); updateThreadDots(); const gate=document.getElementById('user-gate'); if(gate&&!gate.classList.contains('hidden')){ gate.querySelector('h3').textContent=accessLevel==='admin'?'Choose Admin Username':'Username Required'; document.getElementById('admin-hint').classList.toggle('hidden',accessLevel!=='admin'); setupUsernameCheck(); } }
-        updateEditorVisibility();
-    };
-    function updateEditorVisibility(){ const cur=document.querySelector('.view-section.active')?.id; document.getElementById('blog-editor').classList.toggle('hidden',!(isEdit&&cur==='updates-view')); document.getElementById('proxy-editor-main').classList.toggle('hidden',!(isEdit&&cur==='proxy-view')); }
-    window.toggleEdit=()=>{ isEdit=!isEdit; const btn=document.getElementById('edit-toggle'); btn.style.color=isEdit?'var(--success)':'var(--text-faint)'; btn.style.borderColor=isEdit?'var(--success)':'var(--glass-border)'; updateEditorVisibility(); render(); showNotification(isEdit?'Edit mode on':'Edit mode off',isEdit?'success':'info'); };
-
-    window.renderGames=()=>{ document.getElementById('game-list').innerHTML=GAMES.map(g=>`<div class="glass-card animate-fade"><h3 class="gradient-text" style="font-size:1.32rem;">${escapeHtml(g.name)}</h3><button onclick="launchGame('${escapeHtml(g.name)}','${escapeHtml(g.path)}')" class="nebula-btn" style="width:100%;margin-top:1.35rem;">Launch</button></div>`).join(''); };
-    window.launchGame=(n,u)=>{ document.getElementById('vault-title').textContent=`NEBULA VAULT: ${n.toUpperCase()}`; document.getElementById('game-frame').src=u; document.getElementById('game-vault').style.display='flex'; };
-    window.closeGame=()=>{ document.getElementById('game-vault').style.display='none'; document.getElementById('game-frame').src=''; };
-    window.toggleFullscreen=()=>{ const f=document.getElementById('game-frame'); (f.requestFullscreen||f.webkitRequestFullscreen||f.msRequestFullscreen).call(f); };
-
-    async function loadTooltips() {
-        const container=document.getElementById('tooltip-display');
-        let msgs=["GOAT TECH INDUSTRIES","STAY ENCRYPTED","LEGENDS NEVER DIE","SYSTEM ONLINE"];
-        try{const d=await(await fetch('tooltips.json')).json();if(d.messages?.length)msgs=d.messages;}catch{}
-        let idx=0;
-        const mkEl=t=>{ const e=document.createElement('span');e.className='tooltip-text';e.textContent=t;return e; };
-        async function show(t){ const e=mkEl(t);e.classList.add('state-enter');container.appendChild(e);await new Promise(r=>setTimeout(r,750));e.classList.replace('state-enter','state-visible');await new Promise(r=>setTimeout(r,8500));e.classList.replace('state-visible','state-exit');await new Promise(r=>setTimeout(r,510));e.remove(); }
-        (async()=>{ while(true){await show(msgs[idx]);idx=(idx+1)%msgs.length;await new Promise(r=>setTimeout(r,175));} })();
-    }
-
-    // Particles
-    const pc=document.getElementById('particles-container');
-    for(let i=0;i<80;i++){
-        const p=document.createElement('div'); p.className='particle';
-        p.style.left=Math.random()*100+'vw'; p.style.top=Math.random()*100+'vh';
-        p.style.width=p.style.height=(Math.random()*2+0.8)+'px';
-        p.style.animationDuration=(Math.random()*13+9)+'s';
-        p.style.animationDelay=(-Math.random()*13)+'s';
-        pc.appendChild(p);
-    }
-
-    // Keyboard shortcuts
-    document.getElementById('username-input').onkeydown=e=>{ if(e.key==='Enter')saveHandle(); };
-    document.addEventListener('keydown',e=>{
-        if(!document.getElementById('delete-confirm-overlay').classList.contains('hidden')){ if(e.key==='Escape')cancelDelete(); return; }
-        if((e.ctrlKey||e.metaKey)&&e.key==='k'&&isOnChatView){e.preventDefault();el.chatInput?.focus();}
-        if(e.key==='Escape'&&document.activeElement===el.chatInput){el.chatInput.value='';updateCharCounter('');el.chatInput.blur();}
-    });
-    document.getElementById('delete-confirm-overlay').addEventListener('click',e=>{ if(e.target===e.currentTarget)cancelDelete(); });
-</script>
+<script src="script.js" type="module"></script>
 </body>
 </html>
