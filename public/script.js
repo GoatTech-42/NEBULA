@@ -7,7 +7,7 @@ import {
    FIREBASE
 ══════════════════════════════════════════ */
 const app = initializeApp({
-  apiKey:"AIzaSyDd578sgxhJCltHmSZbyVKQOso67CWh_0M",
+  apiKey:"",
   authDomain:"goattechneverdies.firebaseapp.com",
   projectId:"goattechneverdies",
   storageBucket:"goattechneverdies.firebasestorage.app",
