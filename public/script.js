@@ -1,6 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
 import {
-  getFirestore, doc, onSnapshot, setDoc, getDoc
+  getFirestore, doc, onSnapshot, setDoc, getDoc, updateDoc
 } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
 /* ══════════════════════════════════════════
@@ -51,6 +51,9 @@ const DEFAULT_THREADS = [
   {id:'announcements', name:'announcements', emoji:'📢', password:'', locked:false, announceOnly:true},
 ];
 
+/* rank hierarchy — higher index = more access */
+const RANKS = ['earthbound','planetary','solar','galactic','universal'];
+
 /* ══════════════════════════════════════════
    STATE
 ══════════════════════════════════════════ */
@@ -69,6 +72,11 @@ let pendingThread = null;
 let atBottom      = true;
 let newMsgCount   = 0;
 let switching     = false;
+
+/* throttle Firestore writes — batch pending writes and flush */
+let msgWriteTimer  = null;
+let dmWriteTimer   = null;
+const MSG_WRITE_DELAY = 300; // ms
 
 /* vault */
 let zones=[], gameFavs=JSON.parse(localStorage.getItem('nebula-gfavs')||'[]');
@@ -104,14 +112,21 @@ const userColor = u => {
 };
 const avatarLetter   = u => (u||'?').charAt(0).toUpperCase();
 const isMod          = u => { if(!u) return false; return u.username===ADMIN_USERNAME||u.rank==='universal'; };
-const rankBadge      = r => {
-  r=r||'planetary';
-  const L={planetary:'🌍 Planetary',solar:'☀️ Solar',galactic:'🌌 Galactic',universal:'✦ Universal'};
-  return `<span class="rbadge ${r}">${L[r]}</span>`;
+const isEarthbound   = u => u?.rank==='earthbound';
+const canAccessGames = u => { if(!u) return false; if(u.isAdmin) return true; return u.rank!=='earthbound'; };
+const canAccessProxy = u => { if(!u) return false; return (u.proxyAccess||u.isAdmin)&&u.rank!=='earthbound'; };
+
+const rankBadge = r => {
+  r=r||'earthbound';
+  const L={earthbound:'🌱 Earthbound',planetary:'🌍 Planetary',solar:'☀️ Solar',galactic:'🌌 Galactic',universal:'✦ Universal'};
+  return `<span class="rbadge ${r}">${L[r]||r}</span>`;
 };
-const rankColorText  = r => ({planetary:'#38bdf8',solar:'#f59e0b',galactic:'#a855f7',universal:'#e2e8f0'}[r]||'#38bdf8');
-const tsNow          = () => new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',timeZone:'America/Los_Angeles'});
-const dmKey          = (a,b) => [a,b].sort().join('__');
+const rankColorText = r => ({
+  earthbound:'#6ee7b7',planetary:'#38bdf8',solar:'#f59e0b',galactic:'#a855f7',universal:'#e2e8f0'
+}[r]||'#38bdf8');
+
+const tsNow = () => new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',timeZone:'America/Los_Angeles'});
+const dmKey = (a,b) => [a,b].sort().join('__');
 const relTime = ts => {
   if(!ts) return '';
   const [time,period]=ts.split(' '); if(!period) return ts;
@@ -142,12 +157,40 @@ function closeModal(id){
     document.getElementById('modal-overlay').classList.add('hidden');
 }
 window.closeTopModal = () => { const o=document.querySelector('.modal:not(.hidden)'); if(o) closeModal(o.id); };
+
 function checkRate(logs, user){
   const now=Date.now(), win=60000;
   const limit=user?.username===ADMIN_USERNAME?200:isMod(user)?40:10;
   while(logs.length&&now-logs[0]>win) logs.shift();
   if(logs.length>=limit){ const wait=Math.ceil((win-(now-logs[0]))/1000); return{ok:false,wait}; }
   logs.push(now); return{ok:true};
+}
+
+/* ══════════════════════════════════════════
+   OPTIMISED FIRESTORE WRITERS
+   — debounced so rapid messages only fire
+     one write instead of many
+══════════════════════════════════════════ */
+let pendingMsgWrite = null;
+let pendingDMWrite  = null;
+
+function scheduleMsgWrite(newDB){
+  pendingMsgWrite = newDB;
+  clearTimeout(msgWriteTimer);
+  msgWriteTimer = setTimeout(async()=>{
+    if(!pendingMsgWrite) return;
+    try{ await setDoc(REFS.messages, pendingMsgWrite); }catch(e){console.error(e);}
+    pendingMsgWrite=null;
+  }, MSG_WRITE_DELAY);
+}
+function scheduleDMWrite(newDB){
+  pendingDMWrite = newDB;
+  clearTimeout(dmWriteTimer);
+  dmWriteTimer = setTimeout(async()=>{
+    if(!pendingDMWrite) return;
+    try{ await setDoc(REFS.dms, pendingDMWrite); }catch(e){console.error(e);}
+    pendingDMWrite=null;
+  }, MSG_WRITE_DELAY);
 }
 
 /* ══════════════════════════════════════════
@@ -182,8 +225,8 @@ function updateNotifPermUI(){
 }
 window.saveNotifPrefs = () => {
   const prefs=getNotifPrefs();
-  prefs.dms     = document.getElementById('ntog-dms')?.checked||false;
-  prefs.muteAll = document.getElementById('ntog-mute')?.checked||false;
+  prefs.dms    =document.getElementById('ntog-dms')?.checked||false;
+  prefs.muteAll=document.getElementById('ntog-mute')?.checked||false;
   prefs.channels=prefs.channels||{};
   document.querySelectorAll('.cnr-checkbox').forEach(cb=>{ prefs.channels[cb.dataset.tid]=cb.checked; });
   saveNotifPrefsData(prefs);
@@ -265,10 +308,12 @@ window.doSignUp = async () => {
   await loadAccounts();
   if(DB.accounts[u]){err.textContent='Username taken.';return;}
   try{
-    await setDoc(REFS.accounts,{...DB.accounts,[u]:{
-      name,passHash:await hashPass(p),rank:'planetary',
+    /* use updateDoc-style merge via setDoc merge to avoid overwriting all accounts */
+    const newAccounts={...DB.accounts,[u]:{
+      name,passHash:await hashPass(p),rank:'earthbound',
       approved:false,banned:false,proxyAccess:false,joinedAt:tsNow()
-    }});
+    }};
+    await setDoc(REFS.accounts,newAccounts);
     notify('Account requested! Awaiting approval.','success');
     authTab('signin');
     ['su-name','su-user','su-pass','su-pass2'].forEach(id=>document.getElementById(id).value='');
@@ -321,37 +366,38 @@ async function launchApp(){
   document.getElementById('auth-screen').classList.add('hidden');
   document.getElementById('pending-screen').classList.add('hidden');
   document.getElementById('app').classList.remove('hidden');
+
   if(isMod(currentUser)){
     document.getElementById('snav-admin').classList.remove('hidden');
     document.getElementById('ts-add-btn').classList.remove('hidden');
   }
-  if(currentUser.proxyAccess||currentUser.isAdmin)
+  if(canAccessProxy(currentUser))
     document.getElementById('snav-proxy').classList.remove('hidden');
+
+  // hide games nav for earthbound
+  if(!canAccessGames(currentUser))
+    document.getElementById('snav-games').classList.add('hidden');
+
   updateSidebarProfile();
   loadTooltips();
   startListeners();
-  loadZones();
+  if(canAccessGames(currentUser)) loadZones();
   loadProfileSection();
+
   document.addEventListener('keydown',globalKeyHandler);
   document.addEventListener('click',closeEmojiOutside);
   document.getElementById('si-pass').addEventListener('keydown',e=>{if(e.key==='Enter')doSignIn();});
   document.getElementById('si-user').addEventListener('keydown',e=>{if(e.key==='Enter')doSignIn();});
   document.getElementById('tpass-inp').addEventListener('keydown',e=>{if(e.key==='Enter')submitTPass();});
 
-  /* ── clear unread when tab is refocused ── */
   document.addEventListener('visibilitychange',()=>{
     if(document.visibilityState==='visible'){
       if(activeSection==='chat'&&activeThread){
-        unreadThreads[activeThread.id]=0;
-        newMsgCount=0;
-        updateChatBadge();
-        renderThreadList();
-        updateScrollBtn();
+        unreadThreads[activeThread.id]=0; newMsgCount=0;
+        updateChatBadge(); renderThreadList(); updateScrollBtn();
       }
       if(activeSection==='dms'&&activeDM){
-        unreadDMs[activeDM]=0;
-        updateDMBadge();
-        renderDMList();
+        unreadDMs[activeDM]=0; updateDMBadge(); renderDMList();
       }
     }
   });
@@ -368,12 +414,14 @@ function updateSidebarProfile(){
   document.getElementById('sp-name').textContent=currentUser.username;
   const rEl=document.getElementById('sp-rank');
   rEl.style.color=rankColorText(currentUser.rank);
-  const rN={planetary:'🌍 Planetary',solar:'☀️ Solar',galactic:'🌌 Galactic',universal:'✦ Universal'};
+  const rN={earthbound:'🌱 Earthbound',planetary:'🌍 Planetary',solar:'☀️ Solar',galactic:'🌌 Galactic',universal:'✦ Universal'};
   rEl.textContent=rN[currentUser.rank]||'';
 }
 
 /* ══════════════════════════════════════════
-   LISTENERS
+   LISTENERS — each snapshot only fires when
+   data actually changes; we avoid re-reading
+   on every keystroke by caching locally.
 ══════════════════════════════════════════ */
 function startListeners(){
   onSnapshot(REFS.accounts,snap=>{
@@ -384,7 +432,9 @@ function startListeners(){
       if(live){
         currentUser.rank=live.rank; currentUser.banned=live.banned;
         currentUser.approved=live.approved; currentUser.proxyAccess=live.proxyAccess;
-        if(live.proxyAccess) document.getElementById('snav-proxy').classList.remove('hidden');
+        if(canAccessProxy(currentUser)) document.getElementById('snav-proxy').classList.remove('hidden');
+        if(!canAccessGames(currentUser)) document.getElementById('snav-games').classList.add('hidden');
+        else document.getElementById('snav-games').classList.remove('hidden');
         updateSidebarProfile();
       }
     }
@@ -410,10 +460,9 @@ function startListeners(){
       const newLen=newArr.filter(m=>!m.deleted).length;
       if(newLen>oldLen){
         const diff=newLen-oldLen;
-        // only mark unread if NOT currently visible in this thread
-        const isActiveAndVisible =
-          activeThread?.id===tid &&
-          activeSection==='chat' &&
+        const isActiveAndVisible=
+          activeThread?.id===tid&&
+          activeSection==='chat'&&
           document.visibilityState==='visible';
         if(!isActiveAndVisible){
           unreadThreads[tid]=(unreadThreads[tid]||0)+diff;
@@ -443,10 +492,8 @@ function startListeners(){
       const newArr=DB.dms[k]||[];
       const newLen=newArr.length;
       const other=k.split('__').find(p=>p!==myU);
-      const isActiveAndVisible =
-        other===activeDM &&
-        activeSection==='dms' &&
-        document.visibilityState==='visible';
+      const isActiveAndVisible=
+        other===activeDM&&activeSection==='dms'&&document.visibilityState==='visible';
       if(other&&newLen>oldLen&&!isActiveAndVisible){
         unreadDMs[other]=(unreadDMs[other]||0)+(newLen-oldLen);
         if(!prefs.muteAll&&prefs.dms&&Notification.permission==='granted'){
@@ -477,7 +524,8 @@ function startListeners(){
    SECTIONS
 ══════════════════════════════════════════ */
 window.showSection = s => {
-  if(s==='proxy'&&!currentUser?.proxyAccess&&!currentUser?.isAdmin){notify('Access denied','error');return;}
+  if(s==='proxy'&&!canAccessProxy(currentUser)){notify('Access denied','error');return;}
+  if(s==='games'&&!canAccessGames(currentUser)){notify('Access denied','error');return;}
   if(s==='admin'&&!isMod(currentUser)){notify('Access denied','error');return;}
   document.querySelectorAll('.section').forEach(x=>x.classList.remove('active'));
   document.querySelectorAll('.snav-item').forEach(x=>x.classList.remove('active'));
@@ -486,16 +534,11 @@ window.showSection = s => {
   document.getElementById(`snav-${s}`)?.classList.add('active');
   activeSection=s;
   if(s==='chat'){
-    if(activeThread){
-      unreadThreads[activeThread.id]=0;
-      newMsgCount=0;
-    }
+    if(activeThread){unreadThreads[activeThread.id]=0;newMsgCount=0;}
     updateChatBadge(); renderThreadList();
   }
   if(s==='dms'){
-    if(activeDM){
-      unreadDMs[activeDM]=0;
-    }
+    if(activeDM) unreadDMs[activeDM]=0;
     updateDMBadge(); renderDMList();
   }
   if(s==='admin')         renderAdminPanel();
@@ -566,16 +609,19 @@ window.submitTPass=async()=>{
     inp.classList.remove('shake'); void inp.offsetWidth; inp.classList.add('shake');
   }
 };
+
 async function switchThread(t){
   if(switching) return; switching=true;
   activeThread=t; unreadThreads[t.id]=0; newMsgCount=0;
-  updateChatBadge(); renderThreadList(); atBottom=true;
+  updateChatBadge(); renderThreadList();
+  // DON'T reset atBottom here — let renderMessages decide after scroll
+
   document.getElementById('chat-no-select').classList.add('hidden');
   const win=document.getElementById('chat-window'); win.classList.remove('hidden');
   document.getElementById('ctb-name').textContent=t.name;
   const ann=document.getElementById('ctb-announce');
   ann.classList.toggle('hidden',!t.announceOnly);
-  // rebuild input area
+
   const ia=document.getElementById('chat-input-area');
   if(t.announceOnly&&!isMod(currentUser)){
     ia.innerHTML=`<div class="announce-notice">📢 Only moderators can post here. You may react to messages.</div>`;
@@ -592,21 +638,32 @@ async function switchThread(t){
     document.getElementById('chat-input').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMessage();}});
     document.getElementById('chat-input').addEventListener('input',updateCharCtr);
   }
-  // topbar controls
+
   const ctbRight=document.getElementById('ctb-right'); ctbRight.innerHTML='';
   if(isMod(currentUser)){
     const wb=document.createElement('button'); wb.className='btn btn-ghost btn-sm'; wb.textContent='🗑 Wipe';
     wb.onclick=()=>wipeThread(t.id); ctbRight.appendChild(wb);
   }
-  renderMessages(); switching=false;
+
+  // reset scroll state for new thread
+  atBottom=true; newMsgCount=0;
+  renderMessages();
+  switching=false;
   if(activeSection!=='chat') showSection('chat');
-  setTimeout(()=>{ const mw=document.getElementById('messages-wrap'); if(mw){mw.scrollTop=mw.scrollHeight;atBottom=true;} },80);
+
+  // scroll to bottom on thread switch
+  requestAnimationFrame(()=>{
+    const mw=document.getElementById('messages-wrap');
+    if(mw){ mw.scrollTop=mw.scrollHeight; atBottom=true; }
+  });
 }
+
 async function wipeThread(tid){
   if(!confirm(`Wipe all messages in #${tid}?`)) return;
   try{ await setDoc(REFS.messages,{...DB.messages,[tid]:[]}); notify('Wiped','success'); }
   catch{ notify('Failed','error'); }
 }
+
 window.openCreateThread=()=>{
   ['ct-name','ct-emoji'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('ct-announce').checked=false;
@@ -646,7 +703,12 @@ function renderMessages(){
   if(!activeThread) return;
   const msgs=DB.messages[activeThread.id]||[];
   const wrap=document.getElementById('messages-wrap'); if(!wrap) return;
-  const wasBottom=wrap.scrollHeight-wrap.scrollTop<=wrap.clientHeight+140;
+
+  // save scroll position BEFORE re-render
+  const prevScrollTop    = wrap.scrollTop;
+  const prevScrollHeight = wrap.scrollHeight;
+  const wasAtBottom      = prevScrollHeight - prevScrollTop <= wrap.clientHeight + 140;
+
   const container=document.getElementById('messages'); container.innerHTML='';
   let lastUser=null, lastDate=null;
   msgs.forEach((m,idx)=>{
@@ -659,9 +721,23 @@ function renderMessages(){
     container.appendChild(buildMessage(m,idx,m.user!==lastUser,activeThread.id,false));
     lastUser=m.user;
   });
-  if(wasBottom){wrap.scrollTop=wrap.scrollHeight;atBottom=true;newMsgCount=0;}
-  updateScrollBtn(); ensureScrollListener(wrap);
+
+  // restore scroll: if was at bottom → stay at bottom, else keep position
+  requestAnimationFrame(()=>{
+    if(wasAtBottom){
+      wrap.scrollTop=wrap.scrollHeight;
+      atBottom=true; newMsgCount=0;
+    }else{
+      // keep relative position so scrolling up doesn't jump
+      wrap.scrollTop=prevScrollTop+(wrap.scrollHeight-prevScrollHeight);
+      atBottom=false;
+    }
+    updateScrollBtn();
+  });
+
+  ensureScrollListener(wrap);
 }
+
 function ensureScrollListener(wrap){
   if(wrap._scrollBound) return; wrap._scrollBound=true;
   wrap.addEventListener('scroll',deb(()=>{
@@ -694,7 +770,8 @@ function buildMessage(m, idx, isFirst, ctxId, isDM){
   const canAct=currentUser&&(currentUser.username===m.user||isMod(currentUser));
   const isOwn=currentUser&&currentUser.username===m.user;
   const bg=m.user===ADMIN_USERNAME?'linear-gradient(135deg,#f43f5e,#a855f7)':userColor(m.user);
-  const rank=(DB.accounts[m.user]?.rank)||'planetary';
+  const rank=(DB.accounts[m.user]?.rank)||'earthbound';
+
   const avaWrap=document.createElement('div'); avaWrap.className='msg-ava-wrap';
   if(isFirst){
     avaWrap.innerHTML=`<div class="msg-ava" style="background:${bg}">${avatarLetter(m.user)}</div>`;
@@ -702,6 +779,7 @@ function buildMessage(m, idx, isFirst, ctxId, isDM){
     avaWrap.innerHTML=`<div class="msg-ava-spacer"></div><div class="msg-ts-inline">${(m.time||'').split(' ').slice(0,2).join(' ')}</div>`;
   }
   div.appendChild(avaWrap);
+
   const content=document.createElement('div'); content.className='msg-content';
   if(isFirst){
     content.innerHTML=`<div class="msg-header">
@@ -710,6 +788,7 @@ function buildMessage(m, idx, isFirst, ctxId, isDM){
       <span class="msg-ts">${relTime(m.time)}</span>
     </div>`;
   }
+
   const textDiv=document.createElement('div'); textDiv.className='msg-text';
   if(m.deleted){
     textDiv.style.cssText='color:var(--text-faint);font-style:italic;';
@@ -719,6 +798,7 @@ function buildMessage(m, idx, isFirst, ctxId, isDM){
     if(m.edited){const ed=document.createElement('span');ed.className='msg-edited';ed.textContent=' (edited)';textDiv.appendChild(ed);}
   }
   content.appendChild(textDiv);
+
   if(!m.deleted){
     const rct=m.reactions||{};
     const rkeys=Object.keys(rct).filter(e=>rct[e]&&rct[e].length>0);
@@ -735,15 +815,16 @@ function buildMessage(m, idx, isFirst, ctxId, isDM){
     }
   }
   div.appendChild(content);
+
   if(!m.deleted&&(canAct||currentUser)){
     const acts=document.createElement('div'); acts.className='msg-actions';
     if(currentUser){
       const rb=document.createElement('button'); rb.className='mab'; rb.textContent='😊';
       rb.onclick=e=>{e.stopPropagation();openEmoji(e,ctxId,idx,isDM);}; acts.appendChild(rb);
     }
-    if(isOwn&&!isDM){
+    if(isOwn){ // edit works in BOTH channels and DMs
       const eb=document.createElement('button'); eb.className='mab'; eb.textContent='✎';
-      eb.onclick=()=>startEdit(ctxId,idx); acts.appendChild(eb);
+      eb.onclick=()=>startEdit(ctxId,idx,isDM); acts.appendChild(eb);
     }
     if(canAct){
       const db=document.createElement('button'); db.className='mab d'; db.textContent='✕';
@@ -775,11 +856,18 @@ window.sendMessage=async()=>{
     const existing=DB.messages[activeThread.id]||[];
     const updated=[...existing,{user:currentUser.username,text:filt(text),time:tsNow(),reactions:{}}]
       .slice(-MAX_CHANNEL_MSGS);
-    await setDoc(REFS.messages,{...DB.messages,[activeThread.id]:updated});
+    const newMsgs={...DB.messages,[activeThread.id]:updated};
+    DB.messages=newMsgs; // optimistic local update
+    scheduleMsgWrite(newMsgs);
     input.value=''; updateCharCtr();
+    // scroll to bottom immediately on own message
+    const mw=document.getElementById('messages-wrap');
+    if(mw){ mw.scrollTop=mw.scrollHeight; atBottom=true; newMsgCount=0; }
+    renderMessages();
   }catch{notify('Failed to send','error');}
   finally{if(sb)sb.disabled=false;input.focus();}
 };
+
 function updateCharCtr(){
   const input=document.getElementById('chat-input');
   const ctr=document.getElementById('char-ctr');
@@ -788,6 +876,7 @@ function updateCharCtr(){
   if(len>=WARN_MSG_LEN){ctr.textContent=MAX_MSG_LEN-len;ctr.className=`char-ctr${len>=MAX_MSG_LEN?' danger':' warn'}`;}
   else{ctr.textContent='';ctr.className='char-ctr';}
 }
+
 window.promptDel=(ctx,idx,isDM=false)=>{pdel={ctx,idx:+idx,isDM};openModal('del-modal');};
 window.cancelDel=()=>{pdel={ctx:null,idx:null,isDM:false};closeModal('del-modal');};
 window.confirmDel=async()=>{
@@ -796,37 +885,55 @@ window.confirmDel=async()=>{
     if(isDM){
       const k=dmKey(currentUser.username,ctx);
       let ms=[...(DB.dms[k]||[])]; ms[idx]={...ms[idx],deleted:true};
-      await setDoc(REFS.dms,{...DB.dms,[k]:ms});
+      const newDMs={...DB.dms,[k]:ms}; DB.dms=newDMs;
+      scheduleDMWrite(newDMs);
     }else{
       let ms=[...(DB.messages[ctx]||[])]; ms[idx]={...ms[idx],deleted:true};
-      await setDoc(REFS.messages,{...DB.messages,[ctx]:ms});
+      const newMsgs={...DB.messages,[ctx]:ms}; DB.messages=newMsgs;
+      scheduleMsgWrite(newMsgs);
     }
     notify('Deleted','success');
   }catch{notify('Failed','error');}
   cancelDel();
 };
-window.startEdit=(tid,idx)=>{
-  const msgs=DB.messages[tid]||[]; const m=msgs[idx];
-  if(!m||m.deleted) return;
-  const els=document.querySelectorAll(`#messages .msg[data-idx="${idx}"][data-ctx="${tid}"]`);
+
+/* edit works for both channel messages AND DMs */
+window.startEdit=(ctxId,idx,isDM=false)=>{
+  const msgs=isDM?(DB.dms[dmKey(currentUser.username,ctxId)]||[]):(DB.messages[ctxId]||[]);
+  const m=msgs[idx]; if(!m||m.deleted) return;
+
+  const containerSel=isDM?'#dm-messages':'#messages';
+  const els=document.querySelectorAll(`${containerSel} .msg[data-idx="${idx}"][data-ctx="${ctxId}"]`);
   if(!els.length) return;
   const el=els[0];
+
   document.querySelectorAll('.edit-wrap').forEach(e=>e.remove());
   document.querySelectorAll('.msg.editing').forEach(e=>e.classList.remove('editing'));
   el.classList.add('editing');
   const textDiv=el.querySelector('.msg-text'); textDiv.style.display='none';
+
   const wrap=document.createElement('div'); wrap.className='edit-wrap';
   const inp=document.createElement('input'); inp.type='text'; inp.className='edit-inp';
   inp.value=m.text; inp.maxLength=MAX_MSG_LEN;
   const save=document.createElement('button'); save.className='esave'; save.textContent='Save';
   const can=document.createElement('button'); can.className='ecancel'; can.textContent='Cancel';
+
   const doSave=async()=>{
     const nv=inp.value.trim();
     if(!nv){notify('Empty','warning');return;} if(nv===m.text){doCancel();return;}
     save.disabled=true;
     try{
-      let ms=[...(DB.messages[tid]||[])]; ms[idx]={...ms[idx],text:filt(nv),edited:true};
-      await setDoc(REFS.messages,{...DB.messages,[tid]:ms}); notify('Edited','success');
+      if(isDM){
+        const k=dmKey(currentUser.username,ctxId);
+        let ms=[...(DB.dms[k]||[])]; ms[idx]={...ms[idx],text:filt(nv),edited:true};
+        const newDMs={...DB.dms,[k]:ms}; DB.dms=newDMs;
+        scheduleDMWrite(newDMs);
+      }else{
+        let ms=[...(DB.messages[ctxId]||[])]; ms[idx]={...ms[idx],text:filt(nv),edited:true};
+        const newMsgs={...DB.messages,[ctxId]:ms}; DB.messages=newMsgs;
+        scheduleMsgWrite(newMsgs);
+      }
+      notify('Edited','success');
     }catch{notify('Failed','error');save.disabled=false;}
   };
   const doCancel=()=>{wrap.remove();textDiv.style.display='';el.classList.remove('editing');};
@@ -860,11 +967,13 @@ window.toggleReact=async(ctx,idx,emoji,isDM=false)=>{
       const k=dmKey(currentUser.username,ctx);
       let ms=[...(DB.dms[k]||[])]; const m={...ms[idx]};
       const rct={...m.reactions||{}}; rct[emoji]=toggle([...(rct[emoji]||[])],currentUser.username);
-      ms[idx]={...m,reactions:rct}; await setDoc(REFS.dms,{...DB.dms,[k]:ms});
+      ms[idx]={...m,reactions:rct};
+      const newDMs={...DB.dms,[k]:ms}; DB.dms=newDMs; scheduleDMWrite(newDMs);
     }else{
       let ms=[...(DB.messages[ctx]||[])]; const m={...ms[idx]};
       const rct={...m.reactions||{}}; rct[emoji]=toggle([...(rct[emoji]||[])],currentUser.username);
-      ms[idx]={...m,reactions:rct}; await setDoc(REFS.messages,{...DB.messages,[ctx]:ms});
+      ms[idx]={...m,reactions:rct};
+      const newMsgs={...DB.messages,[ctx]:ms}; DB.messages=newMsgs; scheduleMsgWrite(newMsgs);
     }
   }catch{notify('Failed','error');}
 };
@@ -962,14 +1071,21 @@ function openDMWith(other){
   inp.oninput=updateDMCharCtr;
   renderDMMessages();
   if(activeSection!=='dms') showSection('dms');
-  setTimeout(()=>{ const mw=document.getElementById('dm-messages-wrap'); if(mw)mw.scrollTop=mw.scrollHeight; },80);
+  requestAnimationFrame(()=>{
+    const mw=document.getElementById('dm-messages-wrap'); if(mw)mw.scrollTop=mw.scrollHeight;
+  });
 }
+
 function renderDMMessages(){
   if(!activeDM) return;
   const k=dmKey(currentUser.username,activeDM);
   const msgs=DB.dms[k]||[];
   const wrap=document.getElementById('dm-messages-wrap'); if(!wrap) return;
-  const wasBottom=wrap.scrollHeight-wrap.scrollTop<=wrap.clientHeight+140;
+
+  const prevScrollTop    = wrap.scrollTop;
+  const prevScrollHeight = wrap.scrollHeight;
+  const wasAtBottom      = prevScrollHeight - prevScrollTop <= wrap.clientHeight + 140;
+
   const container=document.getElementById('dm-messages'); container.innerHTML='';
   let lastUser=null, lastDate=null;
   msgs.forEach((m,idx)=>{
@@ -982,8 +1098,13 @@ function renderDMMessages(){
     container.appendChild(buildMessage(m,idx,m.user!==lastUser,activeDM,true));
     lastUser=m.user;
   });
-  if(wasBottom) wrap.scrollTop=wrap.scrollHeight;
+
+  requestAnimationFrame(()=>{
+    if(wasAtBottom) wrap.scrollTop=wrap.scrollHeight;
+    else wrap.scrollTop=prevScrollTop+(wrap.scrollHeight-prevScrollHeight);
+  });
 }
+
 window.sendDM=async()=>{
   const inp=document.getElementById('dm-input'); if(!inp) return;
   const text=inp.value.trim();
@@ -1000,9 +1121,12 @@ window.sendDM=async()=>{
     const existing=DB.dms[k]||[];
     const updated=[...existing,{user:currentUser.username,text:filt(text),time:tsNow(),reactions:{}}]
       .slice(-MAX_DM_MSGS);
-    await setDoc(REFS.dms,{...DB.dms,[k]:updated});
+    const newDMs={...DB.dms,[k]:updated};
+    DB.dms=newDMs; scheduleDMWrite(newDMs);
     inp.value=''; updateDMCharCtr();
-    const mw=document.getElementById('dm-messages-wrap'); if(mw)mw.scrollTop=mw.scrollHeight;
+    const mw=document.getElementById('dm-messages-wrap');
+    if(mw){ mw.scrollTop=mw.scrollHeight; }
+    renderDMMessages();
   }catch{notify('Failed to send','error');}
 };
 function updateDMCharCtr(){
@@ -1074,7 +1198,6 @@ function renderAdmUsers(){
     const lbl=document.createElement('div'); lbl.style.cssText='font-size:.63rem;color:var(--danger);margin:.85rem 0 .48rem;';
     lbl.textContent='Banned accounts'; el.appendChild(lbl);
     banned.forEach(([u])=>{
-      const a=DB.accounts[u];
       const row=document.createElement('div'); row.className='adm-row';
       row.innerHTML=`<div class="adm-ava" style="background:${userColor(u)}">${avatarLetter(u)}</div>`
         +`<div class="adm-name" style="opacity:.5">${esc(u)}</div><span style="font-size:.63rem;color:var(--danger);">Banned</span>`;
