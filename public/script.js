@@ -40,7 +40,7 @@ const ZONE_URLS = [
 const COVER_URL = "https://cdn.jsdelivr.net/gh/gn-math/covers@main";
 const HTML_URL  = "https://cdn.jsdelivr.net/gh/gn-math/html@main";
 const EMOJIS    = ['👍','💔','😂','😭','🤯','🔥','😃','🥀','👀','💀'];
-const PROFANITY = ['\x5c\x78\x36\x36\x5c\x78\x37\x35\x5c\x78\x36\x33\x5c\x78\x36\x62','\x5c\x78\x37\x33\x5c\x78\x36\x38\x5c\x78\x36\x39\x5c\x78\x37\x34','\x5c\x78\x36\x32\x5c\x78\x36\x39\x5c\x78\x37\x34\x5c\x78\x36\x33\x5c\x78\x36\x38','\x5c\x78\x36\x34\x5c\x78\x36\x39\x5c\x78\x36\x33\x5c\x78\x36\x62','\x5c\x78\x36\x33\x5c\x78\x36\x66\x5c\x78\x36\x33\x5c\x78\x36\x62','\x5c\x78\x37\x30\x5c\x78\x37\x35\x5c\x78\x37\x33\x5c\x78\x37\x33\x5c\x78\x37\x39','\x5c\x78\x36\x32\x5c\x78\x36\x31\x5c\x78\x37\x33\x5c\x78\x37\x34\x5c\x78\x36\x31\x5c\x78\x37\x32\x5c\x78\x36\x34','\x5c\x78\x37\x33\x5c\x78\x36\x63\x5c\x78\x37\x35\x5c\x78\x37\x34','\x5c\x78\x37\x37\x5c\x78\x36\x38\x5c\x78\x36\x66\x5c\x78\x37\x32\x5c\x78\x36\x35','\x5c\x78\x36\x36\x5c\x78\x36\x31\x5c\x78\x36\x37','\x5c\x78\x36\x65\x5c\x78\x36\x39\x5c\x78\x36\x37\x5c\x78\x36\x37\x5c\x78\x36\x31','\x5c\x78\x36\x65\x5c\x78\x36\x39\x5c\x78\x36\x37\x5c\x78\x36\x37\x5c\x78\x36\x35\x5c\x78\x37\x32','\x5c\x78\x37\x32\x5c\x78\x36\x35\x5c\x78\x37\x34\x5c\x78\x36\x31\x5c\x78\x37\x32\x5c\x78\x36\x34','\x5c\x78\x36\x33\x5c\x78\x37\x35\x5c\x78\x36\x65\x5c\x78\x37\x34','\x5c\x78\x36\x31\x5c\x78\x37\x33\x5c\x78\x37\x33\x5c\x78\x36\x38\x5c\x78\x36\x66\x5c\x78\x36\x63\x5c\x78\x36\x35'];
+const PROFANITY = ['\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x36\x5c\x78\x33\x36\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x37\x5c\x78\x33\x35\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x36\x5c\x78\x33\x33\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x36\x5c\x78\x36\x32','\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x37\x5c\x78\x33\x33\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x36\x5c\x78\x33\x38\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x36\x5c\x78\x33\x39\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x37\x5c\x78\x33\x34','\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x36\x5c\x78\x33\x32\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x36\x5c\x78\x33\x39\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x37\x5c\x78\x33\x34\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x36\x5c\x78\x33\x33\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x36\x5c\x78\x33\x38','\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x36\x5c\x78\x33\x34\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x36\x5c\x78\x33\x39\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x36\x5c\x78\x33\x33\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x36\x5c\x78\x36\x32','\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x36\x5c\x78\x33\x33\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x36\x5c\x78\x36\x36\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x36\x5c\x78\x33\x33\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x36\x5c\x78\x36\x32','\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x37\x5c\x78\x33\x30\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x37\x5c\x78\x33\x35\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x37\x5c\x78\x33\x33\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x37\x5c\x78\x33\x33\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x37\x5c\x78\x33\x39','\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x36\x5c\x78\x33\x32\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x36\x5c\x78\x33\x31\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x37\x5c\x78\x33\x33\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x37\x5c\x78\x33\x34\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x36\x5c\x78\x33\x31\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x37\x5c\x78\x33\x32\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x36\x5c\x78\x33\x34','\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x37\x5c\x78\x33\x33\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x36\x5c\x78\x36\x33\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x37\x5c\x78\x33\x35\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x37\x5c\x78\x33\x34','\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x37\x5c\x78\x33\x37\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x36\x5c\x78\x33\x38\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x36\x5c\x78\x36\x36\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x37\x5c\x78\x33\x32\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x36\x5c\x78\x33\x35','\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x36\x5c\x78\x33\x36\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x36\x5c\x78\x33\x31\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x36\x5c\x78\x33\x37','\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x36\x5c\x78\x36\x35\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x36\x5c\x78\x33\x39\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x36\x5c\x78\x33\x37\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x36\x5c\x78\x33\x37\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x36\x5c\x78\x33\x31','\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x36\x5c\x78\x36\x35\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x36\x5c\x78\x33\x39\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x36\x5c\x78\x33\x37\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x36\x5c\x78\x33\x37\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x36\x5c\x78\x33\x35\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x37\x5c\x78\x33\x32','\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x37\x5c\x78\x33\x32\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x36\x5c\x78\x33\x35\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x37\x5c\x78\x33\x34\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x36\x5c\x78\x33\x31\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x37\x5c\x78\x33\x32\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x36\x5c\x78\x33\x34','\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x36\x5c\x78\x33\x33\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x37\x5c\x78\x33\x35\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x36\x5c\x78\x36\x35\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x37\x5c\x78\x33\x34','\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x36\x5c\x78\x33\x31\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x37\x5c\x78\x33\x33\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x37\x5c\x78\x33\x33\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x36\x5c\x78\x33\x38\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x36\x5c\x78\x36\x36\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x36\x5c\x78\x36\x33\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x36\x5c\x78\x33\x35'];
 const DEFAULT_THREADS = [
   {id:'general',       name:'general',       emoji:'💬', password:'', locked:false, announceOnly:false},
   {id:'announcements', name:'announcements', emoji:'📢', password:'', locked:false, announceOnly:true},
@@ -302,7 +302,6 @@ function renderNotifChannels(){
 /* ══════════════════════════════════════════
    AUTH
 ══════════════════════════════════════════ */
-// wire auth tabs without inline handlers
 document.querySelectorAll('.auth-tab').forEach(btn=>{
   btn.addEventListener('click',()=>{
     const tab=btn.dataset.tab;
@@ -338,14 +337,12 @@ async function doSignIn(){
   if(acct.banned){err.textContent='Account suspended.';return;}
   if(!acct.approved){currentUser={...acct,username:u};showPending();return;}
   currentUser={...acct,username:u,isAdmin:false};
-  // Store only the username — rank is always read live from DB
   localStorage.setItem('nebula_sess',JSON.stringify({username:u}));
   launchApp();
 }
 
 async function doSignUp(){
   const name=document.getElementById('su-name').value.trim();
-  // Enforce alphanumeric + underscore/hyphen only (no special chars)
   const rawU=document.getElementById('su-user').value.trim().toLowerCase();
   const u=rawU.replace(/[^a-z0-9_\-]/g,'');
   const p=document.getElementById('su-pass').value;
@@ -397,7 +394,7 @@ async function loadAccounts(){
   if(snap.exists()) DB.accounts=snap.data()||{};
 }
 
-/* ── Restore session — rank always sourced live from DB ── */
+/* ── Restore session ── */
 (async()=>{
   initCanvas();
   initParallax();
@@ -413,7 +410,6 @@ async function loadAccounts(){
     const live=DB.accounts[sess.username];
     if(!live||live.banned){localStorage.removeItem('nebula_sess');hideSkeleton();return;}
     if(!live.approved){currentUser={...live,username:sess.username};showPending();hideSkeleton();return;}
-    // Always use live DB data — never trust localStorage for rank
     currentUser={...live,username:sess.username,isAdmin:false};
     launchApp();
   }catch{localStorage.removeItem('nebula_sess');hideSkeleton();}
@@ -422,7 +418,6 @@ async function loadAccounts(){
 function showSkeleton(){ document.getElementById('app-skeleton')?.classList.remove('hidden'); }
 function hideSkeleton(){
   const sk=document.getElementById('app-skeleton'); if(!sk) return;
-  // Show auth screen once skeleton fades
   sk.classList.add('fade-out');
   setTimeout(()=>{
     sk.classList.add('hidden');
@@ -454,7 +449,6 @@ async function launchApp(){
   if(canAccessGames(currentUser)) loadZones();
   loadProfileSection();
 
-  // Refresh relative timestamps every 60s
   tsRefreshTimer=setInterval(()=>{
     if(activeThread) renderMessages();
     if(activeDM)     renderDMMessages();
@@ -476,10 +470,9 @@ function updateSidebarProfile(){
 }
 
 /* ══════════════════════════════════════════
-   STATIC EVENT LISTENERS (no inline onclick)
+   STATIC EVENT LISTENERS
 ══════════════════════════════════════════ */
 function wireStaticListeners(){
-  // Sidebar nav
   document.querySelectorAll('.snav-item[data-section]').forEach(btn=>{
     btn.addEventListener('click',()=>showSection(btn.dataset.section));
   });
@@ -490,7 +483,6 @@ function wireStaticListeners(){
   document.getElementById('signout-btn')?.addEventListener('click',(e)=>{ e.stopPropagation(); signOut(); });
   document.getElementById('sidebar-logo')?.addEventListener('click',()=>showSection('home'));
 
-  // Chat
   document.getElementById('ts-add-btn')?.addEventListener('click',openCreateThread);
   document.getElementById('send-btn')?.addEventListener('click',sendMessage);
   document.getElementById('chat-input')?.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMessage();}});
@@ -498,17 +490,14 @@ function wireStaticListeners(){
   document.getElementById('si-pass')?.addEventListener('keydown',e=>{if(e.key==='Enter') doSignIn();});
   document.getElementById('si-user')?.addEventListener('keydown',e=>{if(e.key==='Enter') doSignIn();});
 
-  // DMs
   document.getElementById('new-dm-btn')?.addEventListener('click',openNewDM);
   document.getElementById('dm-send-btn')?.addEventListener('click',sendDM);
   document.getElementById('dm-input')?.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendDM();}});
   document.getElementById('dm-input')?.addEventListener('input',()=>{ updateDMCharCtr(); if(activeDM) broadcastTyping(activeDM,true); });
 
-  // Vault
   document.getElementById('vault-search')?.addEventListener('input',deb(()=>{ vaultQuery=document.getElementById('vault-search').value; renderVaultGrid(getFilteredZones()); },180));
   document.getElementById('fav-filter-btn')?.addEventListener('click',toggleFavFilter);
 
-  // Modals
   document.getElementById('cancel-del-btn')?.addEventListener('click',cancelDel);
   document.getElementById('confirm-del-btn')?.addEventListener('click',confirmDel);
   document.getElementById('close-ct-btn')?.addEventListener('click',()=>closeModal('ct-modal'));
@@ -521,36 +510,29 @@ function wireStaticListeners(){
   document.getElementById('close-rank-btn')?.addEventListener('click',closeRankModal);
   document.getElementById('modal-overlay')?.addEventListener('click',closeTopModal);
 
-  // Game viewer
   document.getElementById('game-close-btn')?.addEventListener('click',promptCloseGame);
   document.getElementById('game-fs-btn')?.addEventListener('click',toggleFS);
   document.getElementById('game-close-confirm-btn')?.addEventListener('click',doCloseGame);
   document.getElementById('game-close-cancel-btn')?.addEventListener('click',()=>closeModal('game-close-modal'));
 
-  // Mention
   document.getElementById('close-mention-btn')?.addEventListener('click',()=>closeModal('mention-modal'));
   document.getElementById('mention-search-inp')?.addEventListener('input',filterMentionSearch);
 
-  // Mobile drawer
   document.getElementById('mobile-drawer-overlay')?.addEventListener('click',closeMobileDrawer);
   document.getElementById('mobile-drawer-close')?.addEventListener('click',closeMobileDrawer);
   document.getElementById('chat-open-drawer')?.addEventListener('click',()=>openMobileDrawer('chat'));
   document.getElementById('dm-open-drawer')?.addEventListener('click',()=>openMobileDrawer('dms'));
   document.getElementById('chat-show-channels-btn')?.addEventListener('click',()=>openMobileDrawer('chat'));
 
-  // Admin tabs
   document.querySelectorAll('.adm-tab[data-adm]').forEach(btn=>{
     btn.addEventListener('click',()=>admTab(btn.dataset.adm));
   });
 
-  // Proxy
   document.getElementById('add-cat-btn')?.addEventListener('click',addCat);
 
-  // Notification toggles
   document.getElementById('ntog-dms')?.addEventListener('change',saveNotifPrefs);
   document.getElementById('ntog-mute')?.addEventListener('change',saveNotifPrefs);
 
-  // Keyboard
   document.addEventListener('keydown',globalKeyHandler);
   document.addEventListener('click',closeEmojiOutside);
   document.addEventListener('visibilitychange',()=>{
@@ -568,7 +550,6 @@ function startListeners(){
   onSnapshot(REFS.accounts,snap=>{
     if(!snap.exists()) return;
     DB.accounts=snap.data()||{};
-    // Always sync current user's rank/access from live DB
     if(currentUser&&currentUser.username!==ADMIN_USERNAME){
       const live=DB.accounts[currentUser.username];
       if(live){
@@ -614,7 +595,7 @@ function startListeners(){
         }else if(!atBottom){ newMsgCount+=diff; updateScrollBtn(); }
       }
     });
-    updateChatBadge(); renderThreadList();
+    renderThreadList();
     if(activeThread) renderMessages();
   });
 
@@ -635,7 +616,7 @@ function startListeners(){
         }
       }
     });
-    updateDMBadge(); renderDMList();
+    renderDMList();
     if(activeDM) renderDMMessages();
   });
 
@@ -658,7 +639,6 @@ function startListeners(){
     if(activeDM)     renderTypingBar(activeDM,true,'dm-typing-bar');
   });
 
-  // Canvas pauses when tab hidden
   document.addEventListener('visibilitychange',()=>{
     window._canvasPaused=(document.visibilityState==='hidden');
   });
@@ -685,13 +665,14 @@ function showSection(s){
   if(s==='notifications') renderNotifSection();
 }
 
+// ── Badges permanently hidden ──
 function updateChatBadge(){
   const b=document.getElementById('chat-badge'); if(!b) return;
-  b.classList.add('hidden'); // always hidden — no bubble
+  b.classList.add('hidden');
 }
 function updateDMBadge(){
   const b=document.getElementById('dm-badge'); if(!b) return;
-  b.classList.add('hidden'); // always hidden — no bubble
+  b.classList.add('hidden');
 }
 
 /* ══════════════════════════════════════════
@@ -710,12 +691,8 @@ function openMobileDrawer(ctx){
     getThreads().forEach(t=>{
       const div=document.createElement('div');
       div.className=`titem${activeThread?.id===t.id?' active':''}`;
-    div.innerHTML=`<span class="titem-icon">${esc(t.emoji||'💬')}</span>
-      <div style="flex:1;min-width:0;">
-        <div class="titem-name">${esc(t.name)}</div>
-        ${preview?`<div class="titem-preview">${esc(preview.slice(0,40))}</div>`:''}
-      </div>
-      <div class="titem-meta"></div>`;      div.addEventListener('click',()=>{ closeMobileDrawer(); handleThreadClick(t); });
+      div.innerHTML=`<span class="titem-icon">${esc(t.emoji||'💬')}</span><span class="titem-name">${esc(t.name)}</span>`;
+      div.addEventListener('click',()=>{ closeMobileDrawer(); handleThreadClick(t); });
       list.appendChild(div);
     });
   }else{
@@ -728,12 +705,8 @@ function openMobileDrawer(ctx){
       if(!other||seen.has(other)||!DB.accounts[other]) return; seen.add(other);
       const div=document.createElement('div');
       div.className=`titem${activeDM===other?' active':''}`;
-    div.innerHTML=`<div style="width:22px;height:22px;border-radius:50%;background:${userColor(other)};display:inline-flex;align-items:center;justify-content:center;font-weight:800;font-size:.6rem;flex-shrink:0;">${avatarLetter(other)}</div>
-      <div style="flex:1;min-width:0;margin-left:.4rem;">
-        <div class="titem-name">${esc(other)}</div>
-        ${preview?`<div class="titem-preview">${esc(preview.slice(0,36))}</div>`:''}
-      </div>
-      <div class="titem-meta"></div>`;      div.addEventListener('click',()=>{ closeMobileDrawer(); openDMWith(other); });
+      div.innerHTML=`<div style="width:22px;height:22px;border-radius:50%;background:${userColor(other)};display:inline-flex;align-items:center;justify-content:center;font-weight:800;font-size:.6rem;flex-shrink:0;">${avatarLetter(other)}</div><span class="titem-name" style="margin-left:.4rem">${esc(other)}</span>`;
+      div.addEventListener('click',()=>{ closeMobileDrawer(); openDMWith(other); });
       list.appendChild(div);
     });
   }
@@ -756,12 +729,10 @@ function renderThreadList(){
   const list=document.getElementById('thread-list'); if(!list) return;
   list.innerHTML='';
   getThreads().forEach(t=>{
-    const unrd=unreadThreads[t.id]||0;
     const div=document.createElement('div');
     div.className=`titem${activeThread?.id===t.id&&activeSection==='chat'?' active':''}`;
     div.addEventListener('click',()=>handleThreadClick(t));
 
-    // Last message preview
     const msgs=(DB.messages[t.id]||[]).filter(m=>!m.deleted);
     const last=msgs[msgs.length-1];
     const preview=last?`${last.user}: ${last.text}`:'';
@@ -770,8 +741,7 @@ function renderThreadList(){
       <div style="flex:1;min-width:0;">
         <div class="titem-name">${esc(t.name)}</div>
         ${preview?`<div class="titem-preview">${esc(preview.slice(0,40))}</div>`:''}
-      </div>
-      <div class="titem-meta">${unrd>0&&activeThread?.id!==t.id?`<span class="titem-badge">${unrd>9?'9+':unrd}</span>`:''}</div>`;
+      </div>`;
     list.appendChild(div);
   });
 }
@@ -879,7 +849,7 @@ async function deleteThread(id){
 }
 
 /* ══════════════════════════════════════════
-   RENDER MESSAGES — incremental diff
+   RENDER MESSAGES
 ══════════════════════════════════════════ */
 function renderMessages(){
   if(!activeThread) return;
@@ -889,7 +859,6 @@ function renderMessages(){
   const wasAtBottom=prevH-prevTop<=wrap.clientHeight+150;
 
   const container=document.getElementById('messages');
-  // Full rebuild (messages are small arrays so this is acceptable)
   container.innerHTML='';
   let lastUser=null, lastDate=null;
   msgs.forEach((m,idx)=>{
@@ -969,7 +938,6 @@ function buildMessage(m, idx, isFirst, ctxId, isDM){
     textDiv.style.cssText='color:var(--text-faint);font-style:italic;';
     textDiv.textContent='[message deleted]';
   }else{
-    // Render mentions highlighted
     textDiv.innerHTML=renderMentions(m.text, esc(m.text));
     if(m.edited){const ed=document.createElement('span');ed.className='msg-edited';ed.textContent=' (edited)';textDiv.appendChild(ed);}
   }
@@ -1216,8 +1184,6 @@ function renderDMList(){
     const other=k.split('__').find(p=>p!==myU);
     if(!other||seen.has(other)) return; seen.add(other);
     const acct=DB.accounts[other]; if(!acct) return;
-    const unrd=unreadDMs[other]||0;
-    // Last message preview
     const msgs=DB.dms[k]||[];
     const last=msgs.filter(m=>!m.deleted).slice(-1)[0];
     const preview=last?`${last.user===myU?'You':last.user}: ${last.text}`:'';
@@ -1228,8 +1194,7 @@ function renderDMList(){
       <div style="flex:1;min-width:0;margin-left:.4rem;">
         <div class="titem-name">${esc(other)}</div>
         ${preview?`<div class="titem-preview">${esc(preview.slice(0,36))}</div>`:''}
-      </div>
-      <div class="titem-meta">${unrd>0?`<span class="titem-badge">${unrd>9?'9+':unrd}</span>`:''}</div>`;
+      </div>`;
     list.appendChild(div);
   });
 }
@@ -1268,7 +1233,6 @@ function openDMWith(other){
   const inp=document.getElementById('dm-input');
   if(inp){
     inp.placeholder=`Message ${other}…`;
-    // Add mention button dynamically if not present
     const wrap=inp.closest('.chat-input-wrap');
     if(wrap&&!wrap.querySelector('.mention-btn')){
       const mb=document.createElement('button');
@@ -1381,12 +1345,7 @@ function renderAdmUsers(){
     row.innerHTML=`<div class="adm-ava" style="background:${isAdminUser?'linear-gradient(135deg,#f43f5e,#a855f7)':userColor(u)}">${avatarLetter(u)}</div>`
       +`<div class="adm-name">${esc(u)}</div>${rankBadge(a.rank)}`;
     if(!isAdminUser){
-      // Only the GoatTech admin can change ranks
-      if(isAdmin(currentUser)){
-        const rb=document.createElement('button'); rb.className='ta-btn ta-blue'; rb.textContent='✎ Rank';
-        rb.addEventListener('click',()=>openRankModal(u)); row.appendChild(rb);
-      }else if(isMod(currentUser)){
-        // Mods can change ranks but NOT grant universal/goat
+      if(isAdmin(currentUser)||isMod(currentUser)){
         const rb=document.createElement('button'); rb.className='ta-btn ta-blue'; rb.textContent='✎ Rank';
         rb.addEventListener('click',()=>openRankModal(u)); row.appendChild(rb);
       }
@@ -1496,8 +1455,6 @@ function openRankModal(u){
   rankTarget=u;
   document.getElementById('rank-mdesc').textContent=`Assign rank to ${u}`;
   const container=document.getElementById('rank-buttons'); container.innerHTML='';
-  // Admin can grant all ranks including universal.
-  // Mods can grant up to galactic only — never universal or goat.
   const allowed=isAdmin(currentUser)?RANKS:[...RANKS].filter(r=>r!=='universal');
   allowed.forEach(rank=>{
     const btn=document.createElement('button');
@@ -1512,7 +1469,6 @@ function closeRankModal(){ closeModal('rank-modal'); rankTarget=null; }
 async function grantRank(rank){
   if(!rankTarget) return;
   if(rankTarget===ADMIN_USERNAME){notify('Cannot change admin rank','error');closeRankModal();return;}
-  // Prevent mods from granting universal/goat
   if(!isAdmin(currentUser)&&(rank==='universal'||rank==='goat')){notify('Only the admin can grant that rank','error');closeRankModal();return;}
   try{
     await setDoc(REFS.accounts,{...DB.accounts,[rankTarget]:{...DB.accounts[rankTarget],rank}});
@@ -1574,9 +1530,8 @@ window.delCat=async i=>{
 
 /* ══════════════════════════════════════════
    GAME VAULT
-══════════════════════════════════════════ */
+══════════════════════════���═══════════════ */
 async function loadZones(){
-  // Check sessionStorage cache (TTL = 30 min)
   const cacheKey='nebula-zones-cache', cacheTTL=30*60*1000;
   try{
     const cached=sessionStorage.getItem(cacheKey);
@@ -1629,11 +1584,9 @@ function showGameSkeletons(){
     c.innerHTML='<div class="game-skel-img"></div><div class="game-skel-name"></div>';
     grid.appendChild(c);
   }
-  // Insert before featured wrap
   document.getElementById('vault-scroll').insertBefore(grid, document.getElementById('vault-featured-wrap'));
 }
 
-// Lazy-load game cover images using IntersectionObserver
 function setupGameObserver(){
   if(gameObserver) gameObserver.disconnect();
   gameObserver=new IntersectionObserver((entries)=>{
@@ -1737,7 +1690,6 @@ function renderVaultGrid(data){
     fav.innerHTML='<svg viewBox="0 0 24 24" stroke-width="2" width="13" height="13"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>';
     fav.title='Favorite'; fav.addEventListener('click',e=>{e.stopPropagation();toggleGameFav(z.id);});
     const img=document.createElement('img');
-    // Use data-src for lazy loading
     img.dataset.src=z.cover.replace('{COVER_URL}',COVER_URL).replace('{HTML_URL}',HTML_URL);
     img.src='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1 1"><rect fill="%230d1c33" width="1" height="1"/></svg>';
     img.loading='lazy'; img.alt=z.name;
@@ -1745,7 +1697,6 @@ function renderVaultGrid(data){
     const name=document.createElement('div'); name.className='game-card-name'; name.textContent=z.name;
     body.appendChild(name); card.append(fav,img,body); grid.appendChild(card);
   });
-  // Observe after render
   requestAnimationFrame(setupGameObserver);
 }
 function toggleGameFav(id){
