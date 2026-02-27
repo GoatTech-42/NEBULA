@@ -687,15 +687,11 @@ function showSection(s){
 
 function updateChatBadge(){
   const b=document.getElementById('chat-badge'); if(!b) return;
-  const total=Object.values(unreadThreads).reduce((a,v)=>a+v,0);
-  if(total>0){b.textContent=total>9?'9+':total;b.classList.remove('hidden');}
-  else b.classList.add('hidden');
+  b.classList.add('hidden'); // always hidden — no bubble
 }
 function updateDMBadge(){
   const b=document.getElementById('dm-badge'); if(!b) return;
-  const total=Object.values(unreadDMs).reduce((a,v)=>a+v,0);
-  if(total>0){b.textContent=total>9?'9+':total;b.classList.remove('hidden');}
-  else b.classList.add('hidden');
+  b.classList.add('hidden'); // always hidden — no bubble
 }
 
 /* ══════════════════════════════════════════
@@ -714,8 +710,12 @@ function openMobileDrawer(ctx){
     getThreads().forEach(t=>{
       const div=document.createElement('div');
       div.className=`titem${activeThread?.id===t.id?' active':''}`;
-      div.innerHTML=`<span class="titem-icon">${esc(t.emoji||'💬')}</span><span class="titem-name">${esc(t.name)}</span>`;
-      div.addEventListener('click',()=>{ closeMobileDrawer(); handleThreadClick(t); });
+    div.innerHTML=`<span class="titem-icon">${esc(t.emoji||'💬')}</span>
+      <div style="flex:1;min-width:0;">
+        <div class="titem-name">${esc(t.name)}</div>
+        ${preview?`<div class="titem-preview">${esc(preview.slice(0,40))}</div>`:''}
+      </div>
+      <div class="titem-meta"></div>`;      div.addEventListener('click',()=>{ closeMobileDrawer(); handleThreadClick(t); });
       list.appendChild(div);
     });
   }else{
@@ -728,8 +728,12 @@ function openMobileDrawer(ctx){
       if(!other||seen.has(other)||!DB.accounts[other]) return; seen.add(other);
       const div=document.createElement('div');
       div.className=`titem${activeDM===other?' active':''}`;
-      div.innerHTML=`<div style="width:22px;height:22px;border-radius:50%;background:${userColor(other)};display:inline-flex;align-items:center;justify-content:center;font-weight:800;font-size:.6rem;flex-shrink:0;">${avatarLetter(other)}</div><span class="titem-name" style="margin-left:.4rem">${esc(other)}</span>`;
-      div.addEventListener('click',()=>{ closeMobileDrawer(); openDMWith(other); });
+    div.innerHTML=`<div style="width:22px;height:22px;border-radius:50%;background:${userColor(other)};display:inline-flex;align-items:center;justify-content:center;font-weight:800;font-size:.6rem;flex-shrink:0;">${avatarLetter(other)}</div>
+      <div style="flex:1;min-width:0;margin-left:.4rem;">
+        <div class="titem-name">${esc(other)}</div>
+        ${preview?`<div class="titem-preview">${esc(preview.slice(0,36))}</div>`:''}
+      </div>
+      <div class="titem-meta"></div>`;      div.addEventListener('click',()=>{ closeMobileDrawer(); openDMWith(other); });
       list.appendChild(div);
     });
   }
