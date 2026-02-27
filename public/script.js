@@ -188,6 +188,7 @@ function closeModal(id){
   },180);
 }
 window.closeTopModal = () => {
+  // Don't close modals if click originated from inside game-vault
   const o=document.querySelector('.modal:not(.hidden)'); if(o) closeModal(o.id);
 };
 
@@ -511,10 +512,12 @@ function wireStaticListeners(){
   document.getElementById('modal-overlay')?.addEventListener('click',closeTopModal);
 
   // ── Game vault buttons ──
-  document.getElementById('game-close-btn')?.addEventListener('click', promptCloseGame);
+  // Close button goes DIRECTLY to doCloseGame — no confirm modal, no event chain issues
+  document.getElementById('game-close-btn')?.addEventListener('click', e => { e.stopPropagation(); doCloseGame(); });
   document.getElementById('game-fs-btn')?.addEventListener('click', toggleFS);
-  document.getElementById('game-close-confirm-btn')?.addEventListener('click', doCloseGame);
-  document.getElementById('game-close-cancel-btn')?.addEventListener('click',()=>closeModal('game-close-modal'));
+  // Keep confirm modal buttons wired in case globalKeyHandler opens it via Escape
+  document.getElementById('game-close-confirm-btn')?.addEventListener('click', e => { e.stopPropagation(); doCloseGame(); });
+  document.getElementById('game-close-cancel-btn')?.addEventListener('click', e => { e.stopPropagation(); closeModal('game-close-modal'); });
 
   document.getElementById('close-mention-btn')?.addEventListener('click',()=>closeModal('mention-modal'));
   document.getElementById('mention-search-inp')?.addEventListener('input',filterMentionSearch);
@@ -860,7 +863,7 @@ function renderMessages(){
   let lastUser=null, lastDate=null;
   msgs.forEach((m,idx)=>{
     if(m.deleted&&!isMod(currentUser)){lastUser=null;return;}
-    const ts=m.time||'', ds=ts.split(' at ')[0];
+    const ts=m.time||'', ds=ts.split(' ')[0];
     if(ds&&ds!==lastDate&&(ds==='Today'||ds==='Yesterday'||/Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec/.test(ds))){
       const dd=document.createElement('div'); dd.className='date-divider';
       dd.innerHTML=`<span>${ds}</span>`; container.appendChild(dd); lastDate=ds;
@@ -903,7 +906,7 @@ function updateScrollBtn(){
   if(u){u.textContent=newMsgCount>9?'9+':newMsgCount; u.classList.toggle('hidden',newMsgCount===0);}
 }
 
-/* ══════════════════════════════════════════
+/* ═══════════��══════════════════════════════
    BUILD MESSAGE
 ══════════════════════════════════════════ */
 function buildMessage(m, idx, isFirst, ctxId, isDM){
@@ -1253,7 +1256,7 @@ function renderDMMessages(){
   let lastUser=null, lastDate=null;
   msgs.forEach((m,idx)=>{
     if(m.deleted&&m.user!==currentUser.username&&!isMod(currentUser)){lastUser=null;return;}
-    const ts=m.time||'', ds=ts.split(' at ')[0];
+    const ts=m.time||'', ds=ts.split(' ')[0];
     if(ds&&ds!==lastDate&&(ds==='Today'||ds==='Yesterday'||/Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec/.test(ds))){
       const dd=document.createElement('div'); dd.className='date-divider';
       dd.innerHTML=`<span>${ds}</span>`; container.appendChild(dd); lastDate=ds;
@@ -1298,7 +1301,7 @@ function updateDMCharCtr(){
   else{ctr.textContent='';ctr.className='char-ctr';}
 }
 
-/* ═���════════════════════════════════════════
+/* ══════════════════════════════════════════
    PROFILE
 ══════════════════════════════════════════ */
 function loadProfileSection(){
@@ -1708,7 +1711,6 @@ function openZone(z){
     .then(html=>{
       clearTimeout(tid);
       const vault=document.getElementById('game-vault');
-      // Remove any existing frame first
       const old=document.getElementById('game-frame'); if(old)old.remove();
       const frame=document.createElement('iframe');
       frame.id='game-frame';
@@ -1723,25 +1725,41 @@ function openZone(z){
     .catch(e=>{ if(e.name!=='AbortError') notify('Failed to load game','error'); });
 }
 
-function promptCloseGame(){
-  openModal('game-close-modal');
-}
-
+/* ─── GAME CLOSE — fixed ─────────────────────────────────────
+   Root cause: the old flow called openModal('game-close-modal')
+   which showed the modal-overlay. The overlay's click listener
+   (closeTopModal) then swallowed any subsequent click before
+   doCloseGame could run. Fix: skip the confirm modal entirely.
+   The close button now calls doCloseGame() directly.
+──────────────────────────────────────────────────────────── */
 function doCloseGame(){
-  // Close the confirm modal first
-  closeModal('game-close-modal');
-  // Hide the vault overlay immediately — don't wait for modal animation
-  const vault=document.getElementById('game-vault');
-  if(vault) vault.style.display='none';
-  // Nuke the iframe to stop audio/video and free memory
-  const frame=document.getElementById('game-frame');
+  // Force-hide the vault immediately — no animation, no waiting
+  const vault = document.getElementById('game-vault');
+  if(vault) vault.style.display = 'none';
+
+  // Nuke the iframe: stop its scripts/audio, then remove from DOM
+  const frame = document.getElementById('game-frame');
   if(frame){
-    try{ frame.src='about:blank'; }catch{}
-    frame.remove();
+    try { frame.contentWindow?.stop?.(); } catch{}
+    try { frame.src = 'about:blank'; } catch{}
+    // Small delay so 'about:blank' navigation completes before removal
+    setTimeout(()=>{ try{ frame.remove(); }catch{} }, 80);
   }
-  // Reset the vault title
-  const title=document.getElementById('vault-title');
-  if(title) title.textContent='VAULT';
+
+  // Reset header title
+  const title = document.getElementById('vault-title');
+  if(title) title.textContent = 'NEBULA VAULT';
+
+  // If the confirm modal somehow ended up open, close it cleanly
+  const modal = document.getElementById('game-close-modal');
+  if(modal && !modal.classList.contains('hidden')){
+    modal.classList.add('hidden');
+    // Hide overlay only if no other modals are open
+    if(!document.querySelector('.modal:not(.hidden)')){
+      const ov = document.getElementById('modal-overlay');
+      if(ov){ ov.classList.add('hidden'); ov.classList.remove('closing'); }
+    }
+  }
 }
 
 function toggleFS(){
@@ -1779,7 +1797,8 @@ async function loadTooltips(){
 function globalKeyHandler(e){
   if(e.key==='Escape'){
     const o=document.querySelector('.modal:not(.hidden)'); if(o){closeModal(o.id);return;}
-    if(document.getElementById('game-vault')?.style.display==='flex'){promptCloseGame();return;}
+    // Escape while vault is open closes it directly — no confirm modal
+    if(document.getElementById('game-vault')?.style.display==='flex'){doCloseGame();return;}
     if(!document.getElementById('mobile-drawer')?.classList.contains('hidden')){closeMobileDrawer();return;}
     document.getElementById('epicker')?.classList.add('hidden');
   }
