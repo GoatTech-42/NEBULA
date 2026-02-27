@@ -54,7 +54,7 @@ const RANK_LABELS = {
 
 /* ══════════════════════════════════════════
    STATE
-══════════════════════════��═══════════════ */
+══════════════════════════════════════════ */
 let currentUser    = null;
 let DB             = { accounts:{}, threads:[], messages:{}, dms:{}, proxies:[], config:{}, typing:{} };
 let activeSection  = 'home';
@@ -166,7 +166,7 @@ function notify(msg, type='info'){
 }
 
 /* ══════════════════════════════════════════
-   MODALS (animated)
+   MODALS
 ══════════════════════════════════════════ */
 function openModal(id){
   document.getElementById('modal-overlay').classList.remove('hidden','closing');
@@ -510,9 +510,10 @@ function wireStaticListeners(){
   document.getElementById('close-rank-btn')?.addEventListener('click',closeRankModal);
   document.getElementById('modal-overlay')?.addEventListener('click',closeTopModal);
 
-  document.getElementById('game-close-btn')?.addEventListener('click',promptCloseGame);
-  document.getElementById('game-fs-btn')?.addEventListener('click',toggleFS);
-  document.getElementById('game-close-confirm-btn')?.addEventListener('click',doCloseGame);
+  // ── Game vault buttons ──
+  document.getElementById('game-close-btn')?.addEventListener('click', promptCloseGame);
+  document.getElementById('game-fs-btn')?.addEventListener('click', toggleFS);
+  document.getElementById('game-close-confirm-btn')?.addEventListener('click', doCloseGame);
   document.getElementById('game-close-cancel-btn')?.addEventListener('click',()=>closeModal('game-close-modal'));
 
   document.getElementById('close-mention-btn')?.addEventListener('click',()=>closeModal('mention-modal'));
@@ -1297,7 +1298,7 @@ function updateDMCharCtr(){
   else{ctr.textContent='';ctr.className='char-ctr';}
 }
 
-/* ══════════════════════════════════════════
+/* ═���════════════════════════════════════════
    PROFILE
 ══════════════════════════════════════════ */
 function loadProfileSection(){
@@ -1696,6 +1697,7 @@ function toggleGameFav(id){
   localStorage.setItem('nebula-gfavs',JSON.stringify(gameFavs));
   renderVaultGrid(getFilteredZones());
 }
+
 function openZone(z){
   if(z.url.startsWith('http')){window.open(z.url,'_blank');return;}
   const url=z.url.replace('{COVER_URL}',COVER_URL).replace('{HTML_URL}',HTML_URL);
@@ -1706,28 +1708,46 @@ function openZone(z){
     .then(html=>{
       clearTimeout(tid);
       const vault=document.getElementById('game-vault');
+      // Remove any existing frame first
       const old=document.getElementById('game-frame'); if(old)old.remove();
       const frame=document.createElement('iframe');
-      frame.id='game-frame'; frame.style.cssText='border:none;width:100%;flex-grow:1;display:block;';
+      frame.id='game-frame';
+      frame.style.cssText='border:none;width:100%;flex-grow:1;display:block;min-height:0;';
       vault.appendChild(frame);
-      frame.contentDocument.open(); frame.contentDocument.write(html); frame.contentDocument.close();
+      frame.contentDocument.open();
+      frame.contentDocument.write(html);
+      frame.contentDocument.close();
       document.getElementById('vault-title').textContent='VAULT: '+z.name.toUpperCase();
       vault.style.display='flex';
     })
     .catch(e=>{ if(e.name!=='AbortError') notify('Failed to load game','error'); });
 }
-function promptCloseGame(){ openModal('game-close-modal'); }
-function doCloseGame(){
-  closeModal('game-close-modal');
-  document.getElementById('game-vault').style.display='none';
-  const old=document.getElementById('game-frame'); if(old)old.remove();
-  const blank=document.createElement('iframe'); blank.id='game-frame';
-  blank.style.cssText='border:none;width:100%;flex-grow:1;display:block;';
-  document.getElementById('game-vault').appendChild(blank);
+
+function promptCloseGame(){
+  openModal('game-close-modal');
 }
+
+function doCloseGame(){
+  // Close the confirm modal first
+  closeModal('game-close-modal');
+  // Hide the vault overlay immediately — don't wait for modal animation
+  const vault=document.getElementById('game-vault');
+  if(vault) vault.style.display='none';
+  // Nuke the iframe to stop audio/video and free memory
+  const frame=document.getElementById('game-frame');
+  if(frame){
+    try{ frame.src='about:blank'; }catch{}
+    frame.remove();
+  }
+  // Reset the vault title
+  const title=document.getElementById('vault-title');
+  if(title) title.textContent='VAULT';
+}
+
 function toggleFS(){
   const f=document.getElementById('game-frame'); if(!f) return;
-  (f.requestFullscreen||f.webkitRequestFullscreen||f.msRequestFullscreen)?.call(f);
+  const req=f.requestFullscreen||f.webkitRequestFullscreen||f.mozRequestFullScreen||f.msRequestFullscreen;
+  if(req) req.call(f);
 }
 
 /* ══════════════════════════════════════════
@@ -1759,8 +1779,8 @@ async function loadTooltips(){
 function globalKeyHandler(e){
   if(e.key==='Escape'){
     const o=document.querySelector('.modal:not(.hidden)'); if(o){closeModal(o.id);return;}
-    if(document.getElementById('game-vault').style.display==='flex'){promptCloseGame();return;}
-    if(!document.getElementById('mobile-drawer').classList.contains('hidden')){closeMobileDrawer();return;}
+    if(document.getElementById('game-vault')?.style.display==='flex'){promptCloseGame();return;}
+    if(!document.getElementById('mobile-drawer')?.classList.contains('hidden')){closeMobileDrawer();return;}
     document.getElementById('epicker')?.classList.add('hidden');
   }
   if((e.ctrlKey||e.metaKey)&&e.key==='k'){
