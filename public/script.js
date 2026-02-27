@@ -1,18 +1,15 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
 import {
-  getFirestore, doc, onSnapshot, setDoc, getDoc, updateDoc
+  getFirestore, doc, onSnapshot, setDoc, getDoc
 } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
-/* ══════════════════════════════════════════
-   FIREBASE
-══════════════════════════════════════════ */
 const app = initializeApp({
-  apiKey:"",
-  authDomain:"goattechneverdies.firebaseapp.com",
-  projectId:"goattechneverdies",
-  storageBucket:"goattechneverdies.firebasestorage.app",
-  messagingSenderId:"1090005757417",
-  appId:"1:1090005757417:web:8698673d23f79fb9886f78"
+  apiKey:"__FIREBASE_API_KEY__",
+  authDomain:"__FIREBASE_AUTH_DOMAIN__",
+  projectId:"__FIREBASE_PROJECT_ID__",
+  storageBucket:"__FIREBASE_STORAGE_BUCKET__",
+  messagingSenderId:"__FIREBASE_MESSAGING_SENDER_ID__",
+  appId:"__FIREBASE_APP_ID__"
 });
 const db = getFirestore(app);
 const REFS = {
@@ -24,39 +21,30 @@ const REFS = {
   config   : doc(db,"nebula","config"),
 };
 
-/* ══════════════════════════════════════════
-   CONSTANTS
-══════════════════════════════════════════ */
-const ADMIN_USERNAME   = "GoatTech";
-const ADMIN_PASSWORD   = "CanNeverSt0pTheGoat";
-const ADMIN_NAME       = "Luke";
+const ADMIN_USERNAME   = "__ADMIN_USERNAME__";
+const ADMIN_PASSWORD   = "__ADMIN_PASSWORD__";
+const ADMIN_NAME       = "__ADMIN_NAME__";
 const MAX_CHANNEL_MSGS = 75;
 const MAX_DM_MSGS      = 25;
 const MAX_MSG_LEN      = 500;
 const WARN_MSG_LEN     = 400;
+const WRITE_DELAY      = 320;
 
 const ZONE_URLS = [
   "https://cdn.jsdelivr.net/%67%68/%67%6e%2d%6d%61%74%68/%61%73%73%65%74%73@%6d%61%69%6e/%7a%6f%6e%65%73%2e%6a%73%6f%6e",
   "https://cdn.jsdelivr.net/gh/gn-math/assets@latest/zones.json",
   "https://cdn.jsdelivr.net/gh/gn-math/assets@master/zones.json",
-  "https://cdn.jsdelivr.net/gh/gn-math/assets/zones.json"
 ];
 const COVER_URL = "https://cdn.jsdelivr.net/gh/gn-math/covers@main";
 const HTML_URL  = "https://cdn.jsdelivr.net/gh/gn-math/html@main";
 const EMOJIS    = ['👍','💔','😂','😭','🤯','🔥','😃','🥀','👀','💀'];
 const PROFANITY = ['fuck','shit','bitch','dick','cock','pussy','bastard','slut','whore','fag','nigga','nigger','retard','cunt','asshole'];
-
 const DEFAULT_THREADS = [
   {id:'general',       name:'general',       emoji:'💬', password:'', locked:false, announceOnly:false},
   {id:'announcements', name:'announcements', emoji:'📢', password:'', locked:false, announceOnly:true},
 ];
 
-/* rank hierarchy — higher index = more access */
-const RANKS = ['earthbound','planetary','solar','galactic','universal'];
-
-/* ══════════════════════════════════════════
-   STATE
-══════════════════════════════════════════ */
+/* ── STATE ── */
 let currentUser   = null;
 let DB = { accounts:{}, threads:[], messages:{}, dms:{}, proxies:[], config:{} };
 let activeSection = 'home';
@@ -72,26 +60,18 @@ let pendingThread = null;
 let atBottom      = true;
 let newMsgCount   = 0;
 let switching     = false;
+let msgWriteTimer = null, pendingMsgWrite = null;
+let dmWriteTimer  = null, pendingDMWrite  = null;
 
-/* throttle Firestore writes — batch pending writes and flush */
-let msgWriteTimer  = null;
-let dmWriteTimer   = null;
-const MSG_WRITE_DELAY = 300; // ms
-
-/* vault */
 let zones=[], gameFavs=JSON.parse(localStorage.getItem('nebula-gfavs')||'[]');
 let showFavsOnly=false, vaultQuery='';
 let featuredGames=[], carouselIdx=0, carouselTimer=null, carouselPause=null, carouselBusy=false;
-let activeZone=null;
 
-/* notif prefs */
 const NOTIF_KEY      = 'nebula-notif-prefs';
 const getNotifPrefs  = () => { try{return JSON.parse(localStorage.getItem(NOTIF_KEY)||'{}');}catch{return{};} };
 const saveNotifPrefsData = p => localStorage.setItem(NOTIF_KEY, JSON.stringify(p));
 
-/* ══════════════════════════════════════════
-   UTILS
-══════════════════════════════════════════ */
+/* ── UTILS ── */
 const esc = s => { const d=document.createElement('div'); d.textContent=s; return d.innerHTML; };
 const deb = (fn,w) => { let t; return (...a)=>{ clearTimeout(t); t=setTimeout(()=>fn(...a),w); }; };
 const filt = t => { PROFANITY.forEach(w=>{ t=t.replace(new RegExp(w,'gi'),'*'.repeat(w.length)); }); return t; };
@@ -110,20 +90,35 @@ const userColor = u => {
   ];
   return c[Math.abs(h)%c.length];
 };
-const avatarLetter   = u => (u||'?').charAt(0).toUpperCase();
-const isMod          = u => { if(!u) return false; return u.username===ADMIN_USERNAME||u.rank==='universal'; };
-const isEarthbound   = u => u?.rank==='earthbound';
-const canAccessGames = u => { if(!u) return false; if(u.isAdmin) return true; return u.rank!=='earthbound'; };
+const avatarLetter = u => (u||'?').charAt(0).toUpperCase();
+
+/* ── RANK SYSTEM ──
+   earthbound < planetary < solar < galactic < universal < goat
+   - "goat"      = GoatTech admin only, immutable
+   - "universal" = moderator rank, only GoatTech can grant
+   - Moderators (universal) may only assign: earthbound, planetary, solar, galactic
+*/
+const isMod        = u => { if(!u) return false; return u.username===ADMIN_USERNAME||u.rank==='universal'||u.rank==='goat'; };
+const isGoatAdmin  = u => !!(u && u.username===ADMIN_USERNAME);
+const assignableRanks = granter => {
+  if(isGoatAdmin(granter)) return ['earthbound','planetary','solar','galactic','universal'];
+  if(isMod(granter))       return ['earthbound','planetary','solar','galactic'];
+  return [];
+};
+
+const canAccessGames = u => { if(!u) return false; return u.isAdmin||u.rank!=='earthbound'; };
 const canAccessProxy = u => { if(!u) return false; return (u.proxyAccess||u.isAdmin)&&u.rank!=='earthbound'; };
 
-const rankBadge = r => {
-  r=r||'earthbound';
-  const L={earthbound:'🌱 Earthbound',planetary:'🌍 Planetary',solar:'☀️ Solar',galactic:'🌌 Galactic',universal:'✦ Universal'};
-  return `<span class="rbadge ${r}">${L[r]||r}</span>`;
+const rankMeta = {
+  earthbound : { label:'Earthbound', icon:'🌱', color:'#6ee7b7' },
+  planetary  : { label:'Planetary',  icon:'🌍', color:'#38bdf8' },
+  solar      : { label:'Solar',      icon:'☀️',  color:'#f59e0b' },
+  galactic   : { label:'Galactic',   icon:'🌌', color:'#a855f7' },
+  universal  : { label:'Universal',  icon:'✦',  color:'#e2e8f0' },
+  goat       : { label:'Goat',       icon:'🐐', color:'#fde68a' },
 };
-const rankColorText = r => ({
-  earthbound:'#6ee7b7',planetary:'#38bdf8',solar:'#f59e0b',galactic:'#a855f7',universal:'#e2e8f0'
-}[r]||'#38bdf8');
+const rankBadge     = r => { r=r||'earthbound'; const m=rankMeta[r]||rankMeta.earthbound; return `<span class="rbadge ${r}">${m.icon} ${m.label}</span>`; };
+const rankColorText = r => (rankMeta[r]||rankMeta.earthbound).color;
 
 const tsNow = () => new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',timeZone:'America/Los_Angeles'});
 const dmKey = (a,b) => [a,b].sort().join('__');
@@ -143,9 +138,13 @@ const relTime = ts => {
 
 function notify(msg, type='info'){
   const n=document.createElement('div'); n.className=`notif ${type}`;
-  n.innerHTML=`<div class="ntype">${type}</div><div class="nmsg">${msg}</div>`;
+  n.innerHTML=`<div class="notif-dot"></div><div class="nmsg">${msg}</div>`;
   document.getElementById('notif-stack').appendChild(n);
-  setTimeout(()=>{ n.style.animation='notifSlide .2s ease reverse'; setTimeout(()=>n.remove(),200); },2800);
+  setTimeout(()=>{
+    n.style.transition='opacity .18s ease,transform .18s ease';
+    n.style.opacity='0'; n.style.transform='translateX(14px)';
+    setTimeout(()=>n.remove(),200);
+  },2700);
 }
 function openModal(id){
   document.getElementById('modal-overlay').classList.remove('hidden');
@@ -165,63 +164,134 @@ function checkRate(logs, user){
   if(logs.length>=limit){ const wait=Math.ceil((win-(now-logs[0]))/1000); return{ok:false,wait}; }
   logs.push(now); return{ok:true};
 }
+function scheduleMsgWrite(data){
+  pendingMsgWrite=data; clearTimeout(msgWriteTimer);
+  msgWriteTimer=setTimeout(async()=>{ if(pendingMsgWrite) await setDoc(REFS.messages,pendingMsgWrite); pendingMsgWrite=null; },WRITE_DELAY);
+}
+function scheduleDMWrite(data){
+  pendingDMWrite=data; clearTimeout(dmWriteTimer);
+  dmWriteTimer=setTimeout(async()=>{ if(pendingDMWrite) await setDoc(REFS.dms,pendingDMWrite); pendingDMWrite=null; },WRITE_DELAY);
+}
 
 /* ══════════════════════════════════════════
-   OPTIMISED FIRESTORE WRITERS
-   — debounced so rapid messages only fire
-     one write instead of many
+   PARALLAX
 ══════════════════════════════════════════ */
-let pendingMsgWrite = null;
-let pendingDMWrite  = null;
-
-function scheduleMsgWrite(newDB){
-  pendingMsgWrite = newDB;
-  clearTimeout(msgWriteTimer);
-  msgWriteTimer = setTimeout(async()=>{
-    if(!pendingMsgWrite) return;
-    try{ await setDoc(REFS.messages, pendingMsgWrite); }catch(e){console.error(e);}
-    pendingMsgWrite=null;
-  }, MSG_WRITE_DELAY);
+function initParallax(){
+  const layers=[
+    {el:document.getElementById('neb-1'), speed:0.018},
+    {el:document.getElementById('neb-2'), speed:0.028},
+    {el:document.getElementById('neb-3'), speed:0.012},
+  ];
+  window.addEventListener('mousemove', e=>{
+    const cx=window.innerWidth/2, cy=window.innerHeight/2;
+    const dx=e.clientX-cx, dy=e.clientY-cy;
+    layers.forEach(({el,speed})=>{
+      if(!el) return;
+      el.style.transform=`translate(${dx*speed}px,${dy*speed}px)`;
+    });
+  });
 }
-function scheduleDMWrite(newDB){
-  pendingDMWrite = newDB;
-  clearTimeout(dmWriteTimer);
-  dmWriteTimer = setTimeout(async()=>{
-    if(!pendingDMWrite) return;
-    try{ await setDoc(REFS.dms, pendingDMWrite); }catch(e){console.error(e);}
-    pendingDMWrite=null;
-  }, MSG_WRITE_DELAY);
+
+/* ══════════════════════════════════════════
+   CANVAS PARTICLES
+══════════════════════════════════════════ */
+function initCanvas(){
+  const canvas=document.getElementById('bg-canvas');
+  const ctx=canvas.getContext('2d');
+  let W,H,particles=[],nebulae=[];
+  function resize(){ W=canvas.width=window.innerWidth; H=canvas.height=window.innerHeight; }
+  resize(); window.addEventListener('resize',resize);
+  for(let i=0;i<5;i++){
+    nebulae.push({
+      x:Math.random()*1.2-.1, y:Math.random()*1.2-.1,
+      r:Math.random()*.35+.18, hue:Math.random()<.5?210:265,
+      a:Math.random()*.05+.018,
+      dx:(Math.random()-.5)*.0001, dy:(Math.random()-.5)*.0001
+    });
+  }
+  for(let i=0;i<180;i++){
+    particles.push({
+      x:Math.random(), y:Math.random(),
+      r:Math.random()*1.4+.2,
+      a:Math.random()*.55+.1,
+      twinkleSpeed:Math.random()*.022+.005,
+      twinklePhase:Math.random()*Math.PI*2,
+      dx:(Math.random()-.5)*.00007,
+      dy:(Math.random()-.5)*.00007,
+      color:Math.random()<.15?`hsl(${195+Math.random()*70},80%,82%)`:'#fff'
+    });
+  }
+  let shooters=[];
+  function spawnShooter(){
+    shooters.push({
+      x:Math.random()*.7, y:Math.random()*.4,
+      len:Math.random()*120+60,
+      speed:Math.random()*.016+.01,
+      a:1, angle:Math.PI/4+(Math.random()-.5)*.3
+    });
+  }
+  setInterval(()=>{ if(Math.random()<.35) spawnShooter(); },2400);
+  function draw(){
+    requestAnimationFrame(draw);
+    ctx.clearRect(0,0,W,H);
+    nebulae.forEach(n=>{
+      n.x+=n.dx; n.y+=n.dy;
+      if(n.x<-.5||n.x>1.5) n.dx*=-1;
+      if(n.y<-.5||n.y>1.5) n.dy*=-1;
+      const g=ctx.createRadialGradient(n.x*W,n.y*H,0,n.x*W,n.y*H,n.r*Math.min(W,H));
+      g.addColorStop(0,`hsla(${n.hue},72%,54%,${n.a})`);
+      g.addColorStop(1,'transparent');
+      ctx.fillStyle=g; ctx.beginPath();
+      ctx.arc(n.x*W,n.y*H,n.r*Math.min(W,H),0,Math.PI*2); ctx.fill();
+    });
+    particles.forEach(p=>{
+      p.x+=p.dx; p.y+=p.dy;
+      if(p.x<0)p.x=1; if(p.x>1)p.x=0;
+      if(p.y<0)p.y=1; if(p.y>1)p.y=0;
+      p.twinklePhase+=p.twinkleSpeed;
+      ctx.globalAlpha=p.a*(.6+.4*Math.sin(p.twinklePhase));
+      ctx.fillStyle=p.color;
+      ctx.beginPath(); ctx.arc(p.x*W,p.y*H,p.r,0,Math.PI*2); ctx.fill();
+    });
+    shooters=shooters.filter(s=>{
+      s.x+=Math.cos(s.angle)*s.speed; s.y+=Math.sin(s.angle)*s.speed; s.a-=.018;
+      if(s.a<=0) return false;
+      const tx=s.x*W, ty=s.y*H;
+      const tail=ctx.createLinearGradient(tx,ty,tx-Math.cos(s.angle)*s.len,ty-Math.sin(s.angle)*s.len);
+      tail.addColorStop(0,`rgba(190,228,255,${s.a})`);
+      tail.addColorStop(1,'transparent');
+      ctx.globalAlpha=1; ctx.strokeStyle=tail; ctx.lineWidth=1.2;
+      ctx.beginPath(); ctx.moveTo(tx,ty);
+      ctx.lineTo(tx-Math.cos(s.angle)*s.len,ty-Math.sin(s.angle)*s.len);
+      ctx.stroke();
+      return true;
+    });
+    ctx.globalAlpha=1;
+  }
+  draw();
 }
 
 /* ══════════════════════════════════════════
    BROWSER NOTIFICATIONS
 ══════════════════════════════════════════ */
-function pushBrowserNotif(title, body, tag){
+function pushBrowserNotif(title,body,tag){
   const prefs=getNotifPrefs();
   if(prefs.muteAll||Notification.permission!=='granted') return;
   try{ new Notification(title,{body,tag,icon:"data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌌</text></svg>"}); }catch{}
 }
 window.requestNotifPerm = async () => {
-  const result=await Notification.requestPermission();
-  updateNotifPermUI();
-  if(result==='granted') notify('Notifications enabled','success');
-  else if(result==='denied') notify('Notifications blocked — check browser settings','warning');
+  const r=await Notification.requestPermission(); updateNotifPermUI();
+  if(r==='granted') notify('Notifications enabled','success');
+  else if(r==='denied') notify('Blocked — check site settings','warning');
 };
 function updateNotifPermUI(){
   const perm=Notification.permission;
   const btn=document.getElementById('notif-perm-btn');
   const stat=document.getElementById('notif-perm-status');
   if(!btn||!stat) return;
-  if(perm==='granted'){
-    btn.textContent='Enabled ✓'; btn.disabled=true;
-    stat.textContent='✓ Browser notifications are active'; stat.className='nsc-status granted';
-  }else if(perm==='denied'){
-    btn.textContent='Blocked'; btn.disabled=true;
-    stat.textContent='✕ Blocked — go to site settings to allow'; stat.className='nsc-status denied';
-  }else{
-    btn.textContent='Enable'; btn.disabled=false;
-    stat.textContent='Click Enable to allow notifications'; stat.className='nsc-status default';
-  }
+  if(perm==='granted'){btn.textContent='Enabled ✓';btn.disabled=true;stat.textContent='✓ Active';stat.className='nsc-status granted';}
+  else if(perm==='denied'){btn.textContent='Blocked';btn.disabled=true;stat.textContent='✕ Blocked — allow in site settings';stat.className='nsc-status denied';}
+  else{btn.textContent='Enable';btn.disabled=false;stat.textContent='Click to allow';stat.className='nsc-status default';}
 }
 window.saveNotifPrefs = () => {
   const prefs=getNotifPrefs();
@@ -229,34 +299,24 @@ window.saveNotifPrefs = () => {
   prefs.muteAll=document.getElementById('ntog-mute')?.checked||false;
   prefs.channels=prefs.channels||{};
   document.querySelectorAll('.cnr-checkbox').forEach(cb=>{ prefs.channels[cb.dataset.tid]=cb.checked; });
-  saveNotifPrefsData(prefs);
-  notify('Preferences saved','success');
+  saveNotifPrefsData(prefs); notify('Preferences saved','success');
 };
 function renderNotifSection(){
   updateNotifPermUI();
   const prefs=getNotifPrefs();
-  const dmTog=document.getElementById('ntog-dms');
-  const muteTog=document.getElementById('ntog-mute');
-  if(dmTog)   dmTog.checked  =prefs.dms||false;
-  if(muteTog) muteTog.checked=prefs.muteAll||false;
+  const dt=document.getElementById('ntog-dms'); const mt=document.getElementById('ntog-mute');
+  if(dt) dt.checked=prefs.dms||false; if(mt) mt.checked=prefs.muteAll||false;
   renderNotifChannels();
 }
 function renderNotifChannels(){
   const el=document.getElementById('notif-channel-list'); if(!el) return;
-  el.innerHTML='';
-  const prefs=getNotifPrefs(); const subs=prefs.channels||{};
+  el.innerHTML=''; const prefs=getNotifPrefs(); const subs=prefs.channels||{};
   getThreads().forEach(t=>{
     const row=document.createElement('div'); row.className='channel-notif-row';
-    row.innerHTML=`
-      <span class="cnr-icon">${esc(t.emoji||'💬')}</span>
-      <div style="flex:1">
-        <div class="cnr-name">#${esc(t.name)}</div>
-        <div class="cnr-sub">${t.announceOnly?'Announcements channel':'Community channel'}</div>
-      </div>
-      <label class="toggle-switch">
-        <input type="checkbox" class="cnr-checkbox" data-tid="${esc(t.id)}" onchange="saveNotifPrefs()" ${subs[t.id]?'checked':''}>
-        <span class="toggle-track"></span>
-      </label>`;
+    row.innerHTML=`<span class="cnr-icon">${esc(t.emoji||'💬')}</span>
+      <div style="flex:1"><div class="cnr-name">#${esc(t.name)}</div>
+      <div class="cnr-sub">${t.announceOnly?'Announcements':'Community channel'}</div></div>
+      <label class="toggle-switch"><input type="checkbox" class="cnr-checkbox" data-tid="${esc(t.id)}" onchange="saveNotifPrefs()" ${subs[t.id]?'checked':''}><span class="toggle-track"></span></label>`;
     el.appendChild(row);
   });
 }
@@ -280,9 +340,8 @@ window.doSignIn = async () => {
   if(u===ADMIN_USERNAME.toLowerCase()){
     if(p!==ADMIN_PASSWORD){err.textContent='Wrong password.';return;}
     await ensureAdminAccount();
-    currentUser={username:ADMIN_USERNAME,name:ADMIN_NAME,rank:'universal',approved:true,banned:false,isAdmin:true,proxyAccess:true};
-    localStorage.setItem('nebula_sess',JSON.stringify(currentUser));
-    launchApp(); return;
+    currentUser={username:ADMIN_USERNAME,name:ADMIN_NAME,rank:'goat',approved:true,banned:false,isAdmin:true,proxyAccess:true};
+    localStorage.setItem('nebula_sess',JSON.stringify(currentUser)); launchApp(); return;
   }
   await loadAccounts();
   const acct=DB.accounts[u];
@@ -291,8 +350,7 @@ window.doSignIn = async () => {
   if(acct.banned){err.textContent='Account suspended.';return;}
   if(!acct.approved){currentUser={...acct,username:u};showPending();return;}
   currentUser={...acct,username:u,isAdmin:false};
-  localStorage.setItem('nebula_sess',JSON.stringify(currentUser));
-  launchApp();
+  localStorage.setItem('nebula_sess',JSON.stringify(currentUser)); launchApp();
 };
 window.doSignUp = async () => {
   const name=document.getElementById('su-name').value.trim();
@@ -301,19 +359,17 @@ window.doSignUp = async () => {
   const p2=document.getElementById('su-pass2').value;
   const err=document.getElementById('su-err'); err.textContent='';
   if(!name||!u||!p||!p2){err.textContent='Fill all fields.';return;}
-  if(u.length<2){err.textContent='Username too short (min 2).';return;}
+  if(u.length<2){err.textContent='Username too short.';return;}
   if(u===ADMIN_USERNAME.toLowerCase()){err.textContent='Reserved username.';return;}
   if(p.length<6){err.textContent='Password must be 6+ chars.';return;}
   if(p!==p2){err.textContent='Passwords do not match.';return;}
   await loadAccounts();
   if(DB.accounts[u]){err.textContent='Username taken.';return;}
   try{
-    /* use updateDoc-style merge via setDoc merge to avoid overwriting all accounts */
-    const newAccounts={...DB.accounts,[u]:{
+    await setDoc(REFS.accounts,{...DB.accounts,[u]:{
       name,passHash:await hashPass(p),rank:'earthbound',
       approved:false,banned:false,proxyAccess:false,joinedAt:tsNow()
-    }};
-    await setDoc(REFS.accounts,newAccounts);
+    }});
     notify('Account requested! Awaiting approval.','success');
     authTab('signin');
     ['su-name','su-user','su-pass','su-pass2'].forEach(id=>document.getElementById(id).value='');
@@ -329,8 +385,11 @@ async function ensureAdminAccount(){
   if(!DB.accounts[ADMIN_USERNAME]){
     await setDoc(REFS.accounts,{...DB.accounts,[ADMIN_USERNAME]:{
       name:ADMIN_NAME,passHash:await hashPass(ADMIN_PASSWORD),
-      rank:'universal',approved:true,banned:false,proxyAccess:true,joinedAt:tsNow()
+      rank:'goat',approved:true,banned:false,proxyAccess:true,joinedAt:tsNow()
     }});
+    await loadAccounts();
+  } else if(DB.accounts[ADMIN_USERNAME].rank!=='goat'){
+    await setDoc(REFS.accounts,{...DB.accounts,[ADMIN_USERNAME]:{...DB.accounts[ADMIN_USERNAME],rank:'goat'}});
     await loadAccounts();
   }
 }
@@ -341,21 +400,19 @@ async function loadAccounts(){
 
 /* ── restore session ── */
 (async()=>{
+  initCanvas();
+  initParallax();
   try{
-    const saved=localStorage.getItem('nebula_sess');
-    if(!saved) return;
-    const sess=JSON.parse(saved);
-    await loadAccounts();
+    const saved=localStorage.getItem('nebula_sess'); if(!saved) return;
+    const sess=JSON.parse(saved); await loadAccounts();
     if(sess.username===ADMIN_USERNAME){
       await ensureAdminAccount();
-      currentUser={...sess,isAdmin:true,proxyAccess:true};
-      launchApp(); return;
+      currentUser={...sess,rank:'goat',isAdmin:true,proxyAccess:true}; launchApp(); return;
     }
     const live=DB.accounts[sess.username];
     if(!live||live.banned){localStorage.removeItem('nebula_sess');return;}
     if(!live.approved){currentUser={...live,username:sess.username};showPending();return;}
-    currentUser={...live,username:sess.username,isAdmin:false};
-    launchApp();
+    currentUser={...live,username:sess.username,isAdmin:false}; launchApp();
   }catch{localStorage.removeItem('nebula_sess');}
 })();
 
@@ -366,42 +423,28 @@ async function launchApp(){
   document.getElementById('auth-screen').classList.add('hidden');
   document.getElementById('pending-screen').classList.add('hidden');
   document.getElementById('app').classList.remove('hidden');
-
   if(isMod(currentUser)){
     document.getElementById('snav-admin').classList.remove('hidden');
     document.getElementById('ts-add-btn').classList.remove('hidden');
   }
-  if(canAccessProxy(currentUser))
-    document.getElementById('snav-proxy').classList.remove('hidden');
-
-  // hide games nav for earthbound
-  if(!canAccessGames(currentUser))
-    document.getElementById('snav-games').classList.add('hidden');
-
+  if(canAccessProxy(currentUser)) document.getElementById('snav-proxy').classList.remove('hidden');
+  if(!canAccessGames(currentUser)) document.getElementById('snav-games').classList.add('hidden');
   updateSidebarProfile();
   loadTooltips();
   startListeners();
   if(canAccessGames(currentUser)) loadZones();
   loadProfileSection();
-
   document.addEventListener('keydown',globalKeyHandler);
   document.addEventListener('click',closeEmojiOutside);
   document.getElementById('si-pass').addEventListener('keydown',e=>{if(e.key==='Enter')doSignIn();});
   document.getElementById('si-user').addEventListener('keydown',e=>{if(e.key==='Enter')doSignIn();});
   document.getElementById('tpass-inp').addEventListener('keydown',e=>{if(e.key==='Enter')submitTPass();});
-
   document.addEventListener('visibilitychange',()=>{
     if(document.visibilityState==='visible'){
-      if(activeSection==='chat'&&activeThread){
-        unreadThreads[activeThread.id]=0; newMsgCount=0;
-        updateChatBadge(); renderThreadList(); updateScrollBtn();
-      }
-      if(activeSection==='dms'&&activeDM){
-        unreadDMs[activeDM]=0; updateDMBadge(); renderDMList();
-      }
+      if(activeSection==='chat'&&activeThread){unreadThreads[activeThread.id]=0;newMsgCount=0;updateChatBadge();renderThreadList();updateScrollBtn();}
+      if(activeSection==='dms'&&activeDM){unreadDMs[activeDM]=0;updateDMBadge();renderDMList();}
     }
   });
-
   showSection('home');
 }
 
@@ -409,19 +452,18 @@ function updateSidebarProfile(){
   if(!currentUser) return;
   const ava=document.getElementById('sp-ava');
   ava.style.background=currentUser.username===ADMIN_USERNAME
-    ?'linear-gradient(135deg,#f43f5e,#a855f7)':userColor(currentUser.username);
+    ?'linear-gradient(135deg,#f59e0b,#f43f5e)'
+    :userColor(currentUser.username);
   ava.textContent=avatarLetter(currentUser.username);
   document.getElementById('sp-name').textContent=currentUser.username;
   const rEl=document.getElementById('sp-rank');
   rEl.style.color=rankColorText(currentUser.rank);
-  const rN={earthbound:'🌱 Earthbound',planetary:'🌍 Planetary',solar:'☀️ Solar',galactic:'🌌 Galactic',universal:'✦ Universal'};
-  rEl.textContent=rN[currentUser.rank]||'';
+  const m=rankMeta[currentUser.rank]||rankMeta.earthbound;
+  rEl.textContent=`${m.icon} ${m.label}`;
 }
 
 /* ══════════════════════════════════════════
-   LISTENERS — each snapshot only fires when
-   data actually changes; we avoid re-reading
-   on every keystroke by caching locally.
+   LISTENERS
 ══════════════════════════════════════════ */
 function startListeners(){
   onSnapshot(REFS.accounts,snap=>{
@@ -441,18 +483,15 @@ function startListeners(){
     if(isMod(currentUser)) renderAdminPanel();
     renderMembersList(); renderDMList();
   });
-
   onSnapshot(REFS.threads,snap=>{
     if(!snap.exists()) return;
     DB.threads=snap.data().list||DEFAULT_THREADS;
     renderThreadList(); renderNotifChannels();
     if(isMod(currentUser)) renderAdminPanel();
   });
-
   onSnapshot(REFS.messages,snap=>{
     if(!snap.exists()) return;
-    const old={...DB.messages};
-    DB.messages=snap.data()||{};
+    const old={...DB.messages}; DB.messages=snap.data()||{};
     const prefs=getNotifPrefs();
     Object.keys(DB.messages).forEach(tid=>{
       const oldLen=(old[tid]||[]).filter(m=>!m.deleted).length;
@@ -460,59 +499,45 @@ function startListeners(){
       const newLen=newArr.filter(m=>!m.deleted).length;
       if(newLen>oldLen){
         const diff=newLen-oldLen;
-        const isActiveAndVisible=
-          activeThread?.id===tid&&
-          activeSection==='chat'&&
-          document.visibilityState==='visible';
-        if(!isActiveAndVisible){
+        const live=activeThread?.id===tid&&activeSection==='chat'&&document.visibilityState==='visible';
+        if(!live){
           unreadThreads[tid]=(unreadThreads[tid]||0)+diff;
           if(!prefs.muteAll&&prefs.channels?.[tid]&&Notification.permission==='granted'){
-            const lastMsg=newArr.filter(m=>!m.deleted).slice(-1)[0];
+            const last=newArr.filter(m=>!m.deleted).slice(-1)[0];
             const t=getThreads().find(x=>x.id===tid);
-            if(lastMsg&&lastMsg.user!==currentUser.username)
-              pushBrowserNotif(`#${t?.name||tid}`,`${lastMsg.user}: ${lastMsg.text}`,`ch-${tid}`);
+            if(last&&last.user!==currentUser.username) pushBrowserNotif(`#${t?.name||tid}`,`${last.user}: ${last.text}`,`ch-${tid}`);
           }
-        }else if(!atBottom){
-          newMsgCount+=diff; updateScrollBtn();
-        }
+        }else if(!atBottom){ newMsgCount+=diff; updateScrollBtn(); }
       }
     });
     updateChatBadge(); renderThreadList();
     if(activeThread) renderMessages();
   });
-
   onSnapshot(REFS.dms,snap=>{
     if(!snap.exists()) return;
-    const old={...DB.dms};
-    DB.dms=snap.data()||{};
+    const old={...DB.dms}; DB.dms=snap.data()||{};
     const prefs=getNotifPrefs(); const myU=currentUser.username;
     Object.keys(DB.dms).forEach(k=>{
       if(!k.includes(myU)) return;
-      const oldLen=(old[k]||[]).length;
-      const newArr=DB.dms[k]||[];
-      const newLen=newArr.length;
+      const newArr=DB.dms[k]||[], oldLen=(old[k]||[]).length, newLen=newArr.length;
       const other=k.split('__').find(p=>p!==myU);
-      const isActiveAndVisible=
-        other===activeDM&&activeSection==='dms'&&document.visibilityState==='visible';
-      if(other&&newLen>oldLen&&!isActiveAndVisible){
+      const live=other===activeDM&&activeSection==='dms'&&document.visibilityState==='visible';
+      if(other&&newLen>oldLen&&!live){
         unreadDMs[other]=(unreadDMs[other]||0)+(newLen-oldLen);
         if(!prefs.muteAll&&prefs.dms&&Notification.permission==='granted'){
-          const lastMsg=newArr.slice(-1)[0];
-          if(lastMsg&&lastMsg.user!==myU)
-            pushBrowserNotif(`DM from ${other}`,lastMsg.text,`dm-${other}`);
+          const last=newArr.slice(-1)[0];
+          if(last&&last.user!==myU) pushBrowserNotif(`DM from ${other}`,last.text,`dm-${other}`);
         }
       }
     });
     updateDMBadge(); renderDMList();
     if(activeDM) renderDMMessages();
   });
-
   onSnapshot(REFS.proxies,snap=>{
     if(!snap.exists()) return;
     DB.proxies=snap.data().list||[];
     if(activeSection==='proxy') renderProxies();
   });
-
   onSnapshot(REFS.config,snap=>{
     if(!snap.exists()) return;
     DB.config=snap.data()||{};
@@ -520,7 +545,7 @@ function startListeners(){
   });
 }
 
-/* ══════════════════════════════════════════
+/* ══════��═══════════════════════════════════
    SECTIONS
 ══════════════════════════════════════════ */
 window.showSection = s => {
@@ -533,32 +558,20 @@ window.showSection = s => {
   if(sec){sec.classList.remove('hidden');sec.classList.add('active');}
   document.getElementById(`snav-${s}`)?.classList.add('active');
   activeSection=s;
-  if(s==='chat'){
-    if(activeThread){unreadThreads[activeThread.id]=0;newMsgCount=0;}
-    updateChatBadge(); renderThreadList();
-  }
-  if(s==='dms'){
-    if(activeDM) unreadDMs[activeDM]=0;
-    updateDMBadge(); renderDMList();
-  }
-  if(s==='admin')         renderAdminPanel();
-  if(s==='proxy')         renderProxies();
-  if(s==='profile')       loadProfileSection();
+  if(s==='chat'){if(activeThread){unreadThreads[activeThread.id]=0;newMsgCount=0;}updateChatBadge();renderThreadList();}
+  if(s==='dms'){if(activeDM)unreadDMs[activeDM]=0;updateDMBadge();renderDMList();}
+  if(s==='admin') renderAdminPanel();
+  if(s==='proxy') renderProxies();
+  if(s==='profile') loadProfileSection();
   if(s==='notifications') renderNotifSection();
 };
-
-/* ══════════════════════════════════════════
-   BADGES
-══════════════════════════════════════════ */
 function updateChatBadge(){
-  const total=Object.values(unreadThreads).reduce((a,b)=>a+b,0);
   const b=document.getElementById('chat-badge'); if(!b) return;
-  b.textContent=total>9?'9+':total; b.classList.toggle('hidden',total===0);
+  b.classList.add('hidden');
 }
 function updateDMBadge(){
-  const total=Object.values(unreadDMs).reduce((a,b)=>a+b,0);
   const b=document.getElementById('dm-badge'); if(!b) return;
-  b.textContent=total>9?'9+':total; b.classList.toggle('hidden',total===0);
+  b.classList.add('hidden');
 }
 
 /* ══════════════════════════════════════════
@@ -609,61 +622,48 @@ window.submitTPass=async()=>{
     inp.classList.remove('shake'); void inp.offsetWidth; inp.classList.add('shake');
   }
 };
-
 async function switchThread(t){
   if(switching) return; switching=true;
-  activeThread=t; unreadThreads[t.id]=0; newMsgCount=0;
+  activeThread=t; unreadThreads[t.id]=0; newMsgCount=0; atBottom=true;
   updateChatBadge(); renderThreadList();
-  // DON'T reset atBottom here — let renderMessages decide after scroll
-
   document.getElementById('chat-no-select').classList.add('hidden');
   const win=document.getElementById('chat-window'); win.classList.remove('hidden');
   document.getElementById('ctb-name').textContent=t.name;
-  const ann=document.getElementById('ctb-announce');
-  ann.classList.toggle('hidden',!t.announceOnly);
-
+  document.getElementById('ctb-announce').classList.toggle('hidden',!t.announceOnly);
   const ia=document.getElementById('chat-input-area');
   if(t.announceOnly&&!isMod(currentUser)){
-    ia.innerHTML=`<div class="announce-notice">📢 Only moderators can post here. You may react to messages.</div>`;
+    ia.innerHTML=`<div class="announce-notice">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M22 3L2 10l7.5 2.5L12 21l3-6 7-12z"/></svg>
+      Only moderators can post here.
+    </div>`;
   }else{
-    ia.innerHTML=`
-      <div class="chat-input-wrap">
-        <input type="text" id="chat-input" placeholder="Message #${esc(t.name)}…" maxlength="500" autocomplete="off" spellcheck="false">
-        <span class="char-ctr" id="char-ctr"></span>
-        <button class="send-btn" id="send-btn" onclick="sendMessage()">
-          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M2 21l21-9L2 3v7l15 2-15 2z"/></svg>
-        </button>
-      </div>
+    ia.innerHTML=`<div class="chat-input-wrap">
+      <input type="text" id="chat-input" placeholder="Message #${esc(t.name)}…" maxlength="500" autocomplete="off" spellcheck="false">
+      <span class="char-ctr" id="char-ctr"></span>
+      <button class="send-btn" id="send-btn" onclick="sendMessage()">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M2 21l21-9L2 3v7l15 2-15 2z"/></svg>
+      </button></div>
       <div class="rate-msg hidden" id="rate-msg"></div>`;
     document.getElementById('chat-input').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMessage();}});
     document.getElementById('chat-input').addEventListener('input',updateCharCtr);
   }
-
   const ctbRight=document.getElementById('ctb-right'); ctbRight.innerHTML='';
   if(isMod(currentUser)){
     const wb=document.createElement('button'); wb.className='btn btn-ghost btn-sm'; wb.textContent='🗑 Wipe';
     wb.onclick=()=>wipeThread(t.id); ctbRight.appendChild(wb);
   }
-
-  // reset scroll state for new thread
-  atBottom=true; newMsgCount=0;
-  renderMessages();
-  switching=false;
+  renderMessages(); switching=false;
   if(activeSection!=='chat') showSection('chat');
-
-  // scroll to bottom on thread switch
   requestAnimationFrame(()=>{
     const mw=document.getElementById('messages-wrap');
-    if(mw){ mw.scrollTop=mw.scrollHeight; atBottom=true; }
+    if(mw){mw.scrollTop=mw.scrollHeight;atBottom=true;}
   });
 }
-
 async function wipeThread(tid){
   if(!confirm(`Wipe all messages in #${tid}?`)) return;
-  try{ await setDoc(REFS.messages,{...DB.messages,[tid]:[]}); notify('Wiped','success'); }
-  catch{ notify('Failed','error'); }
+  try{await setDoc(REFS.messages,{...DB.messages,[tid]:[]}); notify('Wiped','success');}
+  catch{notify('Failed','error');}
 }
-
 window.openCreateThread=()=>{
   ['ct-name','ct-emoji'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('ct-announce').checked=false;
@@ -703,12 +703,9 @@ function renderMessages(){
   if(!activeThread) return;
   const msgs=DB.messages[activeThread.id]||[];
   const wrap=document.getElementById('messages-wrap'); if(!wrap) return;
-
-  // save scroll position BEFORE re-render
   const prevScrollTop    = wrap.scrollTop;
   const prevScrollHeight = wrap.scrollHeight;
-  const wasAtBottom      = prevScrollHeight - prevScrollTop <= wrap.clientHeight + 140;
-
+  const wasAtBottom      = prevScrollHeight-prevScrollTop <= wrap.clientHeight+150;
   const container=document.getElementById('messages'); container.innerHTML='';
   let lastUser=null, lastDate=null;
   msgs.forEach((m,idx)=>{
@@ -721,34 +718,28 @@ function renderMessages(){
     container.appendChild(buildMessage(m,idx,m.user!==lastUser,activeThread.id,false));
     lastUser=m.user;
   });
-
-  // restore scroll: if was at bottom → stay at bottom, else keep position
   requestAnimationFrame(()=>{
     if(wasAtBottom){
-      wrap.scrollTop=wrap.scrollHeight;
-      atBottom=true; newMsgCount=0;
+      wrap.scrollTop=wrap.scrollHeight; atBottom=true; newMsgCount=0;
     }else{
-      // keep relative position so scrolling up doesn't jump
-      wrap.scrollTop=prevScrollTop+(wrap.scrollHeight-prevScrollHeight);
-      atBottom=false;
+      wrap.scrollTop=prevScrollTop+(wrap.scrollHeight-prevScrollHeight); atBottom=false;
     }
     updateScrollBtn();
   });
-
   ensureScrollListener(wrap);
 }
 
 function ensureScrollListener(wrap){
   if(wrap._scrollBound) return; wrap._scrollBound=true;
   wrap.addEventListener('scroll',deb(()=>{
-    atBottom=wrap.scrollHeight-wrap.scrollTop<=wrap.clientHeight+140;
-    if(atBottom) newMsgCount=0; updateScrollBtn();
+    atBottom=wrap.scrollHeight-wrap.scrollTop<=wrap.clientHeight+150;
+    if(atBottom){newMsgCount=0;} updateScrollBtn();
   },40));
   if(!document.getElementById('scroll-to-bottom')){
     const btn=document.createElement('button');
     btn.className='scroll-to-bottom'; btn.id='scroll-to-bottom';
     btn.innerHTML='↓<span class="stb-unread hidden" id="stb-unread">0</span>';
-    btn.onclick=()=>{ wrap.scrollTop=wrap.scrollHeight; newMsgCount=0; updateScrollBtn(); };
+    btn.onclick=()=>{ const mw=document.getElementById('messages-wrap'); if(mw) mw.scrollTop=mw.scrollHeight; newMsgCount=0; updateScrollBtn(); };
     wrap.parentElement.style.position='relative';
     wrap.parentElement.appendChild(btn);
   }
@@ -769,8 +760,10 @@ function buildMessage(m, idx, isFirst, ctxId, isDM){
   div.dataset.idx=idx; div.dataset.ctx=ctxId; div.dataset.dm=isDM?'1':'0';
   const canAct=currentUser&&(currentUser.username===m.user||isMod(currentUser));
   const isOwn=currentUser&&currentUser.username===m.user;
-  const bg=m.user===ADMIN_USERNAME?'linear-gradient(135deg,#f43f5e,#a855f7)':userColor(m.user);
-  const rank=(DB.accounts[m.user]?.rank)||'earthbound';
+  const isAdminUser=m.user===ADMIN_USERNAME;
+  const bg=isAdminUser?'linear-gradient(135deg,#f59e0b,#f43f5e)':userColor(m.user);
+  const acctRank=(DB.accounts[m.user]?.rank)||'earthbound';
+  const displayRank=isAdminUser?'goat':acctRank;
 
   const avaWrap=document.createElement('div'); avaWrap.className='msg-ava-wrap';
   if(isFirst){
@@ -783,12 +776,11 @@ function buildMessage(m, idx, isFirst, ctxId, isDM){
   const content=document.createElement('div'); content.className='msg-content';
   if(isFirst){
     content.innerHTML=`<div class="msg-header">
-      <span class="msg-name" style="color:${rankColorText(rank)}">${esc(m.user)}</span>
-      ${rankBadge(rank)}
+      <span class="msg-name" style="color:${rankColorText(displayRank)}">${esc(m.user)}</span>
+      ${rankBadge(displayRank)}
       <span class="msg-ts">${relTime(m.time)}</span>
     </div>`;
   }
-
   const textDiv=document.createElement('div'); textDiv.className='msg-text';
   if(m.deleted){
     textDiv.style.cssText='color:var(--text-faint);font-style:italic;';
@@ -798,7 +790,6 @@ function buildMessage(m, idx, isFirst, ctxId, isDM){
     if(m.edited){const ed=document.createElement('span');ed.className='msg-edited';ed.textContent=' (edited)';textDiv.appendChild(ed);}
   }
   content.appendChild(textDiv);
-
   if(!m.deleted){
     const rct=m.reactions||{};
     const rkeys=Object.keys(rct).filter(e=>rct[e]&&rct[e].length>0);
@@ -815,14 +806,13 @@ function buildMessage(m, idx, isFirst, ctxId, isDM){
     }
   }
   div.appendChild(content);
-
   if(!m.deleted&&(canAct||currentUser)){
     const acts=document.createElement('div'); acts.className='msg-actions';
     if(currentUser){
       const rb=document.createElement('button'); rb.className='mab'; rb.textContent='😊';
       rb.onclick=e=>{e.stopPropagation();openEmoji(e,ctxId,idx,isDM);}; acts.appendChild(rb);
     }
-    if(isOwn){ // edit works in BOTH channels and DMs
+    if(isOwn){
       const eb=document.createElement('button'); eb.className='mab'; eb.textContent='✎';
       eb.onclick=()=>startEdit(ctxId,idx,isDM); acts.appendChild(eb);
     }
@@ -847,36 +837,29 @@ window.sendMessage=async()=>{
   const rl=checkRate(rateLogs,currentUser);
   if(!rl.ok){
     const rm=document.getElementById('rate-msg');
-    if(rm){rm.textContent=`Rate limited — wait ${rl.wait}s.`;rm.classList.remove('hidden');
-      setTimeout(()=>rm.classList.add('hidden'),rl.wait*1000);}
+    if(rm){rm.textContent=`Rate limited — wait ${rl.wait}s.`;rm.classList.remove('hidden');setTimeout(()=>rm.classList.add('hidden'),rl.wait*1000);}
     return;
   }
   const sb=document.getElementById('send-btn'); if(sb)sb.disabled=true;
   try{
     const existing=DB.messages[activeThread.id]||[];
-    const updated=[...existing,{user:currentUser.username,text:filt(text),time:tsNow(),reactions:{}}]
-      .slice(-MAX_CHANNEL_MSGS);
+    const updated=[...existing,{user:currentUser.username,text:filt(text),time:tsNow(),reactions:{}}].slice(-MAX_CHANNEL_MSGS);
     const newMsgs={...DB.messages,[activeThread.id]:updated};
-    DB.messages=newMsgs; // optimistic local update
-    scheduleMsgWrite(newMsgs);
+    DB.messages=newMsgs; scheduleMsgWrite(newMsgs);
     input.value=''; updateCharCtr();
-    // scroll to bottom immediately on own message
-    const mw=document.getElementById('messages-wrap');
-    if(mw){ mw.scrollTop=mw.scrollHeight; atBottom=true; newMsgCount=0; }
     renderMessages();
+    const mw=document.getElementById('messages-wrap');
+    if(mw){mw.scrollTop=mw.scrollHeight;atBottom=true;newMsgCount=0;}
   }catch{notify('Failed to send','error');}
   finally{if(sb)sb.disabled=false;input.focus();}
 };
-
 function updateCharCtr(){
-  const input=document.getElementById('chat-input');
-  const ctr=document.getElementById('char-ctr');
+  const input=document.getElementById('chat-input'); const ctr=document.getElementById('char-ctr');
   if(!input||!ctr) return;
   const len=input.value.length;
   if(len>=WARN_MSG_LEN){ctr.textContent=MAX_MSG_LEN-len;ctr.className=`char-ctr${len>=MAX_MSG_LEN?' danger':' warn'}`;}
   else{ctr.textContent='';ctr.className='char-ctr';}
 }
-
 window.promptDel=(ctx,idx,isDM=false)=>{pdel={ctx,idx:+idx,isDM};openModal('del-modal');};
 window.cancelDel=()=>{pdel={ctx:null,idx:null,isDM:false};closeModal('del-modal');};
 window.confirmDel=async()=>{
@@ -885,39 +868,31 @@ window.confirmDel=async()=>{
     if(isDM){
       const k=dmKey(currentUser.username,ctx);
       let ms=[...(DB.dms[k]||[])]; ms[idx]={...ms[idx],deleted:true};
-      const newDMs={...DB.dms,[k]:ms}; DB.dms=newDMs;
-      scheduleDMWrite(newDMs);
+      const nd={...DB.dms,[k]:ms}; DB.dms=nd; scheduleDMWrite(nd);
     }else{
       let ms=[...(DB.messages[ctx]||[])]; ms[idx]={...ms[idx],deleted:true};
-      const newMsgs={...DB.messages,[ctx]:ms}; DB.messages=newMsgs;
-      scheduleMsgWrite(newMsgs);
+      const nm={...DB.messages,[ctx]:ms}; DB.messages=nm; scheduleMsgWrite(nm);
     }
     notify('Deleted','success');
   }catch{notify('Failed','error');}
   cancelDel();
 };
-
-/* edit works for both channel messages AND DMs */
 window.startEdit=(ctxId,idx,isDM=false)=>{
   const msgs=isDM?(DB.dms[dmKey(currentUser.username,ctxId)]||[]):(DB.messages[ctxId]||[]);
   const m=msgs[idx]; if(!m||m.deleted) return;
-
   const containerSel=isDM?'#dm-messages':'#messages';
   const els=document.querySelectorAll(`${containerSel} .msg[data-idx="${idx}"][data-ctx="${ctxId}"]`);
   if(!els.length) return;
   const el=els[0];
-
   document.querySelectorAll('.edit-wrap').forEach(e=>e.remove());
   document.querySelectorAll('.msg.editing').forEach(e=>e.classList.remove('editing'));
   el.classList.add('editing');
   const textDiv=el.querySelector('.msg-text'); textDiv.style.display='none';
-
   const wrap=document.createElement('div'); wrap.className='edit-wrap';
   const inp=document.createElement('input'); inp.type='text'; inp.className='edit-inp';
   inp.value=m.text; inp.maxLength=MAX_MSG_LEN;
   const save=document.createElement('button'); save.className='esave'; save.textContent='Save';
   const can=document.createElement('button'); can.className='ecancel'; can.textContent='Cancel';
-
   const doSave=async()=>{
     const nv=inp.value.trim();
     if(!nv){notify('Empty','warning');return;} if(nv===m.text){doCancel();return;}
@@ -926,12 +901,10 @@ window.startEdit=(ctxId,idx,isDM=false)=>{
       if(isDM){
         const k=dmKey(currentUser.username,ctxId);
         let ms=[...(DB.dms[k]||[])]; ms[idx]={...ms[idx],text:filt(nv),edited:true};
-        const newDMs={...DB.dms,[k]:ms}; DB.dms=newDMs;
-        scheduleDMWrite(newDMs);
+        const nd={...DB.dms,[k]:ms}; DB.dms=nd; scheduleDMWrite(nd);
       }else{
         let ms=[...(DB.messages[ctxId]||[])]; ms[idx]={...ms[idx],text:filt(nv),edited:true};
-        const newMsgs={...DB.messages,[ctxId]:ms}; DB.messages=newMsgs;
-        scheduleMsgWrite(newMsgs);
+        const nm={...DB.messages,[ctxId]:ms}; DB.messages=nm; scheduleMsgWrite(nm);
       }
       notify('Edited','success');
     }catch{notify('Failed','error');save.disabled=false;}
@@ -965,15 +938,13 @@ window.toggleReact=async(ctx,idx,emoji,isDM=false)=>{
   try{
     if(isDM){
       const k=dmKey(currentUser.username,ctx);
-      let ms=[...(DB.dms[k]||[])]; const m={...ms[idx]};
-      const rct={...m.reactions||{}}; rct[emoji]=toggle([...(rct[emoji]||[])],currentUser.username);
-      ms[idx]={...m,reactions:rct};
-      const newDMs={...DB.dms,[k]:ms}; DB.dms=newDMs; scheduleDMWrite(newDMs);
+      let ms=[...(DB.dms[k]||[])]; const mm={...ms[idx]};
+      const rct={...mm.reactions||{}}; rct[emoji]=toggle([...(rct[emoji]||[])],currentUser.username);
+      ms[idx]={...mm,reactions:rct}; const nd={...DB.dms,[k]:ms}; DB.dms=nd; scheduleDMWrite(nd);
     }else{
-      let ms=[...(DB.messages[ctx]||[])]; const m={...ms[idx]};
-      const rct={...m.reactions||{}}; rct[emoji]=toggle([...(rct[emoji]||[])],currentUser.username);
-      ms[idx]={...m,reactions:rct};
-      const newMsgs={...DB.messages,[ctx]:ms}; DB.messages=newMsgs; scheduleMsgWrite(newMsgs);
+      let ms=[...(DB.messages[ctx]||[])]; const mm={...ms[idx]};
+      const rct={...mm.reactions||{}}; rct[emoji]=toggle([...(rct[emoji]||[])],currentUser.username);
+      ms[idx]={...mm,reactions:rct}; const nm={...DB.messages,[ctx]:ms}; DB.messages=nm; scheduleMsgWrite(nm);
     }
   }catch{notify('Failed','error');}
 };
@@ -991,25 +962,25 @@ function renderMembersList(){
   const mods=[], regular=[];
   Object.entries(DB.accounts).forEach(([u,a])=>{
     if(!a.approved||a.banned) return;
-    if(u===ADMIN_USERNAME||a.rank==='universal') mods.push([u,a]);
+    if(u===ADMIN_USERNAME||a.rank==='universal'||a.rank==='goat') mods.push([u,a]);
     else regular.push([u,a]);
   });
-  const adminIdx=mods.findIndex(([u])=>u===ADMIN_USERNAME);
-  if(adminIdx>0){const [ad]=mods.splice(adminIdx,1);mods.unshift(ad);}
+  const ai=mods.findIndex(([u])=>u===ADMIN_USERNAME);
+  if(ai>0){const [ad]=mods.splice(ai,1);mods.unshift(ad);}
   const addSec=(label,arr)=>{
     if(!arr.length) return;
     const lbl=document.createElement('div'); lbl.className='ms-section-label'; lbl.textContent=label;
     list.appendChild(lbl);
     arr.forEach(([u,a])=>{
-      const div=document.createElement('div'); div.className='ms-item';
-      div.onclick=()=>openDMWith(u);
-      div.innerHTML=`<div class="ms-ava" style="background:${u===ADMIN_USERNAME?'linear-gradient(135deg,#f43f5e,#a855f7)':userColor(u)}">${avatarLetter(u)}</div>`
-        +`<span class="ms-name">${esc(u)}</span>${rankBadge(a.rank)}`;
+      const isAdminUser=u===ADMIN_USERNAME;
+      const displayRank=isAdminUser?'goat':(a.rank||'earthbound');
+      const div=document.createElement('div'); div.className='ms-item'; div.onclick=()=>openDMWith(u);
+      div.innerHTML=`<div class="ms-ava" style="background:${isAdminUser?'linear-gradient(135deg,#f59e0b,#f43f5e)':userColor(u)}">${avatarLetter(u)}</div>`
+        +`<span class="ms-name">${esc(u)}</span>${rankBadge(displayRank)}`;
       list.appendChild(div);
     });
   };
-  addSec('MODERATORS',mods);
-  addSec('MEMBERS',regular);
+  addSec('MODERATORS',mods); addSec('MEMBERS',regular);
 }
 
 /* ══════════════════════════════════════════
@@ -1023,45 +994,35 @@ function renderDMList(){
     const other=k.split('__').find(p=>p!==myU);
     if(!other||seen.has(other)) return; seen.add(other);
     const acct=DB.accounts[other]; if(!acct) return;
-    const unrd=unreadDMs[other]||0;
     const div=document.createElement('div');
     div.className=`titem${activeDM===other&&activeSection==='dms'?' active':''}`;
     div.onclick=()=>openDMWith(other);
-    div.innerHTML=
-      `<div style="width:22px;height:22px;border-radius:50%;background:${userColor(other)};display:inline-flex;align-items:center;justify-content:center;font-weight:800;font-size:.6rem;flex-shrink:0;">${avatarLetter(other)}</div>`
-      +`<span class="titem-name" style="margin-left:.4rem">${esc(other)}</span>`
-      +(unrd>0?`<span class="titem-badge">${unrd>9?'9+':unrd}</span>`:'');
+    div.innerHTML=`<div style="width:22px;height:22px;border-radius:50%;background:${userColor(other)};display:inline-flex;align-items:center;justify-content:center;font-weight:800;font-size:.6rem;flex-shrink:0;">${avatarLetter(other)}</div>`
+      +`<span class="titem-name" style="margin-left:.4rem">${esc(other)}</span>`;
     list.appendChild(div);
   });
 }
-window.openNewDM=()=>{
-  document.getElementById('dm-search-inp').value='';
-  document.getElementById('dm-search-results').innerHTML='';
-  openModal('newdm-modal');
-};
+window.openNewDM=()=>{ document.getElementById('dm-search-inp').value=''; document.getElementById('dm-search-results').innerHTML=''; openModal('newdm-modal'); };
 window.closeNewDM=()=>closeModal('newdm-modal');
 window.filterDMSearch=()=>{
   const q=document.getElementById('dm-search-inp').value.toLowerCase();
   const res=document.getElementById('dm-search-results'); res.innerHTML='';
   Object.entries(DB.accounts)
-    .filter(([u,a])=>u!==currentUser.username&&a.approved&&!a.banned
-      &&(u.toLowerCase().includes(q)||(a.name||'').toLowerCase().includes(q)))
+    .filter(([u,a])=>u!==currentUser.username&&a.approved&&!a.banned&&(u.toLowerCase().includes(q)||(a.name||'').toLowerCase().includes(q)))
     .slice(0,10)
     .forEach(([u,a])=>{
       const div=document.createElement('div');
-      div.style.cssText='display:flex;align-items:center;gap:.5rem;padding:.42rem .52rem;border-radius:7px;cursor:pointer;transition:background .14s;';
+      div.style.cssText='display:flex;align-items:center;gap:.5rem;padding:.44rem .54rem;border-radius:7px;cursor:pointer;transition:background .14s;';
       div.onmouseenter=()=>div.style.background='rgba(255,255,255,.06)';
       div.onmouseleave=()=>div.style.background='';
       div.innerHTML=`<div style="width:28px;height:28px;border-radius:50%;background:${userColor(u)};display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.7rem;flex-shrink:0;">${avatarLetter(u)}</div>`
         +`<div><div style="font-size:.8rem;font-weight:700;">${esc(u)}</div><div style="font-size:.66rem;color:var(--text-muted);">${esc(a.name||'')}</div></div>`;
-      div.onclick=()=>{closeNewDM();openDMWith(u);};
-      res.appendChild(div);
+      div.onclick=()=>{closeNewDM();openDMWith(u);}; res.appendChild(div);
     });
 };
 function openDMWith(other){
   if(!DB.accounts[other]){notify('User not found','error');return;}
-  activeDM=other; unreadDMs[other]=0;
-  updateDMBadge(); renderDMList();
+  activeDM=other; unreadDMs[other]=0; updateDMBadge(); renderDMList();
   document.getElementById('dm-no-select').classList.add('hidden');
   const win=document.getElementById('dm-window'); win.classList.remove('hidden');
   document.getElementById('dm-ctb-name').textContent=other;
@@ -1071,21 +1032,15 @@ function openDMWith(other){
   inp.oninput=updateDMCharCtr;
   renderDMMessages();
   if(activeSection!=='dms') showSection('dms');
-  requestAnimationFrame(()=>{
-    const mw=document.getElementById('dm-messages-wrap'); if(mw)mw.scrollTop=mw.scrollHeight;
-  });
+  requestAnimationFrame(()=>{ const mw=document.getElementById('dm-messages-wrap'); if(mw)mw.scrollTop=mw.scrollHeight; });
 }
-
 function renderDMMessages(){
   if(!activeDM) return;
   const k=dmKey(currentUser.username,activeDM);
   const msgs=DB.dms[k]||[];
   const wrap=document.getElementById('dm-messages-wrap'); if(!wrap) return;
-
-  const prevScrollTop    = wrap.scrollTop;
-  const prevScrollHeight = wrap.scrollHeight;
-  const wasAtBottom      = prevScrollHeight - prevScrollTop <= wrap.clientHeight + 140;
-
+  const prevScrollTop=wrap.scrollTop, prevScrollHeight=wrap.scrollHeight;
+  const wasAtBottom=prevScrollHeight-prevScrollTop<=wrap.clientHeight+150;
   const container=document.getElementById('dm-messages'); container.innerHTML='';
   let lastUser=null, lastDate=null;
   msgs.forEach((m,idx)=>{
@@ -1098,13 +1053,11 @@ function renderDMMessages(){
     container.appendChild(buildMessage(m,idx,m.user!==lastUser,activeDM,true));
     lastUser=m.user;
   });
-
   requestAnimationFrame(()=>{
     if(wasAtBottom) wrap.scrollTop=wrap.scrollHeight;
     else wrap.scrollTop=prevScrollTop+(wrap.scrollHeight-prevScrollHeight);
   });
 }
-
 window.sendDM=async()=>{
   const inp=document.getElementById('dm-input'); if(!inp) return;
   const text=inp.value.trim();
@@ -1119,19 +1072,15 @@ window.sendDM=async()=>{
   try{
     const k=dmKey(currentUser.username,activeDM);
     const existing=DB.dms[k]||[];
-    const updated=[...existing,{user:currentUser.username,text:filt(text),time:tsNow(),reactions:{}}]
-      .slice(-MAX_DM_MSGS);
-    const newDMs={...DB.dms,[k]:updated};
-    DB.dms=newDMs; scheduleDMWrite(newDMs);
+    const updated=[...existing,{user:currentUser.username,text:filt(text),time:tsNow(),reactions:{}}].slice(-MAX_DM_MSGS);
+    const nd={...DB.dms,[k]:updated}; DB.dms=nd; scheduleDMWrite(nd);
     inp.value=''; updateDMCharCtr();
-    const mw=document.getElementById('dm-messages-wrap');
-    if(mw){ mw.scrollTop=mw.scrollHeight; }
     renderDMMessages();
+    const mw=document.getElementById('dm-messages-wrap'); if(mw) mw.scrollTop=mw.scrollHeight;
   }catch{notify('Failed to send','error');}
 };
 function updateDMCharCtr(){
-  const inp=document.getElementById('dm-input');
-  const ctr=document.getElementById('dm-char-ctr');
+  const inp=document.getElementById('dm-input'); const ctr=document.getElementById('dm-char-ctr');
   if(!inp||!ctr) return;
   const len=inp.value.length;
   if(len>=WARN_MSG_LEN){ctr.textContent=MAX_MSG_LEN-len;ctr.className=`char-ctr${len>=MAX_MSG_LEN?' danger':' warn'}`;}
@@ -1143,17 +1092,19 @@ function updateDMCharCtr(){
 ══════════════════════════════════════════ */
 function loadProfileSection(){
   const card=document.getElementById('profile-card'); if(!card||!currentUser) return;
-  const bg=currentUser.username===ADMIN_USERNAME?'linear-gradient(135deg,#f43f5e,#a855f7)':userColor(currentUser.username);
+  const isAdminUser=currentUser.username===ADMIN_USERNAME;
+  const bg=isAdminUser?'linear-gradient(135deg,#f59e0b,#f43f5e)':userColor(currentUser.username);
+  const displayRank=isAdminUser?'goat':currentUser.rank;
   card.innerHTML=`
     <div class="prof-ava" style="background:${bg}">${avatarLetter(currentUser.username)}</div>
     <div class="prof-name">${esc(currentUser.name||currentUser.username)}</div>
     <div class="prof-username">@${esc(currentUser.username)}</div>
-    <div style="margin:.38rem 0 .75rem">${rankBadge(currentUser.rank)}</div>
+    <div style="margin:.4rem 0 .82rem">${rankBadge(displayRank)}</div>
     <div class="prof-meta">
-      ${currentUser.isAdmin?'<div>👑 Site Administrator</div>':''}
-      ${isMod(currentUser)&&!currentUser.isAdmin?'<div>🛡 Moderator</div>':''}
-      ${currentUser.proxyAccess?'<div>🔗 Proxy Access</div>':''}
-      <div style="margin-top:.45rem;color:var(--text-faint);font-size:.68rem;">Joined ${currentUser.joinedAt||'—'}</div>
+      ${isAdminUser?`<div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg> Site Administrator</div>`:''}
+      ${isMod(currentUser)&&!isAdminUser?`<div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg> Moderator</div>`:''}
+      ${currentUser.proxyAccess?`<div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg> Proxy Access</div>`:''}
+      <div style="margin-top:.55rem;color:var(--text-faint);font-size:.68rem;">Joined ${currentUser.joinedAt||'—'}</div>
     </div>`;
 }
 
@@ -1177,14 +1128,14 @@ function renderAdmUsers(){
   el.innerHTML=`<div style="font-size:.63rem;color:var(--text-muted);margin-bottom:.75rem;">${users.length} approved user(s)</div>`;
   users.forEach(([u,a])=>{
     const isAdminUser=u===ADMIN_USERNAME;
+    const displayRank=isAdminUser?'goat':(a.rank||'earthbound');
     const row=document.createElement('div'); row.className='adm-row';
-    row.innerHTML=`<div class="adm-ava" style="background:${isAdminUser?'linear-gradient(135deg,#f43f5e,#a855f7)':userColor(u)}">${avatarLetter(u)}</div>`
-      +`<div class="adm-name">${esc(u)}</div>${rankBadge(a.rank)}`;
+    row.innerHTML=`<div class="adm-ava" style="background:${isAdminUser?'linear-gradient(135deg,#f59e0b,#f43f5e)':userColor(u)}">${avatarLetter(u)}</div>`
+      +`<div class="adm-name">${esc(u)}</div>${rankBadge(displayRank)}`;
     if(!isAdminUser){
-      if(currentUser.username===ADMIN_USERNAME){
-        const rb=document.createElement('button'); rb.className='ta-btn ta-blue'; rb.textContent='✎ Rank';
-        rb.onclick=()=>openRankModal(u); row.appendChild(rb);
-      }
+      // Any mod can open rank modal; assignable ranks are enforced inside openRankModal
+      const rb=document.createElement('button'); rb.className='ta-btn ta-blue'; rb.textContent='✎ Rank';
+      rb.onclick=()=>openRankModal(u); row.appendChild(rb);
       const bb=document.createElement('button'); bb.className='ta-btn ta-red'; bb.textContent='Ban';
       bb.onclick=()=>banUser(u); row.appendChild(bb);
     }else{
@@ -1195,8 +1146,8 @@ function renderAdmUsers(){
   });
   const banned=Object.entries(DB.accounts).filter(([,a])=>a.banned);
   if(banned.length){
-    const lbl=document.createElement('div'); lbl.style.cssText='font-size:.63rem;color:var(--danger);margin:.85rem 0 .48rem;';
-    lbl.textContent='Banned accounts'; el.appendChild(lbl);
+    const lbl=document.createElement('div'); lbl.style.cssText='font-size:.63rem;color:var(--danger);margin:.88rem 0 .5rem;';
+    lbl.textContent='Banned'; el.appendChild(lbl);
     banned.forEach(([u])=>{
       const row=document.createElement('div'); row.className='adm-row';
       row.innerHTML=`<div class="adm-ava" style="background:${userColor(u)}">${avatarLetter(u)}</div>`
@@ -1247,22 +1198,20 @@ function renderAdmChannels(){
   addBtn.textContent='+ New Channel'; addBtn.onclick=openCreateThread; el.appendChild(addBtn);
 }
 function renderAdmProxyAccess(){
-  if(currentUser.username!==ADMIN_USERNAME) return;
+  // Only the GoatTech admin manages proxy access
+  if(!isGoatAdmin(currentUser)) return;
   const el=document.getElementById('adm-proxy-access'); if(!el) return;
-  el.innerHTML='<div style="font-size:.7rem;color:var(--text-muted);margin-bottom:.75rem;">Toggle proxy page access per user.</div>';
-  Object.entries(DB.accounts)
-    .filter(([u,a])=>a.approved&&!a.banned&&u!==ADMIN_USERNAME)
-    .forEach(([u,a])=>{
-      const hasAccess=a.proxyAccess||false;
-      const row=document.createElement('div'); row.className='adm-row';
-      row.innerHTML=`<div class="adm-ava" style="background:${userColor(u)}">${avatarLetter(u)}</div>`
-        +`<div class="adm-name">${esc(u)}</div>`;
-      const toggle=document.createElement('button');
-      toggle.className=`ta-btn ${hasAccess?'ta-red':'ta-green'}`;
-      toggle.textContent=hasAccess?'Revoke':'Grant Access';
-      toggle.onclick=()=>toggleProxyAccess(u,!hasAccess);
-      row.appendChild(toggle); el.appendChild(row);
-    });
+  el.innerHTML='<div style="font-size:.7rem;color:var(--text-muted);margin-bottom:.75rem;">Toggle proxy access per user.</div>';
+  Object.entries(DB.accounts).filter(([u,a])=>a.approved&&!a.banned&&u!==ADMIN_USERNAME).forEach(([u,a])=>{
+    const hasAccess=a.proxyAccess||false;
+    const row=document.createElement('div'); row.className='adm-row';
+    row.innerHTML=`<div class="adm-ava" style="background:${userColor(u)}">${avatarLetter(u)}</div><div class="adm-name">${esc(u)}</div>`;
+    const toggle=document.createElement('button');
+    toggle.className=`ta-btn ${hasAccess?'ta-red':'ta-green'}`;
+    toggle.textContent=hasAccess?'Revoke':'Grant Access';
+    toggle.onclick=()=>toggleProxyAccess(u,!hasAccess);
+    row.appendChild(toggle); el.appendChild(row);
+  });
 }
 async function approveUser(u){
   try{await setDoc(REFS.accounts,{...DB.accounts,[u]:{...DB.accounts[u],approved:true}});notify(`${u} approved`,'success');}
@@ -1283,15 +1232,47 @@ async function unbanUser(u){
   catch{notify('Failed','error');}
 }
 async function toggleProxyAccess(u,grant){
-  try{await setDoc(REFS.accounts,{...DB.accounts,[u]:{...DB.accounts[u],proxyAccess:grant}});
-    notify(`${u} proxy access ${grant?'granted':'revoked'}`,'success');}
-  catch{notify('Failed','error');}
+  try{
+    await setDoc(REFS.accounts,{...DB.accounts,[u]:{...DB.accounts[u],proxyAccess:grant}});
+    notify(`${u} proxy access ${grant?'granted':'revoked'}`,'success');
+  }catch{notify('Failed','error');}
 }
-window.openRankModal=u=>{rankTarget=u;document.getElementById('rank-mdesc').textContent=`Assign rank to ${u}`;openModal('rank-modal');};
+
+/* ── RANK MODAL ──
+   Builds buttons for only the ranks the current granter is allowed to assign.
+   Non-admin mods cannot grant "universal" or "goat".
+*/
+window.openRankModal = u => {
+  rankTarget=u;
+  document.getElementById('rank-mdesc').textContent=`Assign rank to ${u}`;
+  const container=document.getElementById('rank-buttons');
+  container.innerHTML='';
+  const allowed=assignableRanks(currentUser);
+  const rankLabels={
+    earthbound:{icon:'🌱',label:'Earthbound',cls:'earthbound'},
+    planetary :{icon:'🌍',label:'Planetary', cls:'planetary'},
+    solar     :{icon:'☀️', label:'Solar',     cls:'solar'},
+    galactic  :{icon:'🌌',label:'Galactic',  cls:'galactic'},
+    universal :{icon:'✦', label:'Universal', cls:'universal'},
+  };
+  allowed.forEach(r=>{
+    const meta=rankLabels[r]; if(!meta) return;
+    const btn=document.createElement('button');
+    btn.className=`rank-btn ${meta.cls}`;
+    btn.innerHTML=`${meta.icon} ${meta.label}`;
+    btn.onclick=()=>grantRank(r);
+    container.appendChild(btn);
+  });
+  openModal('rank-modal');
+};
 window.closeRankModal=()=>{closeModal('rank-modal');rankTarget=null;};
 window.grantRank=async rank=>{
   if(!rankTarget) return;
   if(rankTarget===ADMIN_USERNAME){notify('Cannot change admin rank','error');closeRankModal();return;}
+  // Double-check granter permissions server-side equivalent
+  if(!assignableRanks(currentUser).includes(rank)){
+    notify('You cannot assign that rank','error'); closeRankModal(); return;
+  }
   try{
     await setDoc(REFS.accounts,{...DB.accounts,[rankTarget]:{...DB.accounts[rankTarget],rank}});
     notify(`${rankTarget} → ${rank}`,'success'); closeRankModal();
@@ -1307,7 +1288,7 @@ function renderProxies(){
   const ed=document.getElementById('proxy-editor'); if(ed) ed.classList.toggle('hidden',!isAdmin);
   pl.innerHTML=(DB.proxies||[]).map((p,i)=>`
     <div class="card">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.7rem;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.72rem;">
         <div class="card-title">${esc(p.name)}</div>
         ${isAdmin?`<button onclick="delCat(${i})" style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:.68rem;font-weight:800;font-family:'Inter',sans-serif;">REMOVE</button>`:''}
       </div>
@@ -1316,9 +1297,9 @@ function renderProxies(){
           <a href="${esc(l)}" target="_blank" rel="noopener noreferrer" class="blurred-link">${esc(l)}</a>
           ${isAdmin?`<button onclick="delLink(${i},${li})" style="color:var(--danger);background:none;border:none;cursor:pointer;font-size:1rem;flex-shrink:0;">×</button>`:''}
         </div>`).join('')}
-      ${isAdmin?`<div style="margin-top:.85rem;padding-top:.7rem;border-top:1px solid var(--border2);">
+      ${isAdmin?`<div style="margin-top:.88rem;padding-top:.72rem;border-top:1px solid var(--border2);">
         <input type="text" id="link-in-${i}" class="sinput" placeholder="Add URL…" autocomplete="off">
-        <button class="btn btn-sm" onclick="addLink(${i})" style="width:100%;margin-top:.28rem">Save Link</button>
+        <button class="btn btn-sm" onclick="addLink(${i})" style="width:100%;margin-top:.3rem">Save Link</button>
       </div>`:''}
     </div>`).join('');
 }
@@ -1355,12 +1336,12 @@ window.delCat=async i=>{
 ══════════════════════════════════════════ */
 async function loadZones(){
   try{
-    let zonesURL=ZONE_URLS[Math.floor(Math.random()*ZONE_URLS.length)];
+    let url=ZONE_URLS[0];
     try{
-      const shaRes=await fetch("https://api.github.com/repos/gn-math/assets/commits?t="+Date.now());
-      if(shaRes.status===200){const j=await shaRes.json();const sha=j[0]?.sha;if(sha)zonesURL=`https://cdn.jsdelivr.net/gh/gn-math/assets@${sha}/zones.json`;}
+      const r=await fetch("https://api.github.com/repos/gn-math/assets/commits?t="+Date.now());
+      if(r.status===200){const j=await r.json();const sha=j[0]?.sha;if(sha)url=`https://cdn.jsdelivr.net/gh/gn-math/assets@${sha}/zones.json`;}
     }catch{}
-    const res=await fetch(zonesURL+"?t="+Date.now());
+    const res=await fetch(url+"?t="+Date.now());
     zones=await res.json();
     zones=zones.filter(z=>!z.name.includes("SUGGEST"));
     document.getElementById('vault-loading')?.remove();
@@ -1387,7 +1368,7 @@ function renderFeatured(){
   document.getElementById('vault-featured-block')?.remove();
   const wrap=document.createElement('div'); wrap.id='vault-featured-block'; wrap.className='vault-featured';
   wrap.innerHTML=`
-    <div class="vault-featured-hdr">⭐ Featured Today</div>
+    <div class="vault-featured-hdr">Featured Today</div>
     <button class="carousel-btn" id="carousel-prev" onclick="carouselNav(-1)">❮</button>
     <div class="carousel-viewport"><div id="feat-track"></div></div>
     <button class="carousel-btn" id="carousel-next" onclick="carouselNav(1)">❯</button>`;
@@ -1395,9 +1376,7 @@ function renderFeatured(){
   scroll.insertBefore(wrap,document.getElementById('game-grid'));
   const vis=window.innerWidth>500?5:2;
   const track=document.getElementById('feat-track');
-  const clonesBefore=featuredGames.slice(-vis);
-  const clonesAfter=featuredGames.slice(0,vis);
-  [...clonesBefore,...featuredGames,...clonesAfter].forEach(z=>{
+  [...featuredGames.slice(-vis),...featuredGames,...featuredGames.slice(0,vis)].forEach(z=>{
     const d=document.createElement('div'); d.className='feat-item'; d.onclick=()=>openZone(z);
     const img=document.createElement('img');
     img.src=z.cover.replace('{COVER_URL}',COVER_URL).replace('{HTML_URL}',HTML_URL);
@@ -1445,12 +1424,21 @@ window.toggleFavFilter=()=>{
 function renderVaultGrid(data){
   const grid=document.getElementById('game-grid'); if(!grid) return;
   grid.innerHTML='';
-  if(!data.length){grid.innerHTML='<div class="vault-empty"><div class="vault-empty-ico">🎮</div><div>No games found</div></div>';return;}
+  if(!data.length){
+    grid.innerHTML=`<div class="vault-empty">
+      <div class="vault-empty-ico">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 12h4M8 10v4M15 12h.01M18 12h.01"/></svg>
+      </div>
+      <div>No games found</div>
+    </div>`;
+    return;
+  }
   data.forEach(z=>{
     const card=document.createElement('div'); card.className='game-card'; card.onclick=()=>openZone(z);
     const fav=document.createElement('button');
     fav.className=`game-fav-btn${gameFavs.includes(z.id)?' active':''}`;
-    fav.innerHTML='❤'; fav.title='Favorite';
+    fav.title='Favorite';
+    fav.innerHTML=`<svg viewBox="0 0 24 24" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>`;
     fav.onclick=e=>{e.stopPropagation();toggleGameFav(z.id);};
     const img=document.createElement('img');
     img.src=z.cover.replace('{COVER_URL}',COVER_URL).replace('{HTML_URL}',HTML_URL);
@@ -1461,7 +1449,7 @@ function renderVaultGrid(data){
   });
 }
 function toggleGameFav(id){
-  if(gameFavs.includes(id))gameFavs=gameFavs.filter(f=>f!==id);else gameFavs.push(id);
+  if(gameFavs.includes(id)) gameFavs=gameFavs.filter(f=>f!==id); else gameFavs.push(id);
   localStorage.setItem('nebula-gfavs',JSON.stringify(gameFavs));
   renderVaultGrid(getFilteredZones());
 }
@@ -1471,7 +1459,6 @@ function openZone(z){
   fetch(url+"?t="+Date.now())
     .then(r=>r.text())
     .then(html=>{
-      activeZone=z;
       const vault=document.getElementById('game-vault');
       const old=document.getElementById('game-frame'); if(old)old.remove();
       const frame=document.createElement('iframe');
@@ -1488,7 +1475,7 @@ window.closeGame=()=>{
   const old=document.getElementById('game-frame'); if(old)old.remove();
   const blank=document.createElement('iframe'); blank.id='game-frame';
   blank.style.cssText='border:none;width:100%;flex-grow:1;display:block;';
-  document.getElementById('game-vault').appendChild(blank); activeZone=null;
+  document.getElementById('game-vault').appendChild(blank);
 };
 window.toggleFS=()=>{
   const f=document.getElementById('game-frame'); if(!f) return;
@@ -1500,7 +1487,7 @@ window.toggleFS=()=>{
 ══════════════════════════════════════════ */
 async function loadTooltips(){
   const c=document.getElementById('tt-wrap'); if(!c) return;
-  let msgs=["GOAT TECH INDUSTRIES","STAY ENCRYPTED","LEGENDS NEVER DIE","SYSTEM ONLINE"];
+  let msgs=["GOAT TECH INDUSTRIES","STAY ENCRYPTED","LEGENDS NEVER DIE","SYSTEM ONLINE","BEYOND THE STARS","ORBIT ESTABLISHED","SIGNAL RECEIVED"];
   try{const d=await(await fetch('tooltips.json')).json();if(d.messages?.length)msgs=d.messages;}catch{}
   const shuffle=arr=>{ const a=[...arr]; for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a; };
   let deck=[], last=null;
@@ -1519,20 +1506,7 @@ async function loadTooltips(){
 }
 
 /* ══════════════════════════════════════════
-   PARTICLES
-══════════════════════════════════════════ */
-const pc=document.getElementById('particles');
-for(let i=0;i<55;i++){
-  const p=document.createElement('div'); p.className='pt';
-  p.style.left=Math.random()*100+'vw'; p.style.top=Math.random()*100+'vh';
-  p.style.width=p.style.height=(Math.random()*2+.5)+'px';
-  p.style.animationDuration=(Math.random()*14+8)+'s';
-  p.style.animationDelay=(-Math.random()*14)+'s';
-  pc.appendChild(p);
-}
-
-/* ══════════════════════════════════════════
-   KEYBOARD SHORTCUTS
+   KEYBOARD
 ══════════════════════════════════════════ */
 function globalKeyHandler(e){
   if(e.key==='Escape'){
