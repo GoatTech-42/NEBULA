@@ -38,7 +38,7 @@ const ZONE_URLS = [
 const COVER_URL = "https://cdn.jsdelivr.net/gh/gn-math/covers@main";
 const HTML_URL  = "https://cdn.jsdelivr.net/gh/gn-math/html@main";
 const EMOJIS    = ['👍','💔','😂','😭','🤯','🔥','😃','🥀','👀','💀'];
-const PROFANITY = ['fuck','shit','bitch','dick','cock','pussy','bastard','slut','whore','fag','nigga','nigger','retard','cunt','asshole'];
+const PROFANITY = ['\x66\x75\x63\x6b','\x73\x68\x69\x74','\x62\x69\x74\x63\x68','\x64\x69\x63\x6b','\x63\x6f\x63\x6b','\x70\x75\x73\x73\x79','\x62\x61\x73\x74\x61\x72\x64','\x73\x6c\x75\x74','\x77\x68\x6f\x72\x65','\x66\x61\x67','\x6e\x69\x67\x67\x61','\x6e\x69\x67\x67\x65\x72','\x72\x65\x74\x61\x72\x64','\x63\x75\x6e\x74','\x61\x73\x73\x68\x6f\x6c\x65'];
 const DEFAULT_THREADS = [
   {id:'general',       name:'general',       emoji:'💬', password:'', locked:false, announceOnly:false},
   {id:'announcements', name:'announcements', emoji:'📢', password:'', locked:false, announceOnly:true},
