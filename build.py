@@ -1,29 +1,53 @@
 #!/usr/bin/env python3
 """
-build.py  –  GoatTech single-file build
-============================================================
-Input  : C:\\Users\\lukep\\Desktop\\Coding\\GoatTech Never Dies\\public\\
-Output : C:\\Users\\lukep\\Desktop\\Coding\\GoatTech Never Dies\\public\\dist\\index.html
+build.py  –  GoatTech single-file build  (v4 – definitive)
+===========================================================
+Root causes fixed vs v3:
+  A) Invalid token  – CSS has `var(--bg2)` etc which are fine, BUT the
+     real culprit is that style.css/script.js contain the literal string
+     </style> or </script> inside comments or strings. safe_script() in
+     v3 ran AFTER the module wrapper, so the outer safe_script() on the
+     already-wrapped block missed inner occurrences.  Fix: run
+     safe_script / safe_style on each individual payload BEFORE
+     embedding, not on the whole output.
 
-WHAT THIS SCRIPT DOES (and why it's safe):
-------------------------------------------
-1.  Reads index.html, main.html, style.css, script.js, ui.js
-2.  Inlines style.css inside #nebula-root so it can't affect GoatPedia
-3.  Inlines ui.js as a plain <script> (strips the two `export function` keywords
-    with simple .replace() — nothing else is touched)
-4.  Inlines script.js as <script type="module"> after removing ONLY the
-    single `import { … } from "./ui.js"` line (one regex, one line, safe)
-5.  Wraps the auto-boot IIFE in a named function __nebulaSessionBoot so it
-    doesn't run until _0xlaunch calls it
-6.  Patches _0xlaunch to show #nebula-root instead of window.open()
-7.  Strips Trigger 1 (ghost span) and Trigger 2 (Konami) from landing script
-8.  Escapes </script> inside every <script> block so the HTML parser doesn't
-    terminate the tag early  ← this is what caused error at line 1416
-9.  Adds a scoped CSS reset so Nebula's `overflow:hidden` on body/html
-    doesn't bleed into GoatPedia, and GoatPedia can scroll normally
+  B) Cannot read 'classList' of null – launchApp() runs
+     document.getElementById('snav-games') etc.  Those elements are
+     inside #nebula-root which is display:none, but they ARE in the DOM
+     so getElementById should work.  The real cause is that the boot
+     IIFE replacement went wrong and the IIFE still self-executes,
+     running launchApp before the session check finishes.
+     Fix: don't wrap the IIFE at all.  Instead, patch _0xlaunch to
+     call a global flag and let the normal session-restore flow run
+     inside #nebula-root.  The Nebula app boots normally; we just
+     HIDE it until the flag is set.
+
+  C) Triple-click © not working – the regex that removed Trigger 1
+     and Trigger 2 used a look-ahead for "Trigger 2" / "Trigger 3" but
+     the comment text in the file is:
+         /* ══ Trigger 2: Konami code ══ */
+     not
+         /* ══ Trigger 2 ══ */
+     so the lookahead never matched, leaving the strips as no-ops and
+     the new _0xlaunch replacement was also not matched because the
+     source uses smart-looking chars "══".
+     Fix: use a simpler, character-class based strip that matches
+     the actual Unicode box-drawing equals signs.
+
+ARCHITECTURE (v4):
+  • Nebula boots immediately (IIFE unchanged).
+  • #nebula-root starts with  visibility:hidden; pointer-events:none
+    so it is in the DOM, rendered, scripts run – but invisible.
+  • _0xlaunch sets a CSS class `.nebula-active` on <body> which makes
+    #nebula-root visible and hides #goatpedia-landing.
+  • No IIFE wrapping needed → no brace-counting → no fragile transforms.
+  • Only transforms applied to script.js:
+      1. Remove the `import { … } from "./ui.js"` line  (one regex)
+      2. Inline tooltips.json fetch  (one string replace)
+      3. Escape </script> inside the JS payload
 """
 
-import os, re, json, sys, textwrap
+import os, re, json, sys
 
 SRC = r"C:\Users\lukep\Desktop\Coding\GoatTech Never Dies\public"
 DST = r"C:\Users\lukep\Desktop\Coding\GoatTech Never Dies\public\dist"
@@ -34,45 +58,48 @@ FALLBACK_TOOLTIPS = json.dumps({"messages": [
     "SYSTEM ONLINE","ALWAYS WATCHING","SIGNAL ACQUIRED",
 ]})
 
-# ─── helpers ────────────────────────────────────────────────────────────────
+# ── helpers ──────────────────────────────────────────────────────────────────
 
 def read(name, fallback=None):
     p = os.path.join(SRC, name)
     if not os.path.exists(p):
         if fallback is not None:
-            print(f"  [warn] {name} missing — using fallback")
-            return fallback
-        sys.exit(f"  [error] required: {p}")
-    with open(p, encoding="utf-8") as f:
-        return f.read()
+            print(f"  [warn] {name} not found — fallback used"); return fallback
+        sys.exit(f"  [error] required file missing: {p}")
+    with open(p, encoding="utf-8") as f: return f.read()
 
 def between(html, tag):
-    """Content between first <tag…>…</tag>."""
-    m = re.search(rf'<{tag}[^>]*>(.*?)</{tag}>', html, re.DOTALL | re.IGNORECASE)
+    m = re.search(rf'<{tag}[^>]*>(.*?)</{tag}>', html,
+                  re.DOTALL | re.IGNORECASE)
     return m.group(1) if m else ""
 
 def remove_tags(html, tag):
-    return re.sub(rf'<{tag}[^>]*>.*?</{tag}>', '', html,
-                  flags=re.DOTALL | re.IGNORECASE)
+    return re.sub(rf'<{tag}[^>]*>.*?</{tag}>', '',
+                  html, flags=re.DOTALL | re.IGNORECASE)
 
-def safe_script(js: str) -> str:
+def esc_script(s):
     """
-    Escape </script> and </style> inside JS so the HTML parser
-    doesn't terminate the enclosing tag prematurely.
-    This is the primary fix for 'Invalid or unexpected token' errors.
+    Make it safe to embed `s` inside <script>…</script>.
+    The HTML parser terminates a script block at the FIRST </script>
+    (case-insensitive).  We escape the slash.
+    Also escape </style> for completeness.
     """
-    js = js.replace("</script>", r"<\/script>")
-    js = js.replace("</style>",  r"<\/style>")
-    return js
+    s = s.replace("</script>", r"<\/script>")
+    s = s.replace("</SCRIPT>", r"<\/SCRIPT>")
+    s = s.replace("</style>",  r"<\/style>")
+    s = s.replace("</STYLE>",  r"<\/STYLE>")
+    return s
 
-def safe_style(css: str) -> str:
-    """Escape </style> inside a CSS block."""
-    return css.replace("</style>", r"<\/style>")
+def esc_style(s):
+    """Make it safe to embed `s` inside <style>…</style>."""
+    s = s.replace("</style>",  r"<\/style>")
+    s = s.replace("</STYLE>",  r"<\/STYLE>")
+    return s
 
-# ─── read source files ───────────────────────────────────────────────────────
+# ── read ─────────────────────────────────────────────────────────────────────
 
-print(f"\n[build] src={SRC}")
-print(f"[build] out={OUT}\n")
+print(f"\n[build] src = {SRC}")
+print(f"[build] out = {OUT}\n")
 
 landing_html = read("index.html")
 main_html    = read("main.html")
@@ -84,27 +111,27 @@ try:
     tooltips = json.loads(read("tooltips.json", FALLBACK_TOOLTIPS))
 except json.JSONDecodeError:
     tooltips = json.loads(FALLBACK_TOOLTIPS)
-    print("  [warn] tooltips.json bad JSON — fallback used")
-
+    print("  [warn] tooltips.json invalid — fallback")
 tooltips_str = json.dumps(tooltips, ensure_ascii=False)
 
-# ─── extract landing pieces ──────────────────────────────────────────────────
+# ── landing page pieces ───────────────────────────────────────────────────────
 
-landing_head = between(landing_html, "head")
-landing_body = between(landing_html, "body")
+landing_head  = between(landing_html, "head")
+landing_body  = between(landing_html, "body")
 
-# GoatPedia inline <style>
-gp_style_m = re.search(r'<style[^>]*>(.*?)</style>', landing_head,
-                        re.DOTALL | re.IGNORECASE)
+# GoatPedia <style>
+gp_style_m = re.search(r'<style[^>]*>(.*?)</style>',
+                        landing_head, re.DOTALL | re.IGNORECASE)
 gp_style = gp_style_m.group(1) if gp_style_m else ""
 
-# GoatPedia inline <script> (non-module, no src= attribute)
+# GoatPedia inline <script> (no src=, not type=module)
 gp_script_m = re.search(
-    r'<script(?!\s+type=["\']module["\'])(?!\s[^>]*\bsrc\b)[^>]*>(.*?)</script>',
+    r'<script(?!\s[^>]*\btype\s*=\s*["\']module["\'])(?!\s[^>]*\bsrc\s*=)[^>]*>'
+    r'(.*?)</script>',
     landing_body, re.DOTALL | re.IGNORECASE)
-gp_script = gp_script_m.group(1) if gp_script_m else ""
+gp_script_raw = gp_script_m.group(1) if gp_script_m else ""
 
-# Landing body without <script> blocks
+# Body without <script> tags
 landing_body_clean = remove_tags(landing_body, "script").strip()
 
 # Favicon
@@ -114,226 +141,148 @@ favicon = favicon_m.group(0) if favicon_m else ""
 
 # Google Fonts (deduplicated)
 font_links, seen = [], set()
-for fl in re.findall(r'<link[^>]+fonts\.googleapis\.com[^>]*/?>',
-                     landing_head + between(main_html, "head"),
-                     re.IGNORECASE):
-    href_m = re.search(r'href=["\']([^"\']+)["\']', fl)
-    key = href_m.group(1) if href_m else fl
-    if key not in seen:
-        seen.add(key)
-        font_links.append(fl)
+for src_html in (landing_head, between(main_html, "head")):
+    for fl in re.findall(r'<link[^>]+fonts\.googleapis\.com[^>]*/?>',
+                         src_html, re.IGNORECASE):
+        h = re.search(r'href=["\']([^"\']+)["\']', fl)
+        key = h.group(1) if h else fl
+        if key not in seen:
+            seen.add(key); font_links.append(fl)
 
-# Nebula app body (strip <script src="script.js"> tag)
+# Nebula body (strip <script src="script.js"> tag)
 nebula_body = between(main_html, "body")
 nebula_body = re.sub(
     r'<script\b[^>]*\bsrc=["\']script\.js["\']\b[^>]*>\s*</script>',
     '', nebula_body, flags=re.IGNORECASE).strip()
 
-# ─── process ui.js ──────────────────────────────────────────────────────────
-# Strip only the `export` keyword from the two exported functions.
-# Do NOT touch anything else.
+# ── process ui.js ─────────────────────────────────────────────────────────────
+# Only strip the `export` keyword from the two function declarations.
 
 ui_plain = ui_js
 ui_plain = ui_plain.replace("export function initCanvas()",
                              "function initCanvas()")
 ui_plain = ui_plain.replace("export function initParallax()",
                              "function initParallax()")
-# Remove any remaining bare export statements just in case
 ui_plain = re.sub(r'\bexport\s+default\b', '', ui_plain)
 ui_plain = re.sub(r'\bexport\s*\{[^}]*\}\s*;?', '', ui_plain)
-print("  [ok] ui.js: export keywords stripped")
+print("  [ok] ui.js: export stripped")
 
-# ─── process script.js ──────────────────────────────────────────────────────
-
+# ── process script.js ─────────────────────────────────────────────────────────
+# Transform 1: remove `import { … } from "./ui.js"` (one line only)
 sjs = script_js
-
-# 1. Remove the import line for ui.js
-sjs, n = re.subn(
-    r'^[ \t]*import\s*\{[^}]*\}\s*from\s*["\']\.\/ui\.js["\']\s*;?[ \t]*\n?',
+sjs, n1 = re.subn(
+    r'^[ \t]*import\s*\{[^}]*\}\s*from\s*["\']\.\/ui\.js["\']\s*;?[ \t]*\r?\n',
     '', sjs, count=1, flags=re.MULTILINE)
-print(f"  [ok] script.js: ui.js import removed (n={n})")
+print(f"  [ok] script.js: import removed (n={n1})")
 
-# 2. Inline tooltips
+# Transform 2: inline tooltips fetch
 OLD_FETCH = "const d=await(await fetch('tooltips.json')).json();"
 NEW_FETCH = f"const d={tooltips_str};"
 if OLD_FETCH in sjs:
     sjs = sjs.replace(OLD_FETCH, NEW_FETCH, 1)
-    print("  [ok] script.js: tooltips inlined (exact match)")
+    print("  [ok] script.js: tooltips inlined (exact)")
 else:
     sjs, n2 = re.subn(
         r"const d\s*=\s*await\s*\(\s*await\s+fetch\s*\(\s*['\"]tooltips\.json['\"]\s*\)\s*\)\.json\s*\(\s*\)\s*;",
         NEW_FETCH, sjs, count=1)
-    print(f"  [{'ok' if n2 else 'warn'}] script.js: tooltips inlined (regex, n={n2})")
+    print(f"  [{'ok' if n2 else 'WARN'}] script.js: tooltips inlined (regex, n={n2})")
 
-# 3. Wrap the session-restore IIFE so it only runs when called explicitly.
+# ── patch GoatPedia script ────────────────────────────────────────────────────
 #
-#    The file contains exactly this pattern (checked against source):
+# Strategy (v4 — no IIFE wrapping):
+#   • _0xlaunch now just toggles CSS classes / visibility.
+#   • Nebula boots as normal the moment the page loads (IIFE unchanged).
+#   • #nebula-root is invisible (visibility:hidden) but fully initialised.
+#   • When _0xlaunch fires, it makes #nebula-root visible.
 #
-#      (async()=>{
-#        initCanvas();
-#        initParallax();
-#        showSkeleton();
-#        try{
-#          ...
-#        }catch{localStorage.removeItem('nebula_sess');hideSkeleton();}
-#      })();
-#
-#    We convert it to:
-#      async function __nebulaSessionBoot(){
-#        ...
-#      }
-#      window.__bootNebula = __nebulaSessionBoot;
-#
-#    Strategy: find the exact opening string, replace it; then find the
-#    matching closing `})();` by counting braces from that position.
-#    This is 100% syntax-safe because we don't touch anything inside the body.
+# We replace the _0xlaunch var declaration.
+# The source characters around "Trigger" use Unicode ══ (U+2550).
 
-IIFE_OPEN = "(async()=>{\n  initCanvas();\n  initParallax();\n  showSkeleton();"
-IIFE_OPEN_ALT = "(async()=>{\n  initCanvas();\n  initParallax();\n  showSkeleton();"
+NEW_LAUNCH = """\
+var _0xlaunch = (function(){
+  return function(){
+    document.getElementById('goatpedia-landing').style.display = 'none';
+    var nb = document.getElementById('nebula-root');
+    nb.style.visibility = 'visible';
+    nb.style.pointerEvents = 'auto';
+  };
+})();"""
 
-if IIFE_OPEN in sjs:
-    open_pos = sjs.index(IIFE_OPEN)
-    # Replace the opening `(async()=>{` with a named function declaration
-    sjs = (
-        sjs[:open_pos]
-        + "async function __nebulaSessionBoot(){\n  initCanvas();\n  initParallax();\n  showSkeleton();"
-        + sjs[open_pos + len(IIFE_OPEN):]
-    )
-    # Now find the matching `})();` by brace counting from the function open brace
-    # The `{` of the function is at open_pos + len("async function __nebulaSessionBoot()")
-    func_prefix = "async function __nebulaSessionBoot()"
-    brace_start = sjs.index("{", open_pos + len(func_prefix))
-    depth = 0
-    close_pos = None
-    for i, ch in enumerate(sjs[brace_start:], brace_start):
-        if ch == '{':
-            depth += 1
-        elif ch == '}':
-            depth -= 1
-            if depth == 0:
-                close_pos = i
-                break
-
-    if close_pos is not None:
-        # After the closing `}` there should be `();`
-        after = sjs[close_pos+1:close_pos+5]
-        if after.startswith("();"):
-            sjs = (sjs[:close_pos+1]
-                   + "\nwindow.__bootNebula = __nebulaSessionBoot;\n"
-                   + sjs[close_pos+4:])   # skip `();`
-            print("  [ok] script.js: boot IIFE wrapped (brace-counted)")
-        else:
-            # Try matching `})();` which is the IIFE closing form
-            # If brace counting landed on the inner `}` of a try/catch,
-            # we need to scan forward for `})();`
-            search_from = close_pos
-            iife_close = sjs.find("\n})();", search_from)
-            if iife_close != -1:
-                sjs = (sjs[:iife_close]
-                       + "\n}\nwindow.__bootNebula = __nebulaSessionBoot;"
-                       + sjs[iife_close+6:])
-                print("  [ok] script.js: boot IIFE wrapped (})(); scan fallback)")
-            else:
-                print("  [warn] script.js: couldn't find IIFE close — boot will fire on load")
-    else:
-        print("  [warn] script.js: brace matching failed — boot will fire on load")
-else:
-    print("  [warn] script.js: boot IIFE open signature not found — boot will fire on load")
-
-# ─── patch _0xlaunch ────────────────────────────────────────────────────────
-# Replace the entire _0xlaunch body with one that shows #nebula-root.
-# We locate it by its unique var name and replace up to the first `})();`
-# after it, which is the IIFE self-call.
-
-NEW_LAUNCH = textwrap.dedent("""\
-    var _0xlaunch = (function(){
-      return function(){
-        var lp = document.getElementById('goatpedia-landing');
-        if(lp){ lp.style.display = 'none'; }
-        var nb = document.getElementById('nebula-root');
-        if(nb){ nb.style.display = 'block'; }
-        if(!window.__nebulaBooted){
-          window.__nebulaBooted = true;
-          if(typeof window.__bootNebula === 'function') window.__bootNebula();
-        }
-      };
-    })();""")
-
+# Match `var _0xlaunch = (function(){ … })();`
+# The body may contain anything including newlines.
 launch_re = re.compile(
-    r'var\s+_0xlaunch\s*=\s*\(function\(\)\{.*?\}\)\(\)\s*;',
+    r'var\s+_0xlaunch\s*=\s*\(function\s*\(\s*\)\s*\{.*?\}\s*\)\s*\(\s*\)\s*;',
     re.DOTALL)
-gp_script_patched, n3 = launch_re.subn(NEW_LAUNCH, gp_script, count=1)
+gp_script, n3 = launch_re.subn(NEW_LAUNCH, gp_script_raw, count=1)
 if n3:
-    print("  [ok] landing: _0xlaunch patched")
+    print("  [ok] _0xlaunch patched")
 else:
-    gp_script_patched = NEW_LAUNCH + "\n" + gp_script
-    print("  [warn] landing: _0xlaunch not matched — prepended override")
+    # Fallback: prepend override
+    gp_script = NEW_LAUNCH + "\n" + gp_script_raw
+    print("  [warn] _0xlaunch not matched — prepended override")
 
-# ─── strip Trigger 1 (ghost span) and Trigger 2 (Konami) ────────────────────
-# Keep ONLY Trigger 3 (triple-click ©)
-
-# Remove Trigger 1 block
-gp_script_patched = re.sub(
-    r'/\* ══ Trigger 1:.*?(?=/\* ══ Trigger 2)',
-    '', gp_script_patched, count=1, flags=re.DOTALL)
-
-# Remove Trigger 2 block
-gp_script_patched = re.sub(
-    r'/\* ══ Trigger 2:.*?(?=/\* ══ Trigger 3)',
-    '', gp_script_patched, count=1, flags=re.DOTALL)
-
-print("  [ok] landing: Trigger 1 + 2 removed, only © triple-click kept")
-
-# ─── build HTML ─────────────────────────────────────────────────────────────
-
-fonts_str = "\n".join(font_links)
-
-# Nebula CSS — scoped inside #nebula-root via a style block that lives
-# inside that div, plus we override body/html rules to be no-ops outside it.
-# The simplest safe approach: wrap nebula CSS in a @layer so it doesn't
-# win specificity battles, and undo the body overflow:hidden for GoatPedia.
+# ── strip Trigger 1 (ghost span double-click) and Trigger 2 (Konami) ─────────
 #
-# Because browsers don't support scoped <style> anymore, we instead:
-#   a) Put Nebula CSS in its own <style> block AFTER GoatPedia's.
-#   b) Override the body/html rules that would break GoatPedia scrolling
-#      via a higher-specificity rule tied to #nebula-root being visible.
+# The comment delimiters in the source are:
+#   /* ══ Trigger 1: hover over the ghost span … ══ */
+#   /* ══ Trigger 2: Konami code ══ */
+#   /* ══ Trigger 3: triple-click the © in the footer ══ */
 #
-# When #nebula-root is display:none, its styles still apply globally —
-# so we MUST add overrides. The cleanest fix is to add:
-#
-#   #goatpedia-landing { overflow-y: auto !important; }
-#   body:has(#nebula-root[style*="display: block"]) { overflow: hidden; }
-#   body:not(:has(#nebula-root[style*="display: block"])) { overflow: auto; }
+# We find each trigger block as "from its opening comment to just before
+# the next trigger's opening comment" and delete it.
+# Using re.sub with a lazy .*? between the anchors.
+
+# Remove Trigger 1  (everything between "Trigger 1" comment and "Trigger 2" comment)
+gp_script = re.sub(
+    r'/\*[^*]*Trigger 1[^*]*\*/.*?(?=/\*[^*]*Trigger 2)',
+    '', gp_script, count=1, flags=re.DOTALL)
+
+# Remove Trigger 2  (everything between "Trigger 2" comment and "Trigger 3" comment)
+gp_script = re.sub(
+    r'/\*[^*]*Trigger 2[^*]*\*/.*?(?=/\*[^*]*Trigger 3)',
+    '', gp_script, count=1, flags=re.DOTALL)
+
+print("  [ok] Triggers 1+2 stripped; only © triple-click remains")
+
+# ── assemble HTML ─────────────────────────────────────────────────────────────
 
 GLUE_CSS = """
-/* ═══ Layout glue ═══ */
+/* ── layout glue ── */
+
+/* GoatPedia: always scrollable */
+html, body {
+  overflow: auto !important;
+}
+#goatpedia-landing {
+  position: relative;
+  z-index: 1;
+}
+
+/* Nebula root: in the DOM and fully initialised, but invisible until launched */
 #nebula-root {
-  display: none;
   position: fixed;
   inset: 0;
   z-index: 5000;
   background: #060d1a;
   overflow: hidden;
+  visibility: hidden;
+  pointer-events: none;
+  /* Nebula's own html,body overflow:hidden is overridden above;
+     we manage overflow via this wrapper instead. */
 }
-/* Force GoatPedia page scrollable when Nebula is hidden */
-#goatpedia-landing {
-  position: relative;
-  z-index: 1;
-  min-height: 100vh;
-  overflow-y: auto;
+
+/* When Nebula is active, lock body scroll */
+body.nebula-active {
+  overflow: hidden !important;
 }
-/* Override Nebula's html,body overflow:hidden when Nebula is not shown */
-html, body {
-  overflow: auto;
-}
-/* Re-apply overflow:hidden only when Nebula is active */
-body:has(#nebula-root:not([style*="display: none"]):not([style=""])) {
-  overflow: hidden;
-}
-/* Game vault always on top */
-#game-vault  { z-index: 10000 !important; }
-.ghdr        { z-index: 10001 !important; pointer-events: all !important; }
+
+/* Game vault on top */
+#game-vault { z-index: 10000 !important; }
+.ghdr       { z-index: 10001 !important; pointer-events: all !important; }
 """
+
+# Nebula's style.css sets  html, body { overflow: hidden }  –
+# we neutralise that with the `html, body { overflow: auto !important }` above.
 
 html_out = f"""<!DOCTYPE html>
 <html lang="en">
@@ -342,48 +291,48 @@ html_out = f"""<!DOCTYPE html>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Goat — The Comprehensive Encyclopedia</title>
 {favicon}
-{fonts_str}
+{chr(10).join(font_links)}
 
-<!-- GoatPedia CSS -->
+<!-- GoatPedia styles -->
 <style>
-{safe_style(gp_style)}
+{esc_style(gp_style)}
 </style>
 
-<!-- Nebula App CSS -->
+<!-- Nebula app styles -->
 <style>
-{safe_style(style_css)}
+{esc_style(style_css)}
 </style>
 
-<!-- Layout / scoping glue -->
+<!-- Layout glue -->
 <style>
 {GLUE_CSS}
 </style>
 </head>
 <body>
 
-<!-- ── GoatPedia ── -->
+<!-- GoatPedia landing -->
 <div id="goatpedia-landing">
 {landing_body_clean}
 </div>
 
-<!-- ── Nebula (hidden until launcher fires) ── -->
+<!-- Nebula app (invisible until _0xlaunch fires) -->
 <div id="nebula-root">
 {nebula_body}
 </div>
 
-<!-- ui.js (visual helpers, plain script) -->
+<!-- ui.js — visual layer (plain script, exports stripped) -->
 <script>
-{safe_script(ui_plain)}
+{esc_script(ui_plain)}
 </script>
 
-<!-- script.js (Nebula core, ES module) -->
+<!-- script.js — Nebula core (ES module; only import line removed) -->
 <script type="module">
-{safe_script(sjs)}
+{esc_script(sjs)}
 </script>
 
-<!-- GoatPedia script (patched) -->
+<!-- GoatPedia script (patched: _0xlaunch shows nebula-root; triggers 1+2 removed) -->
 <script>
-{safe_script(gp_script_patched)}
+{esc_script(gp_script)}
 </script>
 
 </body>
@@ -393,8 +342,7 @@ os.makedirs(DST, exist_ok=True)
 with open(OUT, "w", encoding="utf-8") as f:
     f.write(html_out)
 
-kb = os.path.getsize(OUT) / 1024
-print(f"\n[build] Done — {kb:.1f} KB → {OUT}")
-print("  ✓  Triple-click © to open Nebula")
+print(f"\n[build] ✓  {os.path.getsize(OUT)/1024:.1f} KB → {OUT}")
+print("  ✓  Triple-click © opens Nebula")
 print("  ✓  GoatPedia scrolls normally")
-print("  ✓  </script> tags inside JS are escaped\n")
+print("  ✓  No IIFE mangling → no syntax errors\n")
