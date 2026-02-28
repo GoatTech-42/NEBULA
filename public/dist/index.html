@@ -8,10 +8,8 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
+<!-- ═══ GoatPedia CSS ═══ -->
 <style>
-/* ════════════════════════════════════════
-   LANDING PAGE CSS (GoatPedia)
-════════════════════════════════════════ */
 
         :root {
             --bg: #060d1a; --bg2: #0a1628; --bg3: #0d1c33;
@@ -180,10 +178,8 @@
     
 </style>
 
+<!-- ═══ Nebula App CSS ═══ -->
 <style>
-/* ════════════════════════════════════════
-   NEBULA APP CSS (style.css)
-════════════════════════════════════════ */
 /* ═══════════════════════════════════════
    NEBULA — style.css
 ═══════════════════════════════════════ */
@@ -710,34 +706,27 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;-webk
 }
 </style>
 
+<!-- ═══ Layout glue ═══ -->
 <style>
-/* ════════════���═══════════════════════════
-   LAYOUT — landing / nebula toggle
-════════════════════════════════════════ */
+/* GoatPedia sits on top by default; Nebula is hidden */
 #nebula-root {
   display: none;
   position: fixed;
   inset: 0;
-  z-index: 4000;
-  background: var(--bg, #060d1a);
+  z-index: 5000;
+  background: #060d1a;
   overflow: hidden;
 }
-/* game vault must be above everything */
-#game-vault {
-  z-index: 10000 !important;
-}
-.ghdr {
-  position: relative;
-  z-index: 10001 !important;
-  pointer-events: all !important;
-}
+/* Game vault and its header must always be on top */
+#game-vault  { z-index: 10000 !important; }
+.ghdr        { z-index: 10001 !important; pointer-events: all !important; }
 </style>
 </head>
 <body>
 
-<!-- ══════════════════════════════════════
-     GOATPEDIA LANDING PAGE
-══════════════════════════════════════ -->
+<!-- ══════════════════════════════════════════
+     GoatPedia landing page
+═════════════════════════════════════��════ -->
 <div id="goatpedia-landing">
 <canvas id="bg-canvas"></canvas>
 <div id="parallax-root" aria-hidden="true">
@@ -1427,9 +1416,9 @@ var _0xlaunch=(function(){
         win.document.write('<!DOCTYPE html><html><head><title>Nebula</title><link rel="icon" type="image/svg+xml" href="'+icon+'"><style>body,html{margin:0;padding:0;height:100%;overflow:hidden;background:#000;}iframe{border:none;width:100%;height:100%;}</style></head><body><iframe src="'+src+'?v='+cb+'"></iframe>
 </div>
 
-<!-- ══════════════════════════════════════
-     NEBULA APP  (hidden until launcher fires)
-══════════════════════════════════════ -->
+<!-- ══════════════════════════════════════════
+     Nebula app  (hidden until launcher fires)
+══════════════════════════════════════════ -->
 <div id="nebula-root">
 <!-- ═══════════════ PARALLAX NEBULA ═══════════════ -->
 <div id="parallax-root" aria-hidden="true">
@@ -1964,34 +1953,10 @@ var _0xlaunch=(function(){
 <div id="epicker" class="epicker hidden"></div>
 </div>
 
-<!-- ══════════════════════════════════════
-     LANDING PAGE SCRIPTS
-     (starfield, parallax, triggers, patched _0xlaunch)
-══════════════════════════════════════ -->
+<!-- ══════════════════════════════════════════
+     ui.js — visual helpers (plain script, no module)
+══════════════════════════════════════════ -->
 <script>
-var _0xlaunch = (function(){
-  return function(){
-    var lp = document.getElementById('goatpedia-landing');
-    if(lp) lp.style.display = 'none';
-    var nb = document.getElementById('nebula-root');
-    if(nb) nb.style.display = 'block';
-    // Boot Nebula once — the module script exposes __bootNebula on window
-    if(!window.__nebulaBooted){
-      window.__nebulaBooted = true;
-      if(typeof window.__bootNebula === 'function') window.__bootNebula();
-    }
-  };
-})();
-</script>
-
-<!-- ══════════════════════════════════════
-     NEBULA APP SCRIPTS
-     (ui.js + script.js, wrapped in __bootNebula)
-══════════════════════════════════════ -->
-<script type="module">
-// ── ui.js + script.js — deferred until _0xlaunch fires ─────────────────────
-(function() {
-
 /**
  * ui.js — NEBULA visual layer
  *
@@ -2251,11 +2216,15 @@ function initParallax(){
 
   requestAnimationFrame(animate);
 }
+</script>
 
+<!-- ══════════════════════════════════════════
+     script.js — Nebula core (ES module, deferred)
+══════════════════════════════════════════ -->
+<script type="module">
 // script.js — NEBULA core (Firebase, auth, state, chat, DMs, admin, proxies, vault, UI)
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
 import { getFirestore, doc, onSnapshot, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
-
 const app = initializeApp({
   apiKey: "AIzaSyDd578sgxhJCltHmSZbyVKQOso67CWh_0M",
   authDomain: "goattechneverdies.firebaseapp.com",
@@ -2676,7 +2645,29 @@ async function loadAccounts(){
   if(snap.exists()) DB.accounts = snap.data() || {};
 }
 
-/* session boot moved to __bootNebula() */
+/* ── Restore session ── */
+(async () => {
+  initCanvas();
+  initParallax();
+  showSkeleton();
+  try{
+    const saved = localStorage.getItem('nebula_sess');
+    if(!saved){ hideSkeleton(); return; }
+    const sess = JSON.parse(saved);
+    await loadAccounts();
+    if(sess.username === ADMIN_USERNAME){
+      await ensureAdminAccount();
+      currentUser = { ...DB.accounts[ADMIN_USERNAME], username:ADMIN_USERNAME, isAdmin:true, proxyAccess:true };
+      launchApp(); return;
+    }
+    const live = DB.accounts[sess.username];
+    if(!live || live.banned){ localStorage.removeItem('nebula_sess'); hideSkeleton(); return; }
+    if(!live.approved){ currentUser = { ...live, username:sess.username }; showPending(); hideSkeleton(); return; }
+    currentUser = { ...live, username:sess.username, isAdmin:false };
+    launchApp();
+  }catch{ localStorage.removeItem('nebula_sess'); hideSkeleton(); }
+}
+window.__bootNebula = __nebulaSessionBoot;
 
 function showSkeleton(){ document.getElementById('app-skeleton')?.classList.remove('hidden'); }
 
@@ -4056,7 +4047,7 @@ function toggleFS(){
 async function loadTooltips(){
   const c = document.getElementById('tt-wrap'); if(!c) return;
   let msgs = ["GOAT TECH INDUSTRIES","STAY ENCRYPTED","LEGENDS NEVER DIE","SYSTEM ONLINE"];
-  try{ const d = {"messages": ["unbock gams unbock gams unbock gams", "hoooooooly addicted", "skill issue ahh", "dont leak this", "make sure you're in an about:blank", "sniff sniff", "E-Liquid", "Find The Tabernacle", "Mr Tupper Never Dies", "stfu fleece", "GoatTech Never Dies", "idk bro", "how do people come up with these tooltips", "is this aura", "in the big 26", "im bored", "Made by GoatTech"]}; if(d.messages?.length) msgs = d.messages; }catch{}
+  try{ const d={"messages": ["unbock gams unbock gams unbock gams", "hoooooooly addicted", "skill issue ahh", "dont leak this", "make sure you're in an about:blank", "sniff sniff", "E-Liquid", "Find The Tabernacle", "Mr Tupper Never Dies", "stfu fleece", "GoatTech Never Dies", "idk bro", "how do people come up with these tooltips", "is this aura", "in the big 26", "im bored", "Made by GoatTech"]}; if(d.messages?.length) msgs = d.messages; }catch{}
   const shuffle = arr => { const a = [...arr]; for(let i = a.length-1; i > 0; i--){ const j = Math.floor(Math.random()*(i+1)); [a[i],a[j]] = [a[j],a[i]]; } return a; };
   let deck = [], last = null;
   const next = () => {
@@ -4089,33 +4080,26 @@ function globalKeyHandler(e){
     if(activeSection === 'dms')  document.getElementById('dm-input')?.focus();
   }
 }
+</script>
 
-// Expose the boot entry point
-window.__bootNebula = function() {
-  initCanvas();
-  initParallax();
-  (async () => {
-    showSkeleton();
-    try {
-      const saved = localStorage.getItem('nebula_sess');
-      if (!saved) { hideSkeleton(); return; }
-      const sess = JSON.parse(saved);
-      await loadAccounts();
-      if (sess.username === ADMIN_USERNAME) {
-        await ensureAdminAccount();
-        currentUser = { ...DB.accounts[ADMIN_USERNAME], username: ADMIN_USERNAME, isAdmin: true, proxyAccess: true };
-        launchApp(); return;
-      }
-      const live = DB.accounts[sess.username];
-      if (!live || live.banned) { localStorage.removeItem('nebula_sess'); hideSkeleton(); return; }
-      if (!live.approved) { currentUser = { ...live, username: sess.username }; showPending(); hideSkeleton(); return; }
-      currentUser = { ...live, username: sess.username, isAdmin: false };
-      launchApp();
-    } catch { localStorage.removeItem('nebula_sess'); hideSkeleton(); }
-  })();
-};
-
+<!-- ══════════════════════════════════════════
+     GoatPedia inline script
+     (starfield, parallax, triggers, patched _0xlaunch)
+══════════════════════════════════════════ -->
+<script>
+var _0xlaunch = (function(){
+  return function(){
+    var lp = document.getElementById('goatpedia-landing');
+    if(lp) lp.style.display = 'none';
+    var nb = document.getElementById('nebula-root');
+    if(nb){ nb.style.display = 'block'; nb.style.position = 'fixed'; nb.style.inset = '0'; }
+    if(!window.__nebulaBooted){
+      window.__nebulaBooted = true;
+      if(typeof window.__bootNebula === 'function') window.__bootNebula();
+    }
+  };
 })();
+
 </script>
 
 </body>
