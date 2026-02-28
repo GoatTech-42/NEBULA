@@ -1,34 +1,19 @@
 #!/usr/bin/env python3
 """
 build.py — Builds the entire project into a single index.html.
-
-The output file contains:
-  - The GoatPedia landing page (visible on load)
-  - The full Nebula app (hidden, revealed by the existing triggers)
-  - All CSS inlined into <style> blocks
-  - All JS inlined into <script> blocks
-  - tooltips.json baked in — no fetch() call
-  - ui.js merged into script.js — no import needed
-  - Firebase still loaded from CDN (required, cannot be bundled)
-  - Google Fonts still loaded from CDN (optional, graceful fallback)
-
-Source files expected in the same directory as build.py:
-  index.html, main.html, style.css, script.js, ui.js, tooltips.json
-
-Output:
-  dist/index.html
+Source: C:\\Users\\lukep\\Desktop\\Coding\\GoatTech Never Dies\\public
+Output: C:\\Users\\lukep\\Desktop\\Coding\\GoatTech Never Dies\\public\\dist\\index.html
 """
 
 import json, os, re, sys
 
 # ── Config ────────────────────────────────────────────────────────────────────
 
-SRC  = "."        # source directory
-OUT  = "dist"     # output directory
+SRC  = r"C:\Users\lukep\Desktop\Coding\GoatTech Never Dies\public"
+OUT  = r"C:\Users\lukep\Desktop\Coding\GoatTech Never Dies\public\dist"
 NAME = "index.html"
 
-REQUIRED = ["index.html", "main.html", "style.css", "script.js", "ui.js"]
-OPTIONAL = {"tooltips.json": '{"messages":["GOAT TECH INDUSTRIES","STAY ENCRYPTED","LEGENDS NEVER DIE","SYSTEM ONLINE","ALWAYS WATCHING","SIGNAL ACQUIRED"]}'}
+OPTIONAL_TOOLTIPS = '{"messages":["GOAT TECH INDUSTRIES","STAY ENCRYPTED","LEGENDS NEVER DIE","SYSTEM ONLINE","ALWAYS WATCHING","SIGNAL ACQUIRED"]}'
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -43,73 +28,62 @@ def read(name, fallback=None):
     with open(p, encoding="utf-8") as f:
         return f.read()
 
-def write(name, content):
+def write(content):
     os.makedirs(OUT, exist_ok=True)
-    p = os.path.join(OUT, name)
+    p = os.path.join(OUT, NAME)
     with open(p, "w", encoding="utf-8") as f:
         f.write(content)
     kb = len(content.encode()) / 1024
-    print(f"  [ok]   {p}  ({kb:.1f} KB)")
+    print(f"  [ok]   wrote {p}  ({kb:.1f} KB)")
 
 def between_tags(html, tag):
-    """Extract content between <tag> and </tag> (case-insensitive, first match)."""
     m = re.search(rf'<{tag}[^>]*>(.*?)</{tag}>', html, re.DOTALL | re.IGNORECASE)
-    return m.group(1) if m else ""
-
-def attr(html, tag, attribute):
-    """Get a specific attribute value from the first matching tag."""
-    m = re.search(rf'<{tag}[^>]*\s{attribute}=["\']([^"\']*)["\']', html, re.DOTALL | re.IGNORECASE)
     return m.group(1) if m else ""
 
 # ── Read sources ──────────────────────────────────────────────────────────────
 
+print(f"\n── Source: {SRC}")
+print(f"── Output: {OUT}\\{NAME}")
 print("\n── Reading source files ──────────────────────────────────────────────")
+
 landing_html = read("index.html")
 main_html    = read("main.html")
 style_css    = read("style.css")
 script_js    = read("script.js")
 ui_js        = read("ui.js")
-tooltips_raw = read("tooltips.json", OPTIONAL["tooltips.json"])
+tooltips_raw = read("tooltips.json", OPTIONAL_TOOLTIPS)
 
 try:
     tooltips_obj = json.loads(tooltips_raw)
 except json.JSONDecodeError:
-    print("  [warn] tooltips.json invalid — using fallback")
-    tooltips_obj = json.loads(OPTIONAL["tooltips.json"])
+    print("  [warn] tooltips.json is invalid JSON — using fallback")
+    tooltips_obj = json.loads(OPTIONAL_TOOLTIPS)
 
 tooltips_inline = json.dumps(tooltips_obj, ensure_ascii=False)
 print("  [ok]   all files read")
 
-# ── Process ui.js ─────────────────────────────────────────────────────────────
-# Strip ES module export keywords so it can live in a plain <script> block.
+# ── Process ui.js — strip ES module export keywords ──────────────────────────
 
 print("\n── Processing ui.js ──────────────────────────────────────────────────")
-ui_clean = re.sub(r'\bexport\s+function\b',  'function', ui_js)
-ui_clean = re.sub(r'\bexport\s+default\b',   '',         ui_clean)
-ui_clean = re.sub(r'\bexport\s*\{[^}]*\}\s*;?', '',     ui_clean)
+ui_clean = re.sub(r'\bexport\s+function\b',      'function', ui_js)
+ui_clean = re.sub(r'\bexport\s+default\b',       '',         ui_clean)
+ui_clean = re.sub(r'\bexport\s*\{[^}]*\}\s*;?', '',         ui_clean)
 print("  [ok]   export keywords stripped")
 
 # ── Process script.js ─────────────────────────────────────────────────────────
 
 print("\n── Processing script.js ──────────────────────────────────────────────")
 
-# 1. Remove the ui.js import line (we're inlining it)
+# 1. Remove the ui.js import line
 script_clean = re.sub(
-    r"""import\s*\{[^}]*\}\s*from\s*['"]\./ui\.js['"]\s*;?\n?""",
+    r'import\s*\{[^}]*\}\s*from\s*[\'\"]\./ui\.js[\'\"]\s*;?\n?',
     '',
     script_js
 )
 
-# 2. Remove ALL other local import lines (anything importing from a relative path)
-script_clean = re.sub(
-    r"""import\s*\{[^}]*\}\s*from\s*['"][^'"]*['"]\s*;?\n?""",
-    lambda m: '' if not 'gstatic' in m.group(0) and not 'firebase' in m.group(0) else m.group(0),
-    script_clean
-)
-
-# 3. Inline tooltips — replace the fetch('tooltips.json') try/catch block
+# 2. Inline tooltips — replace fetch('tooltips.json') try/catch
 tooltips_pattern = re.compile(
-    r"try\s*\{[^{}]*fetch\s*\(\s*['\"]tooltips\.json['\"]\s*\)[^{}]*\}catch\s*\{\}",
+    r'try\s*\{[^{}]*fetch\s*\(\s*[\'\""]tooltips\.json[\'\""]\s*\)[^{}]*\}catch\s*\{\}',
     re.DOTALL
 )
 tooltips_replacement = (
@@ -120,7 +94,7 @@ if tooltips_pattern.search(script_clean):
     script_clean = tooltips_pattern.sub(tooltips_replacement, script_clean)
     print("  [ok]   tooltips fetch → inline JSON")
 else:
-    # broader fallback: find the fetch line and replace just that
+    # broader fallback: just replace the fetch line directly
     script_clean = re.sub(
         r"const d=await\(await fetch\('tooltips\.json'\)\)\.json\(\);",
         f"const d={tooltips_inline};",
@@ -128,171 +102,222 @@ else:
     )
     print("  [warn] used fallback tooltips inline method")
 
-print("  [ok]   script.js processed")
+# 3. Combine ui.js + script.js
+combined_js = (
+    "// ── ui.js (inlined) ─────────────────────────────────────────────────────\n"
+    + ui_clean.strip()
+    + "\n\n"
+    + "// ── script.js ───────────────────────────────────────────────────────────\n"
+    + script_clean.strip()
+)
+print("  [ok]   ui.js + script.js combined")
 
-# ── Extract landing page parts ────────────────────────────────────────────────
+# ── Decompose landing page (index.html) ───────────────────────────────────────
 
-print("\n── Extracting landing page parts ─────────────────────────────────────")
+print("\n── Decomposing landing page ──────────────────────────────────────────")
 landing_head = between_tags(landing_html, "head")
 landing_body = between_tags(landing_html, "body")
 
-# Pull out the landing page's own <style> block (the big one inside <head>)
-landing_style_match = re.search(r'<style>(.*?)</style>', landing_head, re.DOTALL | re.IGNORECASE)
-landing_style = landing_style_match.group(1) if landing_style_match else ""
+# Extract the landing page's <style> block
+landing_style_m = re.search(r'<style[^>]*>(.*?)</style>', landing_head, re.DOTALL | re.IGNORECASE)
+landing_style   = landing_style_m.group(1) if landing_style_m else ""
 
-# Pull the landing page's <script> block
-landing_script_match = re.search(r'<script>(.*?)</script>', landing_body, re.DOTALL | re.IGNORECASE)
-landing_script = landing_script_match.group(1) if landing_script_match else ""
+# Extract the landing page's inline <script> block (the one inside <body>)
+landing_script_m = re.search(r'<script(?!\s+type=["\']module["\'])(?!\s+src)[^>]*>(.*?)</script>',
+                              landing_body, re.DOTALL | re.IGNORECASE)
+landing_script   = landing_script_m.group(1) if landing_script_m else ""
 
-# Collect font links from landing head
-font_links = re.findall(r'<link[^>]+fonts\.googleapis\.com[^>]*>', landing_head, re.IGNORECASE)
+# Collect Google Fonts links (deduplicated across both files)
+all_font_links = []
+seen_hrefs     = set()
+for fl in re.findall(r'<link[^>]+fonts\.googleapis\.com[^>]*>', landing_head + between_tags(main_html,"head"), re.IGNORECASE):
+    href_m = re.search(r'href=["\']([^"\']+)["\']', fl)
+    if href_m and href_m.group(1) not in seen_hrefs:
+        seen_hrefs.add(href_m.group(1))
+        all_font_links.append(fl)
 
-# Collect the landing page favicon
-favicon_match = re.search(r'<link[^>]+rel=["\']icon["\'][^>]*>', landing_head, re.IGNORECASE)
-landing_favicon = favicon_match.group(0) if favicon_match else ""
+# Grab the landing favicon
+favicon_m  = re.search(r'<link[^>]+rel=["\']icon["\'][^>]*>', landing_head, re.IGNORECASE)
+favicon    = favicon_m.group(0) if favicon_m else ""
 
 print("  [ok]   landing page decomposed")
 
-# ── Extract Nebula (main.html) parts ──────────────────────────────────────────
+# ── Decompose main.html (Nebula) ──────────────────────────────────────────────
 
-print("\n── Extracting Nebula (main.html) parts ───────────────────────────────")
-nebula_head = between_tags(main_html, "head")
+print("\n── Decomposing main.html ─────────────────────────────────────────────")
 nebula_body = between_tags(main_html, "body")
 
-# Remove the external stylesheet link and script tag from the Nebula body/head
+# Remove the <script src="script.js"> tag — we're inlining it
 nebula_body = re.sub(
-    r'<script\s+src=["\']script\.js["\'][^>]*type=["\']module["\'][^>]*>\s*</script>',
-    '', nebula_body, flags=re.IGNORECASE
+    r'<script\b[^>]*\bsrc=["\']script\.js["\'][^>]*>\s*</script>',
+    '',
+    nebula_body,
+    flags=re.IGNORECASE
 )
-nebula_body = re.sub(
-    r'<script\s+type=["\']module["\'][^>]*src=["\']script\.js["\'][^>]*>\s*</script>',
-    '', nebula_body, flags=re.IGNORECASE
-)
-nebula_body = re.sub(
-    r'<script\s+src=["\']script\.js["\'][^>]*>\s*</script>',
-    '', nebula_body, flags=re.IGNORECASE
-)
+print("  [ok]   Nebula body extracted")
 
-# Collect Nebula font links (avoid duplicates with landing)
-nebula_font_links = re.findall(r'<link[^>]+fonts\.googleapis\.com[^>]*>', nebula_head, re.IGNORECASE)
-all_font_hrefs = set()
-all_font_links = []
-for fl in font_links + nebula_font_links:
-    href = attr(fl, "link", "href")
-    if href not in all_font_hrefs:
-        all_font_hrefs.add(href)
-        all_font_links.append(fl)
-
-print("  [ok]   Nebula decomposed")
-
-# ── Patch the launcher in the landing page script ─────────────────────────────
+# ── Patch the launcher (_0xlaunch) ───────────────────────────────────────────
 #
-# The original _0xlaunch opens a new tab and writes an iframe pointing to
-# "main.html". Since everything is now one file, we change the launcher so it:
-#   1. Hides the landing page wrapper
-#   2. Shows the Nebula app wrapper
-#   3. Does NOT open a new tab
+# Original: opens a new tab/window and loads main.html inside an iframe.
+# New:      hides #goatpedia-landing, shows #nebula-root, boots Nebula in-page.
 #
-print("\n── Patching the launcher ─────────────────────────────────────────────")
+print("\n── Patching _0xlaunch ────────────────────────────────────────────────")
 
-new_launcher = """
-var _0xlaunch = (function(){
+new_launcher = """var _0xlaunch = (function(){
   return function(){
-    // Hide the GoatPedia landing page content
     var lp = document.getElementById('goatpedia-landing');
     if(lp) lp.style.display = 'none';
-    // Show the Nebula app
     var nb = document.getElementById('nebula-root');
     if(nb) nb.style.display = 'block';
-    // Boot Nebula if it hasn't started yet
+    // Boot Nebula once — the module script exposes __bootNebula on window
     if(!window.__nebulaBooted){
       window.__nebulaBooted = true;
-      __bootNebula();
+      if(typeof window.__bootNebula === 'function') window.__bootNebula();
     }
   };
-})();
-"""
+})();"""
 
-# Replace the existing _0xlaunch definition (handles the obfuscated version)
 launcher_pattern = re.compile(
-    r'var\s+_0xlaunch\s*=\s*\(function\(\)\{.*?return\s+function\(\)\{.*?\}\s*\}\)\(\)\s*;',
+    r'var\s+_0xlaunch\s*=\s*\(function\(\)\{.*?return\s+function\(\)\{.*?\}\s*;\s*\}\)\(\)\s*;',
     re.DOTALL
 )
 if launcher_pattern.search(landing_script):
-    landing_script = launcher_pattern.sub(new_launcher.strip(), landing_script)
-    print("  [ok]   _0xlaunch patched to show/hide divs")
+    landing_script = launcher_pattern.sub(new_launcher, landing_script)
+    print("  [ok]   _0xlaunch patched (show/hide divs)")
 else:
-    # If the pattern didn't match, prepend the new launcher and hope for the best
     landing_script = new_launcher + "\n" + landing_script
-    print("  [warn] could not find _0xlaunch — prepended new definition")
+    print("  [warn] _0xlaunch pattern not matched — prepended new definition")
 
-# ── Patch the Nebula script: remove the IIFE self-boot ────────────────────────
+# ── Wrap Nebula JS so it only runs when the launcher fires ───────────────────
 #
-# The original script.js has an IIFE at the top level that runs immediately:
-#   (async()=>{ initCanvas(); initParallax(); ... })();
-# We wrap the entire Nebula script in a function __bootNebula() so it only
-# runs when the launcher calls it.
+# The session-restore IIFE at the bottom of script.js runs immediately on load.
+# We wrap the whole combined JS in __bootNebula() so it only executes when
+# the user triggers the launcher.
 #
-print("\n── Wrapping Nebula script in __bootNebula() ──────────────────────────")
+print("\n── Wrapping Nebula JS in __bootNebula() ──────────────────────────────")
 
-# Find the self-invoking async boot IIFE and capture it
-boot_iife_pattern = re.compile(
-    r'/\*\s*──\s*Restore session\s*──\s*\*/\s*\(async\s*\(\)\s*=>\s*\{.*?\}\s*\)\s*\(\)\s*;',
+# Find the self-invoking async IIFE that boots the app:
+#   (async()=>{ initCanvas(); initParallax(); showSkeleton(); ... })();
+boot_pattern = re.compile(
+    r'\(async\s*\(\)\s*=>\s*\{.*?hideSkeleton\(\)\s*;?\s*\}\s*\)\s*\(\)\s*;',
     re.DOTALL
 )
 
-if boot_iife_pattern.search(script_clean):
-    # Wrap entire script in a function, making the IIFE the body of __bootNebula
-    combined_nebula_js = f"""
-// ── ui.js (inlined) ──────────────────────────────────────────────────────────
-{ui_clean.strip()}
-
-// ── script.js (inlined, wrapped in __bootNebula) ─────────────────────────────
-{script_clean.strip()}
-"""
-    # The IIFE already calls initCanvas/initParallax then boots auth.
-    # We just need __bootNebula to call that IIFE.
-    # Replace the bare IIFE with a named function + call site
-    combined_nebula_js = boot_iife_pattern.sub(
-        lambda m: "async function __nebulaSessionBoot(){\n" + m.group(0)[m.group(0).index('{')+1:m.group(0).rindex('}')-1].strip() + "\n}\nfunction __bootNebula(){ initCanvas(); initParallax(); __nebulaSessionBoot(); }",
-        combined_nebula_js
-    )
-    # Remove duplicate initCanvas/initParallax calls that may now exist
-    # (the IIFE called them; our wrapper now calls them explicitly before the session boot)
-    combined_nebula_js = re.sub(
-        r'\binitCanvas\s*\(\s*\)\s*;[\s\n]*\binitParallax\s*\(\s*\)\s*;',
-        '// (moved to __bootNebula)',
-        combined_nebula_js,
+if boot_pattern.search(combined_js):
+    # Replace the bare IIFE call with a named async function
+    combined_js = boot_pattern.sub(
+        'async function __nebulaSessionBoot(){ initCanvas(); initParallax(); '
+        + boot_pattern.search(combined_js).group(0)
+          .lstrip('(').rsplit('()',1)[0].strip()   # body of the IIFE
+          .lstrip('async()=>').lstrip('async () =>').strip()
+          .strip('{}')
+          .strip()
+        + ' }',
+        combined_js,
         count=1
     )
-    print("  [ok]   Nebula wrapped in __bootNebula()")
-else:
-    # Fallback: just wrap everything in a plain function
-    print("  [warn] boot IIFE not found — using simple wrapper")
-    combined_nebula_js = f"""
-// ── ui.js (inlined) ──────────────────────────────────────────────────────────
+    # Simpler, more reliable approach: just append the wrapper at the end
+    combined_js = boot_pattern.sub(
+        '/* boot IIFE replaced by __bootNebula — see bottom of file */',
+        script_clean,  # re-process from clean copy
+    )
+    # Actually the cleanest way: wrap everything and expose one entry point
+    print("  [ok]   wrapping via function envelope")
+    nebula_js_final = f"""// ── ui.js (inlined) ────────────────────────────────────────────────────────
 {ui_clean.strip()}
 
-// ── script.js (inlined) ──────────────────────────────────────────────────────
-{script_clean.strip()}
+// ── script.js (inlined) ────────────────────────────────────────────────────
+// All top-level code is deferred — __bootNebula() is the entry point.
+(function() {{
+  // Replace the self-invoking boot IIFE with a named function so it only
+  // runs when _0xlaunch calls window.__bootNebula().
+  const _originalInit = async function() {{
+    {script_clean.strip()}
+  }};
 
-function __bootNebula(){{ initCanvas(); initParallax(); }}
+  window.__bootNebula = function() {{
+    _originalInit();
+  }};
+}})();
+"""
+else:
+    print("  [warn] boot IIFE not found — using simple envelope")
+    nebula_js_final = f"""// ── ui.js (inlined) ────────────────────────────────────────────────────────
+{ui_clean.strip()}
+
+// ── script.js (inlined) ────────────────────────────────────────────────────
+(function() {{
+  {script_clean.strip()}
+  window.__bootNebula = function() {{ initCanvas(); initParallax(); }};
+}})();
 """
 
-# ── Remove Firebase import statements from combined JS ───────────���────────────
-# (they will be loaded via CDN <script> tags, not ES module imports)
-# We keep them as-is since the script is type="module" and CDN imports work fine.
+# The approach above gets too clever — use a clean, simple wrapper instead.
+# Wrap the entire combined JS (ui + script) in a function body.
+# The session-restore IIFE is already at module top level; we just need to
+# prevent it running on page load. We do this by wrapping everything in
+# window.__bootNebula and NOT calling it immediately.
 
-# ── Build the final HTML ──────────────────────────────────────────────────────
+nebula_js_final = f"""// ── ui.js + script.js — deferred until _0xlaunch fires ─────────────────────
+(function() {{
 
-print("\n── Building final index.html ─────────────────────────────────────────")
+{ui_clean.strip()}
 
-# Collect all font links as a single string
+{script_clean.strip()}
+
+// Expose the boot entry point
+window.__bootNebula = function() {{
+  initCanvas();
+  initParallax();
+  (async () => {{
+    showSkeleton();
+    try {{
+      const saved = localStorage.getItem('nebula_sess');
+      if (!saved) {{ hideSkeleton(); return; }}
+      const sess = JSON.parse(saved);
+      await loadAccounts();
+      if (sess.username === ADMIN_USERNAME) {{
+        await ensureAdminAccount();
+        currentUser = {{ ...DB.accounts[ADMIN_USERNAME], username: ADMIN_USERNAME, isAdmin: true, proxyAccess: true }};
+        launchApp(); return;
+      }}
+      const live = DB.accounts[sess.username];
+      if (!live || live.banned) {{ localStorage.removeItem('nebula_sess'); hideSkeleton(); return; }}
+      if (!live.approved) {{ currentUser = {{ ...live, username: sess.username }}; showPending(); hideSkeleton(); return; }}
+      currentUser = {{ ...live, username: sess.username, isAdmin: false }};
+      launchApp();
+    }} catch {{ localStorage.removeItem('nebula_sess'); hideSkeleton(); }}
+  }})();
+}};
+
+}})();
+"""
+
+print("  [ok]   __bootNebula() defined")
+
+# ── Strip the original self-invoking session boot from the JS ────────────────
+# (it's now inside __bootNebula so we don't want it running twice)
+
+# Remove the bare IIFE:  (async()=>{ ... })();
+bare_iife = re.compile(
+    r'/\*\s*──\s*Restore session\s*──\s*\*/\s*\(async\s*\(\)\s*=>\s*\{.*?\}\s*\)\s*\(\)\s*;',
+    re.DOTALL
+)
+if bare_iife.search(nebula_js_final):
+    nebula_js_final = bare_iife.sub('/* session boot moved to __bootNebula() */', nebula_js_final)
+    print("  [ok]   original session IIFE removed from module body")
+
+# ── Strip the landing body of its own <script> tag (handled separately) ──────
+
+landing_body_clean = re.sub(
+    r'<script\b[^>]*>.*?</script>', '', landing_body, flags=re.DOTALL | re.IGNORECASE
+).strip()
+
+# ── Build final HTML ──────────────────────────────────────────────────────────
+
+print("\n── Building final HTML ───────────────────────────────────────────────")
+
 fonts_html = "\n".join(all_font_links)
-
-# The landing body needs to be wrapped in a div we can hide
-# Strip the outer <script> tag from landing_body since we handle it separately
-landing_body_no_script = re.sub(r'<script\b[^>]*>.*?</script>', '', landing_body, flags=re.DOTALL|re.IGNORECASE).strip()
 
 final_html = f"""<!DOCTYPE html>
 <html lang="en">
@@ -300,88 +325,101 @@ final_html = f"""<!DOCTYPE html>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Goat — The Comprehensive Encyclopedia</title>
-{landing_favicon}
+{favicon}
 {fonts_html}
 
 <style>
-/* ════════════════════════════════════════════════════
-   LANDING PAGE STYLES (GoatPedia)
-════════════════════════════════════════════════════ */
+/* ════════════════════════════════════════
+   LANDING PAGE CSS (GoatPedia)
+════════════════════════════════════════ */
 {landing_style}
+</style>
 
-/* ════════════════════════════════════════════════════
-   ROOT LAYOUT — landing vs nebula toggle
-════════════════════════════════════════════════════ */
+<style>
+/* ════════════════════════════════════════
+   NEBULA APP CSS (style.css)
+════════════════════════════════════════ */
+{style_css}
+</style>
+
+<style>
+/* ════════════���═══════════════════════════
+   LAYOUT — landing / nebula toggle
+════════════════════════════════════════ */
 #nebula-root {{
   display: none;
   position: fixed;
   inset: 0;
-  z-index: 5000;
+  z-index: 4000;
+  background: var(--bg, #060d1a);
+  overflow: hidden;
 }}
-</style>
-
-<style>
-/* ════════════════════════════════════════════════════
-   NEBULA APP STYLES (style.css)
-════════════════════════════════════════════════════ */
-{style_css}
+/* game vault must be above everything */
+#game-vault {{
+  z-index: 10000 !important;
+}}
+.ghdr {{
+  position: relative;
+  z-index: 10001 !important;
+  pointer-events: all !important;
+}}
 </style>
 </head>
 <body>
 
-<!-- ══════════════════════════════════════════════════
+<!-- ══════════════════════════════════════
      GOATPEDIA LANDING PAGE
-══════════════════════════════════════════════════ -->
+══════════════════════════════════════ -->
 <div id="goatpedia-landing">
-{landing_body_no_script.strip()}
+{landing_body_clean}
 </div>
 
-<!-- ══════════════════════════════════════════════════
+<!-- ══════════════════════════════════════
      NEBULA APP  (hidden until launcher fires)
-══════════════════════════════════════════════════ -->
+══════════════════════════════════════ -->
 <div id="nebula-root">
 {nebula_body.strip()}
 </div>
 
-<!-- ══════════════════════════════════════════════════
+<!-- ══════════════════════════════════════
      LANDING PAGE SCRIPTS
-══════════════════════════════════════════════════ -->
+     (starfield, parallax, triggers, patched _0xlaunch)
+══════════════════════════════════════ -->
 <script>
-/* ── Landing page inline JS (starfield, parallax, triggers) ─────────────── */
 {landing_script.strip()}
 </script>
 
-<!-- ══════════════════════════════════════════════════
-     NEBULA APP SCRIPTS  (ES module — Firebase imports work here)
-══════════════════════════════════════════════════ -->
+<!-- ══════════════════════════════════════
+     NEBULA APP SCRIPTS
+     (ui.js + script.js, wrapped in __bootNebula)
+══════════════════════════════════════ -->
 <script type="module">
-/* ── Combined ui.js + script.js ─────────────────────────────────────────── */
-{combined_nebula_js.strip()}
+{nebula_js_final.strip()}
 </script>
 
 </body>
 </html>"""
 
-write(NAME, final_html)
+write(final_html)
 
 print(f"""
 ── Build complete ────────────────────────────────────────────────────────────
 
-  dist/index.html  ← the entire project in one file
+  {OUT}\\{NAME}
 
-  What's inside:
-    ✓ GoatPedia landing page  (visible on load)
-    ✓ Nebula app              (hidden, revealed by existing triggers)
-    ✓ style.css               (inlined)
-    ✓ script.js               (inlined, wrapped in __bootNebula)
-    ✓ ui.js                   (inlined, merged into script block)
-    ✓ tooltips.json           (baked in, no fetch at runtime)
-    ✓ Firebase                (CDN imports, unchanged)
-    ✓ Google Fonts            (CDN, deduplicated)
+  Contents:
+    ✓ GoatPedia landing page   visible on load
+    ✓ Nebula app               hidden, shown by triggers
+    ✓ style.css                inlined
+    ✓ script.js                inlined, deferred via __bootNebula()
+    ✓ ui.js                    inlined + merged
+    ✓ tooltips.json            baked in (no fetch)
+    ✓ Firebase                 CDN (unchanged)
+    ✓ Google Fonts             CDN (deduplicated)
 
-  Triggers still work exactly as before:
+  Triggers still work:
     • Double-click "nebula" in the goat-eye paragraph
-    • Konami code  (↑↑↓↓←→←→BA)
+    • Konami code  ↑↑↓↓←→←→BA
     • Triple-click the © in the footer
 
 ─────────────────────────────────────────────────────────────────────────────
