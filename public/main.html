@@ -324,15 +324,20 @@
     <div class="section" id="section-games">
       <div class="vault-scroll" id="vault-scroll">
         <div class="vault-topbar">
-          <div class="vault-search-wrap">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-            <input type="text" id="vault-search" placeholder="Search games…" autocomplete="off" spellcheck="false">
-          </div>
-          <button id="fav-filter-btn">
-            <svg viewBox="0 0 24 24" stroke-width="2" width="13" height="13"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
-            Favorites
-          </button>
-        </div>
+  <div class="vault-search-wrap">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+    <input type="text" id="vault-search" placeholder="Search games…" autocomplete="off" spellcheck="false">
+  </div>
+  <select id="vault-sort">
+    <option value="popular">Popular</option>
+    <option value="name">Name</option>
+    <option value="id">Date (ID)</option>
+  </select>
+  <button id="fav-filter-btn">
+    <svg viewBox="0 0 24 24" stroke-width="2" width="13" height="13"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
+    Favorites
+  </button>
+</div>
         <div id="vault-loading" class="vault-loading">Loading games…</div>
         <div id="vault-featured-wrap"></div>
         <div id="game-grid"></div>
@@ -441,36 +446,38 @@
   <div class="ghdr">
     <span class="ghdr-logo" id="vault-title">NEBULA VAULT</span>
     <div style="display:flex;gap:8px;align-items:center;">
-      <button
-        class="btn btn-ghost btn-sm"
-        id="game-fs-btn"
-        onclick="(function(e){e.stopPropagation();if(typeof toggleFS==='function')toggleFS();})(event)"
-      >
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13">
-          <path d="M8 3H5a2 2 0 00-2 2v3m18 0V5a2 2 0 00-2-2h-3m0 18h3a2 2 0 002-2v-3M3 16v3a2 2 0 002 2h3"/>
-        </svg>
-        Fullscreen
-      </button>
-      <!--
-        The close button has THREE layers of redundancy:
-          1. onclick attribute fires doCloseGame() directly (inline, always works)
-          2. JS listener added by wireStaticListeners() (belt)
-          3. e.stopPropagation() on both so the modal-overlay click handler
-             can never intercept it
-      -->
-      <button
-        class="btn btn-danger btn-sm"
-        id="game-close-btn"
-        onclick="(function(e){e.stopPropagation();if(typeof doCloseGame==='function')doCloseGame();})(event)"
-        style="cursor:pointer;"
-      >
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="12" height="12">
-          <line x1="18" y1="6" x2="6" y2="18"/>
-          <line x1="6" y1="6" x2="18" y2="18"/>
-        </svg>
-        Close
-      </button>
-    </div>
+  <button
+    class="btn btn-ghost btn-sm"
+    id="game-fs-btn"
+    onclick="(function(e){e.stopPropagation();if(typeof toggleFS==='function')toggleFS();})(event)"
+  >
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13">
+      <path d="M8 3H5a2 2 0 00-2 2v3m18 0V5a2 2 0 00-2-2h-3m0 18h3a2 2 0 002-2v-3M3 16v3a2 2 0 002 2h3"/>
+    </svg>
+    Fullscreen
+  </button>
+  <button
+    class="btn btn-ghost btn-sm"
+    id="game-dl-btn"
+  >
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13">
+      <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/>
+    </svg>
+    Download
+  </button>
+  <button
+    class="btn btn-danger btn-sm"
+    id="game-close-btn"
+    onclick="(function(e){e.stopPropagation();if(typeof doCloseGame==='function')doCloseGame();})(event)"
+    style="cursor:pointer;"
+  >
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="12" height="12">
+      <line x1="18" y1="6" x2="6" y2="18"/>
+      <line x1="6" y1="6" x2="18" y2="18"/>
+    </svg>
+    Close
+  </button>
+</div>
   </div>
   <!--
     The iframe is STATIC — script.js writes into it with

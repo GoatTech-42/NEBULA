@@ -12,6 +12,7 @@ const firebaseConfig = {
   appId: "__FIREBASE_APP_ID__",
   measurementId: "G-VQVP2X5R2T"
 };
+const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const REFS = {
   accounts : doc(db,"nebula","accounts"),
@@ -41,7 +42,7 @@ const ZONE_URLS = [
 const COVER_URL = "https://cdn.jsdelivr.net/gh/gn-math/covers@main";
 const HTML_URL  = "https://cdn.jsdelivr.net/gh/gn-math/html@main";
 const EMOJIS    = ['👍','💔','😂','😭','🤯','🔥','😃','🥀','👀','💀'];
-const PROFANITY = ['\x5c\x78\x36\x36\x5c\x78\x37\x35\x5c\x78\x36\x33\x5c\x78\x36\x62','\x5c\x78\x37\x33\x5c\x78\x36\x38\x5c\x78\x36\x39\x5c\x78\x37\x34','\x5c\x78\x36\x32\x5c\x78\x36\x39\x5c\x78\x37\x34\x5c\x78\x36\x33\x5c\x78\x36\x38','\x5c\x78\x36\x34\x5c\x78\x36\x39\x5c\x78\x36\x33\x5c\x78\x36\x62','\x5c\x78\x36\x33\x5c\x78\x37\x35\x5c\x78\x36\x65\x5c\x78\x37\x34','\x5c\x78\x37\x30\x5c\x78\x37\x35\x5c\x78\x37\x33\x5c\x78\x37\x33\x5c\x78\x37\x39','\x5c\x78\x36\x32\x5c\x78\x36\x31\x5c\x78\x37\x33\x5c\x78\x37\x34\x5c\x78\x36\x31\x5c\x78\x37\x32\x5c\x78\x36\x34','\x5c\x78\x37\x33\x5c\x78\x36\x33\x5c\x78\x37\x35\x5c\x78\x37\x34','\x5c\x78\x37\x37\x5c\x78\x36\x38\x5c\x78\x36\x66\x5c\x78\x37\x32\x5c\x78\x36\x35','\x5c\x78\x36\x36\x5c\x78\x36\x31\x5c\x78\x36\x37','\x5c\x78\x36\x65\x5c\x78\x36\x39\x5c\x78\x36\x37\x5c\x78\x36\x37\x5c\x78\x36\x35\x5c\x78\x37\x32','\x5c\x78\x36\x65\x5c\x78\x36\x39\x5c\x78\x36\x37\x5c\x78\x36\x37\x5c\x78\x36\x35\x5c\x78\x37\x32\x5c\x78\x37\x33','\x5c\x78\x37\x32\x5c\x78\x36\x35\x5c\x78\x37\x34\x5c\x78\x36\x31\x5c\x78\x37\x32\x5c\x78\x36\x34','\x5c\x78\x36\x33\x5c\x78\x37\x35\x5c\x78\x36\x64','\x5c\x78\x36\x31\x5c\x78\x37\x33\x5c\x78\x37\x33\x5c\x78\x36\x38\x5c\x78\x36\x66\x5c\x78\x36\x63\x5c\x78\x36\x35'];
+const PROFANITY = ['\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x36\x5c\x78\x33\x36\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x37\x5c\x78\x33\x35\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x36\x5c\x78\x33\x33\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x36\x5c\x78\x36\x32','\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x37\x5c\x78\x33\x33\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x36\x5c\x78\x33\x38\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x36\x5c\x78\x33\x39\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x37\x5c\x78\x33\x34','\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x36\x5c\x78\x33\x32\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x36\x5c\x78\x33\x39\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x37\x5c\x78\x33\x34\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x36\x5c\x78\x33\x33\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x36\x5c\x78\x33\x38','\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x36\x5c\x78\x33\x34\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x36\x5c\x78\x33\x39\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x36\x5c\x78\x33\x33\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x36\x5c\x78\x36\x32','\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x36\x5c\x78\x33\x33\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x37\x5c\x78\x33\x35\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x36\x5c\x78\x36\x35\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x37\x5c\x78\x33\x34','\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x37\x5c\x78\x33\x30\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x37\x5c\x78\x33\x35\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x37\x5c\x78\x33\x33\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x37\x5c\x78\x33\x33\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x37\x5c\x78\x33\x39','\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x36\x5c\x78\x33\x32\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x36\x5c\x78\x33\x31\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x37\x5c\x78\x33\x33\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x37\x5c\x78\x33\x34\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x36\x5c\x78\x33\x31\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x37\x5c\x78\x33\x32\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x36\x5c\x78\x33\x34','\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x37\x5c\x78\x33\x33\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x36\x5c\x78\x33\x33\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x37\x5c\x78\x33\x35\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x37\x5c\x78\x33\x34','\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x37\x5c\x78\x33\x37\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x36\x5c\x78\x33\x38\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x36\x5c\x78\x36\x36\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x37\x5c\x78\x33\x32\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x36\x5c\x78\x33\x35','\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x36\x5c\x78\x33\x36\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x36\x5c\x78\x33\x31\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x36\x5c\x78\x33\x37','\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x36\x5c\x78\x36\x35\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x36\x5c\x78\x33\x39\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x36\x5c\x78\x33\x37\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x36\x5c\x78\x33\x37\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x36\x5c\x78\x33\x35\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x37\x5c\x78\x33\x32','\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x36\x5c\x78\x36\x35\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x36\x5c\x78\x33\x39\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x36\x5c\x78\x33\x37\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x36\x5c\x78\x33\x37\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x36\x5c\x78\x33\x35\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x37\x5c\x78\x33\x32\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x37\x5c\x78\x33\x33','\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x37\x5c\x78\x33\x32\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x36\x5c\x78\x33\x35\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x37\x5c\x78\x33\x34\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x36\x5c\x78\x33\x31\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x37\x5c\x78\x33\x32\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x36\x5c\x78\x33\x34','\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x36\x5c\x78\x33\x33\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x37\x5c\x78\x33\x35\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x36\x5c\x78\x36\x34','\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x36\x5c\x78\x33\x31\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x37\x5c\x78\x33\x33\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x37\x5c\x78\x33\x33\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x36\x5c\x78\x33\x38\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x36\x5c\x78\x36\x36\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x36\x5c\x78\x36\x33\x5c\x78\x35\x63\x5c\x78\x37\x38\x5c\x78\x33\x36\x5c\x78\x33\x35'];
 const DEFAULT_THREADS = [
   {id:'general',       name:'general',       emoji:'💬', password:'', locked:false, announceOnly:false},
   {id:'announcements', name:'announcements', emoji:'📢', password:'', locked:false, announceOnly:true},
@@ -75,9 +76,14 @@ let dmWriteTimer   = null, pendingDMWrite  = null;
 let typingTimer    = null;
 let tsRefreshTimer = null;
 let gameObserver   = null;
-let zones = [], gameFavs = JSON.parse(localStorage.getItem('nebula-gfavs')||'[]');
+let zones = [], gameFavs = JSON.parse(localStorage.getItem('gn-favs')||'[]');
 let showFavsOnly = false, vaultQuery = '';
 let featuredGames = [], carouselIdx = 0, carouselTimer = null, carouselPause = null, carouselBusy = false;
+let popularityData = {};
+let vaultSortBy = 'popular';
+
+// The game viewer iframe — may be recreated on close like GhostLink
+let zoneFrame = null;
 
 const NOTIF_KEY          = 'nebula-notif-prefs';
 const getNotifPrefs      = () => { try{ return JSON.parse(localStorage.getItem(NOTIF_KEY)||'{}'); }catch{ return {}; } };
@@ -152,6 +158,17 @@ const renderMentions = escText => escText.replace(/@([a-z0-9_\-]+)/gi, (m, u) =>
   const isMe = currentUser && u.toLowerCase() === currentUser.username.toLowerCase();
   return `<span class="mention${isMe?' mine':''}">${m}</span>`;
 });
+
+/* ══════════════════════════════════════════
+   CLEAN HTML (GhostLink-style ad/injector removal)
+══════════════════════════════════════════ */
+function cleanHTML(html) {
+  html = html.replace(/#sidebarad1\s*,\s*\n?#sidebarad2[\s\S]*?\.sidebar-frame\s*\{[\s\S]*?\}/g, '');
+  html = html.replace(/<div\s+id=["']sidebarad[12]["'][^>]*>[\s\S]*?<\/div>\s*(<\/div>)?/g, '');
+  html = html.replace(/<script>\s*\(function\(_0x[a-f0-9]+[\s\S]*?duplace\.ne[\s\S]*?<\/script>/g, '');
+  html = html.replace(/<style>[^<]*#sidebarad[\s\S]*?<\/style>/g, '');
+  return html;
+}
 
 /* ══════════════════════════════════════════
    NOTIFY
@@ -527,7 +544,15 @@ function wireStaticListeners(){
   document.getElementById('dm-input')?.addEventListener('keydown', e => { if(e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); sendDM(); } });
   document.getElementById('dm-input')?.addEventListener('input', () => { updateDMCharCtr(); if(activeDM) broadcastTyping(activeDM, true); });
 
-  document.getElementById('vault-search')?.addEventListener('input', deb(() => { vaultQuery = document.getElementById('vault-search').value; renderVaultGrid(getFilteredZones()); }, 180));
+  // Vault controls
+  document.getElementById('vault-search')?.addEventListener('input', deb(() => {
+    vaultQuery = document.getElementById('vault-search').value;
+    renderVaultGrid(getFilteredZones());
+  }, 180));
+  document.getElementById('vault-sort')?.addEventListener('change', () => {
+    vaultSortBy = document.getElementById('vault-sort').value;
+    renderVaultGrid(getFilteredZones());
+  });
   document.getElementById('fav-filter-btn')?.addEventListener('click', toggleFavFilter);
 
   document.getElementById('cancel-del-btn')?.addEventListener('click', cancelDel);
@@ -542,9 +567,10 @@ function wireStaticListeners(){
   document.getElementById('close-rank-btn')?.addEventListener('click', closeRankModal);
   document.getElementById('modal-overlay')?.addEventListener('click', closeTopModal);
 
-  // ── Game vault ──
+  // Game vault buttons
   document.getElementById('game-close-btn')?.addEventListener('click', e => { e.stopPropagation(); doCloseGame(); });
   document.getElementById('game-fs-btn')?.addEventListener('click', toggleFS);
+  document.getElementById('game-dl-btn')?.addEventListener('click', downloadZone);
   document.getElementById('game-close-confirm-btn')?.addEventListener('click', e => { e.stopPropagation(); doCloseGame(); });
   document.getElementById('game-close-cancel-btn')?.addEventListener('click', e => { e.stopPropagation(); closeModal('game-close-modal'); });
 
@@ -1595,7 +1621,7 @@ async function loadZones(){
     const cached = sessionStorage.getItem(cacheKey);
     if(cached){
       const { ts, data } = JSON.parse(cached);
-      if(Date.now() - ts < cacheTTL){ zones = data; finishZonesLoad(); return; }
+      if(Date.now() - ts < cacheTTL){ zones = data; await fetchPopularity(); finishZonesLoad(); return; }
     }
   }catch{}
   try{
@@ -1614,11 +1640,24 @@ async function loadZones(){
     zones = await res.json();
     zones = zones.filter(z => !z.name.includes("SUGGEST"));
     try{ sessionStorage.setItem(cacheKey, JSON.stringify({ ts:Date.now(), data:zones })); }catch{}
+    await fetchPopularity();
     finishZonesLoad();
   }catch{
     const loading = document.getElementById('vault-loading');
     if(loading) loading.innerHTML = '<span>⚠️ Failed to load games</span>';
   }
+}
+
+/* Fetch jsDelivr popularity stats — identical to GhostLink */
+async function fetchPopularity(){
+  try{
+    const res  = await fetch("https://data.jsdelivr.com/v1/stats/packages/gh/gn-math/html@main/files?period=year");
+    const data = await res.json();
+    data.forEach(file => {
+      const m = file.name.match(/\/(\d+)\.html$/);
+      if(m) popularityData[parseInt(m[1])] = file.hits.total;
+    });
+  }catch{ popularityData[0] = 0; }
 }
 
 function finishZonesLoad(){
@@ -1657,13 +1696,14 @@ function setupGameObserver(){
   document.querySelectorAll('#game-grid img[data-src]').forEach(img => gameObserver.observe(img));
 }
 
+/* setupFeatured — seeded random, exactly as GhostLink */
 function setupFeatured(){
   if(zones.length < 5) return;
   const now  = new Date();
   const seed = now.getFullYear() + '-' + now.getMonth() + '-' + now.getDate() + (now.getHours() < 12 ? 'AM' : 'PM');
   let h = 0; for(let i = 0; i < seed.length; i++) h = seed.charCodeAt(i) + ((h << 5) - h);
   const rand = () => { h = Math.sin(h) * 10000; return h - Math.floor(h); };
-  let pool = [...zones]; featuredGames = [];
+  let pool = [...zones].filter(z => !z.name.includes("SUGGEST")); featuredGames = [];
   for(let i = 0; i < Math.min(10, pool.length); i++){
     const idx = Math.floor(rand() * pool.length);
     featuredGames.push(pool.splice(idx,1)[0]);
@@ -1674,38 +1714,53 @@ function setupFeatured(){
 function renderFeatured(){
   document.getElementById('vault-featured-block')?.remove();
   const wrap = document.createElement('div'); wrap.id = 'vault-featured-block'; wrap.className = 'vault-featured';
+
+  const itemsVisible = window.innerWidth > 800 ? 5 : 2;
+  const clonesBefore = featuredGames.slice(-itemsVisible);
+  const clonesAfter  = featuredGames.slice(0, itemsVisible);
+  const displayPool  = [...clonesBefore, ...featuredGames, ...clonesAfter];
+
   wrap.innerHTML = `
     <div class="vault-featured-hdr">⭐ Featured Today</div>
     <button class="carousel-btn" id="carousel-prev">❮</button>
     <div class="carousel-viewport"><div id="feat-track"></div></div>
     <button class="carousel-btn" id="carousel-next">❯</button>`;
   document.getElementById('vault-featured-wrap').appendChild(wrap);
-  document.getElementById('carousel-prev').addEventListener('click', () => carouselNav(-1));
-  document.getElementById('carousel-next').addEventListener('click', () => carouselNav(1));
-  const vis   = window.innerWidth > 500 ? 5 : 2;
+
   const track = document.getElementById('feat-track');
-  [...featuredGames.slice(-vis), ...featuredGames, ...featuredGames.slice(0,vis)].forEach(z => {
+  displayPool.forEach(z => {
     const d   = document.createElement('div'); d.className = 'feat-item';
     d.addEventListener('click', () => openZone(z));
     const img = document.createElement('img');
     img.src     = z.cover.replace('{COVER_URL}', COVER_URL).replace('{HTML_URL}', HTML_URL);
     img.loading = 'lazy'; img.alt = z.name;
-    const p   = document.createElement('div'); p.className = 'feat-item-name'; p.textContent = z.name;
+    const p   = document.createElement('div');
+    p.style.cssText = 'font-size:.63rem;color:var(--text-muted);margin-top:7px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;';
+    p.textContent = z.name;
     d.append(img, p); track.appendChild(d);
   });
-  carouselIdx = vis; updateCarouselPos(false); startCarousel();
+
+  carouselIdx = itemsVisible;
+  updateCarouselPos(false);
+
+  document.getElementById('carousel-prev').addEventListener('click', () => carouselNav(-1));
+  document.getElementById('carousel-next').addEventListener('click', () => carouselNav(1));
+
+  startCarousel();
 }
 
 function updateCarouselPos(anim = true){
   const track = document.getElementById('feat-track'); if(!track) return;
-  const vis   = window.innerWidth > 500 ? 5 : 2;
+  const vis   = window.innerWidth > 800 ? 5 : 2;
   track.style.transition = anim ? 'transform .6s cubic-bezier(.23,1,.32,1)' : 'none';
   track.style.transform  = `translateX(-${carouselIdx * (100 / vis)}%)`;
 }
-function startCarousel(){ clearInterval(carouselTimer); carouselTimer = setInterval(() => moveCarousel(1), 3200); }
+
+function startCarousel(){ clearInterval(carouselTimer); carouselTimer = setInterval(() => moveCarousel(1), 4000); }
+
 function moveCarousel(dir){
   if(carouselBusy) return;
-  const vis   = window.innerWidth > 500 ? 5 : 2;
+  const vis   = window.innerWidth > 800 ? 5 : 2;
   const total = featuredGames.length;
   carouselBusy = true; carouselIdx += dir; updateCarouselPos(true);
   setTimeout(() => {
@@ -1714,24 +1769,38 @@ function moveCarousel(dir){
     carouselBusy = false;
   }, 620);
 }
+
 function carouselNav(dir){
   moveCarousel(dir); clearInterval(carouselTimer); clearTimeout(carouselPause);
-  carouselPause = setTimeout(startCarousel, 3000);
+  carouselPause = setTimeout(startCarousel, 4000);
 }
+
 window.addEventListener('resize', () => { if(featuredGames.length) renderFeatured(); });
 
+/* getFilteredZones — includes sort exactly as GhostLink */
 function getFilteredZones(){
-  return zones.filter(z => {
+  let filtered = zones.filter(z => {
     const ms = z.name.toLowerCase().includes(vaultQuery.toLowerCase());
     const mf = showFavsOnly ? gameFavs.includes(z.id) : true;
     return ms && mf;
   });
+  if(vaultSortBy === 'name'){
+    filtered.sort((a, b) => a.name.localeCompare(b.name));
+  } else if(vaultSortBy === 'id'){
+    filtered.sort((a, b) => b.id - a.id);
+  } else {
+    // popular (default)
+    filtered.sort((a, b) => (popularityData[b.id]||0) - (popularityData[a.id]||0));
+  }
+  return filtered;
 }
+
 function toggleFavFilter(){
   showFavsOnly = !showFavsOnly;
   document.getElementById('fav-filter-btn').classList.toggle('active', showFavsOnly);
   renderVaultGrid(getFilteredZones());
 }
+
 function renderVaultGrid(data){
   const grid = document.getElementById('game-grid'); if(!grid) return;
   grid.innerHTML = '';
@@ -1758,50 +1827,56 @@ function renderVaultGrid(data){
 
 function toggleGameFav(id){
   if(gameFavs.includes(id)) gameFavs = gameFavs.filter(f => f !== id); else gameFavs.push(id);
-  localStorage.setItem('nebula-gfavs', JSON.stringify(gameFavs));
+  localStorage.setItem('gn-favs', JSON.stringify(gameFavs));
   renderVaultGrid(getFilteredZones());
 }
 
-/* ── openZone: reuses the static iframe, never removes it ── */
+/* ── openZone — matches GhostLink exactly ── */
 function openZone(z){
+  if(z.name === "[!] SUGGEST GAMES .gg/D4c9VFYWyU"){
+    window.open("https://discord.com/invite/dKs2sUNUXd", "_blank"); return;
+  }
   if(z.url.startsWith('http')){ window.open(z.url, '_blank'); return; }
+
   const url   = z.url.replace('{COVER_URL}', COVER_URL).replace('{HTML_URL}', HTML_URL);
   const vault = document.getElementById('game-vault');
-  const frame = document.getElementById('game-frame');
-  if(!vault || !frame) return;
 
-  const controller = new AbortController();
-  const tid = setTimeout(() => { controller.abort(); notify('Game took too long to load','error'); }, 10000);
+  // Recreate iframe if it was removed on close (GhostLink behaviour)
+  if(!zoneFrame || !zoneFrame.parentNode){
+    zoneFrame = document.createElement('iframe');
+    zoneFrame.id = 'game-frame';
+    zoneFrame.style.cssText = 'border:none;width:calc(100% - 24px);height:calc(100% - 24px);margin:0 12px 12px 12px;background:transparent;border-radius:12px;display:block;flex-grow:1;';
+    vault.appendChild(zoneFrame);
+  }
 
-  fetch(url + "?t=" + Date.now(), { signal:controller.signal })
+  fetch(url + "?t=" + Date.now())
     .then(r => r.text())
     .then(html => {
-      clearTimeout(tid);
-      // Write directly into the existing static iframe — no create/remove
-      frame.contentDocument.open();
-      frame.contentDocument.write(html);
-      frame.contentDocument.close();
+      html = cleanHTML(html);
+      zoneFrame.contentDocument.open();
+      zoneFrame.contentDocument.write(html);
+      zoneFrame.contentDocument.close();
       document.getElementById('vault-title').textContent = 'VAULT: ' + z.name.toUpperCase();
+      vault.dataset.zoneId = z.id;
       vault.style.display = 'flex';
     })
-    .catch(e => { if(e.name !== 'AbortError') notify('Failed to load game','error'); });
+    .catch(e => { if(e?.name !== 'AbortError') notify('Failed to load game','error'); });
 }
 
-/* ── doCloseGame: hides vault and blanks the iframe ── */
+/* ── doCloseGame — removes iframe like GhostLink ── */
 function doCloseGame(){
   const vault = document.getElementById('game-vault');
   if(vault) vault.style.display = 'none';
 
-  const frame = document.getElementById('game-frame');
-  if(frame){
-    try{ frame.contentWindow?.stop?.(); }catch{}
-    try{ frame.src = 'about:blank'; }catch{}
+  if(zoneFrame && zoneFrame.parentNode){
+    try{ zoneFrame.contentWindow?.stop?.(); }catch{}
+    zoneFrame.parentNode.removeChild(zoneFrame);
   }
+  zoneFrame = null;
 
   const title = document.getElementById('vault-title');
   if(title) title.textContent = 'NEBULA VAULT';
 
-  // Close confirm modal if it was somehow opened
   const modal = document.getElementById('game-close-modal');
   if(modal && !modal.classList.contains('hidden')){
     modal.classList.add('hidden');
@@ -1812,8 +1887,28 @@ function doCloseGame(){
   }
 }
 
+/* ── downloadZone — identical to GhostLink ── */
+function downloadZone(){
+  const vault = document.getElementById('game-vault'); if(!vault) return;
+  const z = zones.find(z => String(z.id) === String(vault.dataset.zoneId));
+  if(!z){ notify('Zone not found','error'); return; }
+  const url = z.url.replace('{HTML_URL}', HTML_URL).replace('{COVER_URL}', COVER_URL);
+  fetch(url + "?t=" + Date.now())
+    .then(r => r.text())
+    .then(text => {
+      text = cleanHTML(text);
+      const blob = new Blob([text], { type:'text/plain;charset=utf-8' });
+      const a    = document.createElement('a');
+      a.href     = URL.createObjectURL(blob);
+      a.download = z.name + '.html';
+      document.body.appendChild(a); a.click();
+      document.body.removeChild(a); URL.revokeObjectURL(a.href);
+    })
+    .catch(() => notify('Download failed','error'));
+}
+
 function toggleFS(){
-  const f = document.getElementById('game-frame'); if(!f) return;
+  const f = zoneFrame; if(!f) return;
   const req = f.requestFullscreen || f.webkitRequestFullscreen || f.mozRequestFullScreen || f.msRequestFullscreen;
   if(req) req.call(f);
 }

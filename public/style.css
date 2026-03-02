@@ -522,3 +522,21 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;-webk
   .neb-layer{animation:none;opacity:.6;}
   *{transition-duration:.01ms!important;animation-duration:.01ms!important;}
 }
+
+#vault-sort{
+  background:rgba(255,255,255,.04);
+  border:1.5px solid var(--border2);
+  border-radius:11px;
+  color:var(--text);
+  padding:12px 14px;
+  font-family:'Inter',sans-serif;
+  font-size:.76rem;
+  cursor:pointer;
+  outline:none;
+  color-scheme:dark;
+  flex-shrink:0;
+}
+#vault-sort:focus{
+  border-color:var(--accent);
+  box-shadow:0 0 0 3px rgba(56,189,248,.07);
+}
