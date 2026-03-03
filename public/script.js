@@ -52,7 +52,10 @@ const RANK_LABELS = {
   earthbound:'🌱 Earthbound', planetary:'🌍 Planetary', solar:'☀️ Solar',
   galactic:'🌌 Galactic',    universal:'✦ Universal',   goat:'🐐 Goat'
 };
-
+window.addEventListener('beforeunload', () => {
+  if(activeThread) clearTyping(activeThread.id, false);
+  if(activeDM)     clearTyping(activeDM, true);
+});
 /* ══════════════════════════════════════════
    STATE
 ══════════════════════════════════════════ */
