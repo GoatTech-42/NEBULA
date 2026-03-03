@@ -439,8 +439,18 @@ async function ensureAdminAccount(){
 }
 
 async function loadAccounts(){
-  const snap = await getDoc(REFS.accounts);
-  if(snap.exists()) DB.accounts = snap.data() || {};
+  try{
+    const snap = await getDoc(REFS.accounts);
+    if(snap.exists()) DB.accounts = snap.data() || {};
+  } catch(e){
+    if(e?.code === 'unavailable' || e?.message?.includes('offline')){
+      // Firestore is offline — use whatever is already in DB.accounts
+      // (could be stale from a previous snapshot, or empty on first load)
+      console.warn('Firestore offline — using cached accounts');
+    } else {
+      throw e; // re-throw unexpected errors
+    }
+  }
 }
 
 /* ── Restore session ── */
