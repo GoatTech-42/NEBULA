@@ -2,6 +2,8 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
 import { getFirestore, doc, onSnapshot, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 import { initCanvas, initParallax } from "./ui.js";
+import { loadGnMathGames, loadPeteZahGames, fetchGnMathPopularity, filterAndSort, resolveGameUrl, resolveCoverUrl } from './gamefetch.js';
+const $=id=>document.getElementById(id);
 
 const firebaseConfig = {
   apiKey: "__FIREBASE_API_KEY__",
@@ -21,6 +23,8 @@ const REFS = {
   proxies  : doc(db,"nebula","proxies"),
   config   : doc(db,"nebula","config"),
   typing   : doc(db,"nebula","typing"),
+  visits   : doc(db,"nebula","visits"),
+  reports  : doc(db,"nebula","reports"),
 };
 
 const ADMIN_USERNAME   = "__ADMIN_USERNAME__";
@@ -83,6 +87,7 @@ let showFavsOnly = false, vaultQuery = '';
 let featuredGames = [], carouselIdx = 0, carouselTimer = null, carouselPause = null, carouselBusy = false;
 let popularityData = {};
 let vaultSortBy = 'popular';
+let vaultSource = 'gn-math';
 
 // The game viewer iframe — may be recreated on close like GhostLink
 let zoneFrame = null;
@@ -491,6 +496,95 @@ function hideSkeleton(){
 /* ══════════════════════════════════════════
    LAUNCH
 ══════════════════════════════════════════ */
+function initCursor(){
+  const dot=document.getElementById('custom-cursor');
+  const ring=document.getElementById('custom-cursor-ring');
+  if(!dot||!ring)return;
+  let mx=window.innerWidth/2,my=window.innerHeight/2;
+  let rx=mx,ry=my;
+  document.addEventListener('mousemove',e=>{
+    mx=e.clientX;my=e.clientY;
+    dot.style.left=mx+'px';dot.style.top=my+'px';
+  },{passive:true});
+  function loop(){
+    requestAnimationFrame(loop);
+    rx+=(mx-rx)*.12;ry+=(my-ry)*.12;
+    ring.style.left=rx.toFixed(1)+'px';ring.style.top=ry.toFixed(1)+'px';
+  }
+  loop();
+  document.addEventListener('mousedown',()=>{dot.classList.add('cursor-click');ring.classList.add('cursor-click')});
+  document.addEventListener('mouseup',()=>{dot.classList.remove('cursor-click');ring.classList.remove('cursor-click')});
+}
+
+function initSysStats(){
+  const fpsEl=document.getElementById('fps-counter');
+  const batEl=document.getElementById('battery-status');
+  if(fpsEl){
+    let frames=0,lastT=performance.now();
+    function fpsTick(){
+      requestAnimationFrame(fpsTick);
+      frames++;
+      const now=performance.now();
+      if(now-lastT>=1000){
+        fpsEl.textContent=frames+' FPS';
+        frames=0;lastT=now;
+      }
+    }
+    fpsTick();
+  }
+  if(batEl){
+    function showBat(b){
+      const p=Math.round(b.level*100);
+      batEl.textContent=(b.charging?'⚡':p>60?'🔋':p>20?'🪫':'🔴')+' '+p+'%';
+    }
+    if(navigator.getBattery){
+      navigator.getBattery().then(b=>{showBat(b);b.addEventListener('levelchange',()=>showBat(b));b.addEventListener('chargingchange',()=>showBat(b))}).catch(()=>{batEl.textContent='🔋 N/A'});
+    } else {
+      batEl.textContent='🔋 N/A';
+    }
+  }
+}
+
+async function initVisits(){
+  try{
+    const vSnap=await getDoc(REFS.visits);
+    let vData=vSnap.exists()?vSnap.data():{total:0,live:0};
+    vData.total=(vData.total||0)+1;
+    vData.live=(vData.live||0)+1;
+    await setDoc(REFS.visits,vData);
+    let visitsCache=vData;
+    onSnapshot(REFS.visits,s=>{
+      if(!s.exists())return;
+      const d=s.data();
+      visitsCache=d;
+      const lEl=document.getElementById('live-visits-count');
+      const tEl=document.getElementById('total-visits-count');
+      if(lEl)lEl.textContent=(d.live||0).toLocaleString();
+      if(tEl)tEl.textContent=(d.total||0).toLocaleString();
+    });
+    window.addEventListener('beforeunload',()=>{
+      setDoc(REFS.visits,{...visitsCache,live:Math.max(0,(visitsCache.live||1)-1)}).catch(()=>{});
+    });
+  }catch(e){console.warn('Visits error',e);}
+}
+
+async function loadGames(){
+  const loading=document.getElementById('vault-loading');
+  if(loading){loading.style.display='flex';loading.textContent='Loading games…';}
+  try{
+    if(vaultSource==='gn-math'){
+      zones=await loadGnMathGames();
+      popularityData=await fetchGnMathPopularity();
+    } else {
+      zones=await loadPeteZahGames();
+      popularityData={};
+    }
+    finishZonesLoad();
+  } catch(e){
+    if(loading)loading.innerHTML='<span>⚠️ Failed to load games</span>';
+  }
+}
+
 async function launchApp(){
   document.getElementById('auth-screen').classList.add('hidden');
   document.getElementById('pending-screen').classList.add('hidden');
@@ -507,8 +601,11 @@ async function launchApp(){
   loadTooltips();
   wireStaticListeners();
   startListeners();
-  if(canAccessGames(currentUser)) loadZones();
+  if(canAccessGames(currentUser)) loadGames();
   loadProfileSection();
+  initCursor();
+  initSysStats();
+  initVisits();
 
   tsRefreshTimer = setInterval(() => {
     if(activeThread) renderMessages();
@@ -564,6 +661,10 @@ function wireStaticListeners(){
   document.getElementById('vault-sort')?.addEventListener('change', () => {
     vaultSortBy = document.getElementById('vault-sort').value;
     renderVaultGrid(getFilteredZones());
+  });
+  document.getElementById('vault-source')?.addEventListener('change',async()=>{
+    vaultSource=document.getElementById('vault-source').value;
+    await loadGames();
   });
   document.getElementById('fav-filter-btn')?.addEventListener('click', toggleFavFilter);
 
