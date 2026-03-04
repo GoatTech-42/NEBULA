@@ -155,6 +155,9 @@ export function initCanvas() {
 /* ══════════════════════════════════════════
    PARALLAX NEBULA
 ══════════════════════════════════════════ */
+let _parallaxActive = true;
+export function setParallaxActive(bool) { _parallaxActive = bool; }
+
 export function initParallax() {
   const layerDefs = [
   { id:'neb-1', speedX:0.022, speedY:0.015 },
@@ -182,6 +185,7 @@ export function initParallax() {
   }
 
   window.addEventListener('mousemove', e => {
+    if (!_parallaxActive) return;
     suppressIdle();
     targetX = (e.clientX / window.innerWidth  - 0.5) * 2;
     targetY = (e.clientY / window.innerHeight - 0.5) * 2;
@@ -191,6 +195,7 @@ export function initParallax() {
   function attachGyro() {
     if (gyroAttached) return; gyroAttached = true;
     window.addEventListener('deviceorientation', e => {
+      if (!_parallaxActive) return;
       if (e.gamma === null || e.beta === null) return;
       suppressIdle();
       targetX = Math.max(-1, Math.min(1,  e.gamma       / 30));
@@ -213,6 +218,11 @@ export function initParallax() {
   function animate(now) {
     requestAnimationFrame(animate);
     if (window._canvasPaused) return;
+    if (!_parallaxActive) {
+      // Drift target back to center when inactive
+      targetX += (0 - targetX) * 0.04;
+      targetY += (0 - targetY) * 0.04;
+    }
     const idle = idleOffset(now);
     const fx = targetX + idle.x, fy = targetY + idle.y;
     currentX += (fx - currentX) * LERP; currentY += (fy - currentY) * LERP;

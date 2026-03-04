@@ -1,8 +1,8 @@
 // script.js — NEBULA core (Firebase, auth, state, chat, DMs, admin, proxies, vault, UI)
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
 import { getFirestore, doc, onSnapshot, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
-import { initCanvas, initParallax } from "./ui.js";
-import { loadGnMathGames, loadPeteZahGames, fetchGnMathPopularity, filterAndSort, resolveGameUrl, resolveCoverUrl } from './gamefetch.js';
+import { initCanvas, initParallax, setParallaxActive } from "./ui.js";
+import { loadGnMathGames, loadUGSGames, fetchGnMathPopularity, filterAndSort, resolveGameUrl, resolveCoverUrl } from './gamefetch.js';
 const $=id=>document.getElementById(id);
 
 const firebaseConfig = {
@@ -89,6 +89,9 @@ let featuredGames = [], carouselIdx = 0, carouselTimer = null, carouselPause = n
 let popularityData = {};
 let vaultSortBy = 'popular';
 let vaultSource = 'gn-math';
+
+// Session-level Firestore usage counters (estimates only)
+let sessionReads = 0, sessionWrites = 0;
 
 // The game viewer iframe — may be recreated on close like GhostLink
 let zoneFrame = null;
@@ -416,6 +419,7 @@ async function doSignUp(){
   if(DB.accounts[u]){ err.textContent = 'Username taken.'; return; }
   try{
     await setDoc(REFS.accounts, { ...DB.accounts, [u]:{ name, passHash:await hashPass(p), rank:'earthbound', approved:false, banned:false, proxyAccess:false, joinedAt:tsNow() } });
+    sessionWrites++;
     notify('Account requested! Awaiting approval.','success');
     document.getElementById('tab-signin').click();
     ['su-name','su-user','su-pass','su-pass2'].forEach(id => document.getElementById(id).value = '');
@@ -439,6 +443,7 @@ async function ensureAdminAccount(){
   await loadAccounts();
   if(!DB.accounts[ADMIN_USERNAME]){
     await setDoc(REFS.accounts, { ...DB.accounts, [ADMIN_USERNAME]:{ name:ADMIN_NAME, passHash:await hashPass(ADMIN_PASSWORD), rank:'goat', approved:true, banned:false, proxyAccess:true, joinedAt:tsNow() } });
+    sessionWrites++;
     await loadAccounts();
   }
 }
@@ -446,6 +451,7 @@ async function ensureAdminAccount(){
 async function loadAccounts(){
   try{
     const snap = await getDoc(REFS.accounts);
+    sessionReads++;
     if(snap.exists()) DB.accounts = snap.data() || {};
   } catch(e){
     if(e?.code === 'unavailable' || e?.message?.includes('offline')){
@@ -462,6 +468,7 @@ async function loadAccounts(){
 (async () => {
   initCanvas();
   initParallax();
+  initCursor();
   showSkeleton();
   try{
     const saved = localStorage.getItem('nebula_sess');
@@ -568,12 +575,15 @@ function initSysStats(){
 async function initVisits(){
   try{
     const vSnap=await getDoc(REFS.visits);
+    sessionReads++;
     let vData=vSnap.exists()?vSnap.data():{total:0};
     vData.total=(vData.total||0)+1;
     // Clean up any stale live counter
     delete vData.live;
     await setDoc(REFS.visits,vData);
+    sessionWrites++;
     onSnapshot(REFS.visits,s=>{
+      sessionReads++;
       if(!s.exists())return;
       const d=s.data();
       const tEl=document.getElementById('total-visits-count');
@@ -589,8 +599,11 @@ async function loadGames(){
     if(vaultSource==='gn-math'){
       zones=await loadGnMathGames();
       popularityData=await fetchGnMathPopularity();
+    } else if(vaultSource==='ugs'){
+      zones=await loadUGSGames();
+      popularityData={};
     } else {
-      zones=await loadPeteZahGames();
+      zones=[];
       popularityData={};
     }
     finishZonesLoad();
@@ -617,7 +630,6 @@ async function launchApp(){
   startListeners();
   if(canAccessGames(currentUser)) loadGames();
   loadProfileSection();
-  initCursor();
   initSysStats();
   initVisits();
 
@@ -734,6 +746,7 @@ function wireStaticListeners(){
 ══════════════════════════════════════════ */
 function startListeners(){
   onSnapshot(REFS.accounts, snap => {
+    sessionReads++;
     if(!snap.exists()) return;
     DB.accounts = snap.data() || {};
     if(currentUser && currentUser.username !== ADMIN_USERNAME){
@@ -755,6 +768,7 @@ function startListeners(){
   });
 
   onSnapshot(REFS.threads, snap => {
+    sessionReads++;
     if(!snap.exists()) return;
     DB.threads = snap.data().list || DEFAULT_THREADS;
     renderThreadList();
@@ -763,6 +777,7 @@ function startListeners(){
   });
 
   onSnapshot(REFS.messages, snap => {
+    sessionReads++;
     if(!snap.exists()) return;
     const old = { ...DB.messages };
     DB.messages = snap.data() || {};
@@ -789,6 +804,7 @@ function startListeners(){
   });
 
   onSnapshot(REFS.dms, snap => {
+    sessionReads++;
     if(!snap.exists()) return;
     const old = { ...DB.dms };
     DB.dms = snap.data() || {};
@@ -812,18 +828,21 @@ function startListeners(){
   });
 
   onSnapshot(REFS.proxies, snap => {
+    sessionReads++;
     if(!snap.exists()) return;
     DB.proxies = snap.data().list || [];
     if(activeSection === 'proxy') renderProxies();
   });
 
   onSnapshot(REFS.config, snap => {
+    sessionReads++;
     if(!snap.exists()) return;
     DB.config = snap.data() || {};
     if(isMod(currentUser)) renderAdminPanel();
   });
 
   onSnapshot(REFS.typing, snap => {
+    sessionReads++;
     if(!snap.exists()) return;
     DB.typing = snap.data() || {};
     if(activeThread) renderTypingBar(activeThread.id, false, 'typing-bar');
@@ -850,6 +869,7 @@ function showSection(s){
   activeSection = s;
   const hud = document.getElementById('home-hud');
   if(hud) hud.style.display = (s === 'home') ? 'flex' : 'none';
+  setParallaxActive(s === 'home');
   if(s === 'chat'){ if(activeThread){ unreadThreads[activeThread.id] = 0; newMsgCount = 0; } updateChatBadge(); renderThreadList(); }
   if(s === 'dms'){ if(activeDM) unreadDMs[activeDM] = 0; updateDMBadge(); renderDMList(); }
   if(s === 'admin')         renderAdminPanel();
@@ -1586,6 +1606,32 @@ function renderAdminPanel(){
   renderAdmUsers(); renderAdmPending(); renderAdmChannels();
   if(isAdmin(currentUser)) renderAdmProxyAccess();
   renderAdmReports();
+  renderAdmUsage();
+}
+
+function renderAdmReports(){
+  const el = document.getElementById('adm-reports'); if(!el) return;
+  if(!el.children.length) el.innerHTML = '<div style="color:var(--text-muted);font-size:.78rem;">No reports yet.</div>';
+}
+
+function renderAdmUsage(){
+  const el = document.getElementById('adm-usage'); if(!el) return;
+  const reads_pct  = Math.min(100, (sessionReads  / 50000) * 100).toFixed(2);
+  const writes_pct = Math.min(100, (sessionWrites / 20000) * 100).toFixed(2);
+  el.innerHTML = `
+    <div style="font-size:.63rem;color:var(--text-muted);margin-bottom:.88rem;line-height:1.65;">
+      Session-only estimates. These reflect reads/writes made in this browser tab — not your total Firebase usage.
+    </div>
+    <div class="usage-row">
+      <div class="usage-label">Session Reads: <b>${sessionReads.toLocaleString()}</b></div>
+      <div class="usage-bar-bg"><div class="usage-bar-fill" style="width:${reads_pct}%;background:var(--accent);"></div></div>
+      <div class="usage-limit">/ 50,000 daily free limit</div>
+    </div>
+    <div class="usage-row" style="margin-top:.72rem;">
+      <div class="usage-label">Session Writes: <b>${sessionWrites.toLocaleString()}</b></div>
+      <div class="usage-bar-bg"><div class="usage-bar-fill" style="width:${writes_pct}%;background:var(--success);"></div></div>
+      <div class="usage-limit">/ 20,000 daily free limit</div>
+    </div>`;
 }
 
 function renderAdmUsers(){
@@ -1683,26 +1729,27 @@ function renderAdmProxyAccess(){
 }
 
 async function approveUser(u){
-  try{ await setDoc(REFS.accounts, { ...DB.accounts, [u]:{ ...DB.accounts[u], approved:true } }); notify(`${u} approved`,'success'); }
+  try{ await setDoc(REFS.accounts, { ...DB.accounts, [u]:{ ...DB.accounts[u], approved:true } }); sessionWrites++; notify(`${u} approved`,'success'); }
   catch{ notify('Failed','error'); }
 }
 async function denyUser(u){
   if(!confirm(`Deny and delete "${u}"?`)) return;
-  try{ const up = { ...DB.accounts }; delete up[u]; await setDoc(REFS.accounts, up); notify(`${u} denied`,'success'); }
+  try{ const up = { ...DB.accounts }; delete up[u]; await setDoc(REFS.accounts, up); sessionWrites++; notify(`${u} denied`,'success'); }
   catch{ notify('Failed','error'); }
 }
 async function banUser(u){
   if(!confirm(`Ban "${u}"?`)) return;
-  try{ await setDoc(REFS.accounts, { ...DB.accounts, [u]:{ ...DB.accounts[u], banned:true } }); notify(`${u} banned`,'success'); }
+  try{ await setDoc(REFS.accounts, { ...DB.accounts, [u]:{ ...DB.accounts[u], banned:true } }); sessionWrites++; notify(`${u} banned`,'success'); }
   catch{ notify('Failed','error'); }
 }
 async function unbanUser(u){
-  try{ await setDoc(REFS.accounts, { ...DB.accounts, [u]:{ ...DB.accounts[u], banned:false } }); notify(`${u} unbanned`,'success'); }
+  try{ await setDoc(REFS.accounts, { ...DB.accounts, [u]:{ ...DB.accounts[u], banned:false } }); sessionWrites++; notify(`${u} unbanned`,'success'); }
   catch{ notify('Failed','error'); }
 }
 async function toggleProxyAccess(u, grant){
   try{
     await setDoc(REFS.accounts, { ...DB.accounts, [u]:{ ...DB.accounts[u], proxyAccess:grant } });
+    sessionWrites++;
     notify(`${u} proxy access ${grant ? 'granted' : 'revoked'}`,'success');
   }catch{ notify('Failed','error'); }
 }
@@ -1728,6 +1775,7 @@ async function grantRank(rank){
   if(!isAdmin(currentUser) && (rank === 'universal' || rank === 'goat')){ notify('Only the admin can grant that rank','error'); closeRankModal(); return; }
   try{
     await setDoc(REFS.accounts, { ...DB.accounts, [rankTarget]:{ ...DB.accounts[rankTarget], rank } });
+    sessionWrites++;
     notify(`${rankTarget} → ${rank}`,'success'); closeRankModal();
   }catch{ notify('Failed','error'); }
 }
@@ -1739,28 +1787,32 @@ function renderProxies(){
   const pl = document.getElementById('proxy-list'); if(!pl) return;
   const adminUser = currentUser?.isAdmin;
   const ed = document.getElementById('proxy-editor'); if(ed) ed.classList.toggle('hidden', !adminUser);
-  pl.innerHTML = (DB.proxies||[]).map((p,i) => `
+  const sorted = [...(DB.proxies||[])].sort((a,b) => a.name.localeCompare(b.name));
+  pl.innerHTML = sorted.map((p) => {
+    const origIdx = DB.proxies.indexOf(p);
+    return `
     <div class="card">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.72rem;">
         <div class="card-title">${esc(p.name)}</div>
-        ${adminUser ? `<button onclick="delCat(${i})" style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:.68rem;font-weight:800;font-family:'Inter',sans-serif;">REMOVE</button>` : ''}
+        ${adminUser ? `<button onclick="delCat(${origIdx})" style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:.68rem;font-weight:800;font-family:'Inter',sans-serif;">REMOVE</button>` : ''}
       </div>
       ${p.links.map((l,li) => `
         <div style="display:flex;gap:5px;align-items:center;">
           <a href="${esc(l)}" target="_blank" rel="noopener noreferrer" class="blurred-link">${esc(l)}</a>
-          ${adminUser ? `<button onclick="delLink(${i},${li})" style="color:var(--danger);background:none;border:none;cursor:pointer;font-size:1rem;flex-shrink:0;">×</button>` : ''}
+          ${adminUser ? `<button onclick="delLink(${origIdx},${li})" style="color:var(--danger);background:none;border:none;cursor:pointer;font-size:1rem;flex-shrink:0;">×</button>` : ''}
         </div>`).join('')}
       ${adminUser ? `<div style="margin-top:.88rem;padding-top:.72rem;border-top:1px solid var(--border2);">
-        <input type="text" id="link-in-${i}" class="sinput" placeholder="Add URL…" autocomplete="off">
-        <button class="btn btn-sm" onclick="addLink(${i})" style="width:100%;margin-top:.3rem">Save Link</button>
+        <input type="text" id="link-in-${origIdx}" class="sinput" placeholder="Add URL…" autocomplete="off">
+        <button class="btn btn-sm" onclick="addLink(${origIdx})" style="width:100%;margin-top:.3rem">Save Link</button>
       </div>` : ''}
-    </div>`).join('');
+    </div>`;
+  }).join('');
 }
 
 window.addCat = async () => {
   const n = document.getElementById('new-cat-name').value.trim();
   if(!n){ notify('Name required','warning'); return; }
-  try{ await setDoc(REFS.proxies, { list:[...DB.proxies, { name:n, links:[] }] }); document.getElementById('new-cat-name').value = ''; notify('Created','success'); }
+  try{ await setDoc(REFS.proxies, { list:[...DB.proxies, { name:n, links:[] }] }); sessionWrites++; document.getElementById('new-cat-name').value = ''; notify('Created','success'); }
   catch{ notify('Failed','error'); }
 };
 window.addLink = async i => {
@@ -1769,18 +1821,18 @@ window.addLink = async i => {
   try{ new URL(url); }catch{ notify('Invalid URL','error'); return; }
   try{
     const p = [...DB.proxies]; p[i] = { ...p[i], links:[...p[i].links, url] };
-    await setDoc(REFS.proxies, { list:p }); inp.value = ''; notify('Added','success');
+    await setDoc(REFS.proxies, { list:p }); sessionWrites++; inp.value = ''; notify('Added','success');
   }catch{ notify('Failed','error'); }
 };
 window.delLink = async (ci, li) => {
   try{
     const p = [...DB.proxies]; p[ci] = { ...p[ci], links:p[ci].links.filter((_,i) => i !== li) };
-    await setDoc(REFS.proxies, { list:p }); notify('Removed','success');
+    await setDoc(REFS.proxies, { list:p }); sessionWrites++; notify('Removed','success');
   }catch{ notify('Failed','error'); }
 };
 window.delCat = async i => {
   if(!confirm(`Delete "${DB.proxies[i].name}"?`)) return;
-  try{ const p = [...DB.proxies]; p.splice(i,1); await setDoc(REFS.proxies, { list:p }); notify('Deleted','success'); }
+  try{ const p = [...DB.proxies]; p.splice(i,1); await setDoc(REFS.proxies, { list:p }); sessionWrites++; notify('Deleted','success'); }
   catch{ notify('Failed','error'); }
 };
 
@@ -1837,7 +1889,8 @@ function finishZonesLoad(){
   showGameSkeletons();
   setTimeout(() => {
     document.getElementById('game-skel-grid')?.remove();
-    setupFeatured();
+    if(vaultSource !== 'ugs') setupFeatured();
+    else document.getElementById('vault-featured-wrap').innerHTML = '';
     renderVaultGrid(getFilteredZones());
     setupGameObserver();
   }, 300);
@@ -1981,18 +2034,25 @@ function renderVaultGrid(data){
     return;
   }
   data.forEach(z => {
-    const card = document.createElement('div'); card.className = 'game-card';
+    const noCover = !z.cover;
+    const card = document.createElement('div'); card.className = `game-card${noCover ? ' no-cover' : ''}`;
     card.addEventListener('click', () => openZone(z));
     const fav = document.createElement('button'); fav.className = `game-fav-btn${gameFavs.includes(z.id) ? ' active' : ''}`;
     fav.innerHTML = '<svg viewBox="0 0 24 24" stroke-width="2" width="13" height="13"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>';
     fav.title = 'Favorite'; fav.addEventListener('click', e => { e.stopPropagation(); toggleGameFav(z.id); });
-    const img = document.createElement('img');
-    img.dataset.src = z.cover.replace('{COVER_URL}', COVER_URL).replace('{HTML_URL}', HTML_URL);
-    img.src     = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1 1"><rect fill="%230d1c33" width="1" height="1"/></svg>';
-    img.loading = 'lazy'; img.alt = z.name;
     const body = document.createElement('div'); body.className = 'game-card-body';
     const name = document.createElement('div'); name.className = 'game-card-name'; name.textContent = z.name;
-    body.appendChild(name); card.append(fav, img, body); grid.appendChild(card);
+    body.appendChild(name);
+    if(!noCover){
+      const img = document.createElement('img');
+      img.dataset.src = (z.cover || '').replace('{COVER_URL}', COVER_URL).replace('{HTML_URL}', HTML_URL);
+      img.src     = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1 1"><rect fill="%230d1c33" width="1" height="1"/></svg>';
+      img.loading = 'lazy'; img.alt = z.name;
+      card.append(fav, img, body);
+    } else {
+      card.append(fav, body);
+    }
+    grid.appendChild(card);
   });
   requestAnimationFrame(setupGameObserver);
 }
@@ -2022,20 +2082,24 @@ function openZone(z){
     vault.appendChild(zoneFrame);
   }
 
+  // UGS games use external URLs — load via iframe src instead of fetch+write
+  if(z.source === 'ugs'){
+    zoneFrame.src = url;
+    document.getElementById('vault-title').textContent = 'VAULT: ' + z.name.toUpperCase();
+    vault.dataset.zoneId = z.id;
+    vault.style.display = 'flex';
+    document.body.classList.add('game-active');
+    const hud = document.getElementById('home-hud');
+    if(hud) hud.style.display = 'none';
+    return;
+  }
+
   fetch(url + "?t=" + Date.now())
     .then(r => {
       if(!r.ok) throw new Error('HTTP ' + r.status);
       return r.text();
     })
     .then(html => {
-      if(z.source === 'petezah'){
-        const baseUrl = new URL('./', url).href;
-        if(!html.match(/<head[^>]*>/i)){
-          html = html.replace(/<html[^>]*>/i, m => m + `<head><base href="${baseUrl}"></head>`);
-        } else {
-          html = html.replace(/(<head[^>]*>)/i, `$1<base href="${baseUrl}">`);
-        }
-      }
       html = cleanHTML(html);
       zoneFrame.contentDocument.open();
       zoneFrame.contentDocument.write(html);
@@ -2043,6 +2107,9 @@ function openZone(z){
       document.getElementById('vault-title').textContent = 'VAULT: ' + z.name.toUpperCase();
       vault.dataset.zoneId = z.id;
       vault.style.display = 'flex';
+      document.body.classList.add('game-active');
+      const hud = document.getElementById('home-hud');
+      if(hud) hud.style.display = 'none';
     })
     .catch(e => { if(e?.name !== 'AbortError') notify('Failed to load game','error'); });
 }
@@ -2051,6 +2118,9 @@ function openZone(z){
 function doCloseGame(){
   const vault = document.getElementById('game-vault');
   if(vault) vault.style.display = 'none';
+  document.body.classList.remove('game-active');
+  const hud = document.getElementById('home-hud');
+  if(hud) hud.style.display = (activeSection === 'home') ? 'flex' : 'none';
 
   if(zoneFrame && zoneFrame.parentNode){
     try{ zoneFrame.contentWindow?.stop?.(); }catch{}
