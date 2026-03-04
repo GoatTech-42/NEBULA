@@ -501,20 +501,43 @@ function initCursor(){
   const dot=document.getElementById('custom-cursor');
   const ring=document.getElementById('custom-cursor-ring');
   if(!dot||!ring)return;
-  let mx=window.innerWidth/2,my=window.innerHeight/2;
-  let rx=mx,ry=my;
+  let mx=window.innerWidth/2,my=window.innerHeight/2,rx=mx,ry=my;
+
   document.addEventListener('mousemove',e=>{
+    // Don't run custom cursor inside the game vault iframe
+    if(e.target.closest && e.target.closest('#game-vault iframe')) return;
     mx=e.clientX;my=e.clientY;
     dot.style.left=mx+'px';dot.style.top=my+'px';
+
+    const t=e.target;
+    const isText=t.matches&&t.matches('input,textarea,[contenteditable]');
+    dot.classList.toggle('cursor-text',isText);
+    const isHover=!isText&&t.matches&&t.matches(
+      'button,a,.titem,.game-card,.home-card,.snav-item,.mab,.rchip,.auth-tab,.rank-btn,.adm-tab,.ms-item,.feat-item,.blurred-link,.send-btn,.ts-add,.modal-box,.channel-notif-row'
+    );
+    dot.classList.toggle('cursor-hover',isHover);
+    ring.classList.toggle('cursor-hover',isHover);
   },{passive:true});
+
   function loop(){
     requestAnimationFrame(loop);
-    rx+=(mx-rx)*.12;ry+=(my-ry)*.12;
+    rx+=(mx-rx)*.10;ry+=(my-ry)*.10;
     ring.style.left=rx.toFixed(1)+'px';ring.style.top=ry.toFixed(1)+'px';
   }
   loop();
-  document.addEventListener('mousedown',()=>{dot.classList.add('cursor-click');ring.classList.add('cursor-click')});
-  document.addEventListener('mouseup',()=>{dot.classList.remove('cursor-click');ring.classList.remove('cursor-click')});
+
+  document.addEventListener('mousedown',()=>{dot.classList.add('cursor-click');ring.classList.add('cursor-click');});
+  document.addEventListener('mouseup',()=>{dot.classList.remove('cursor-click');ring.classList.remove('cursor-click');});
+  document.addEventListener('mouseleave',()=>{dot.style.opacity='0';ring.style.opacity='0';});
+  document.addEventListener('mouseenter',()=>{dot.style.opacity='1';ring.style.opacity='1';});
+
+  // Hide cursor elements when mouse is over game vault
+  document.getElementById('game-vault')?.addEventListener('mouseenter',()=>{
+    dot.style.display='none';ring.style.display='none';
+  });
+  document.getElementById('game-vault')?.addEventListener('mouseleave',()=>{
+    dot.style.display='';ring.style.display='';
+  });
 }
 
 function initSysStats(){
@@ -549,22 +572,16 @@ function initSysStats(){
 async function initVisits(){
   try{
     const vSnap=await getDoc(REFS.visits);
-    let vData=vSnap.exists()?vSnap.data():{total:0,live:0};
+    let vData=vSnap.exists()?vSnap.data():{total:0};
     vData.total=(vData.total||0)+1;
-    vData.live=(vData.live||0)+1;
+    // Clean up any stale live counter
+    delete vData.live;
     await setDoc(REFS.visits,vData);
-    let visitsCache=vData;
     onSnapshot(REFS.visits,s=>{
       if(!s.exists())return;
       const d=s.data();
-      visitsCache=d;
-      const lEl=document.getElementById('live-visits-count');
       const tEl=document.getElementById('total-visits-count');
-      if(lEl)lEl.textContent=(d.live||0).toLocaleString();
       if(tEl)tEl.textContent=(d.total||0).toLocaleString();
-    });
-    window.addEventListener('beforeunload',()=>{
-      setDoc(REFS.visits,{...visitsCache,live:Math.max(0,(visitsCache.live||1)-1)}).catch(()=>{});
     });
   }catch(e){console.warn('Visits error',e);}
 }
@@ -895,25 +912,30 @@ function closeMobileDrawer(){
 function getThreads(){ return DB.threads?.length ? DB.threads : DEFAULT_THREADS; }
 
 function canEnterThread(t){
-  if(!t.locked && !t.password) return true;
-  if(isMod(currentUser)) return true;
+  if(!t.password) return true;
+  if(currentUser?.rank==='goat'||currentUser?.isAdmin) return true;
   return JSON.parse(localStorage.getItem('joined_threads')||'[]').includes(t.id);
 }
 
 function renderThreadList(){
-  const list = document.getElementById('thread-list'); if(!list) return;
-  list.innerHTML = '';
-  getThreads().forEach(t => {
-    const div  = document.createElement('div');
-    div.className = `titem${activeThread?.id === t.id && activeSection === 'chat' ? ' active' : ''}`;
-    div.addEventListener('click', () => handleThreadClick(t));
-    const msgs    = (DB.messages[t.id]||[]).filter(m => !m.deleted);
-    const last    = msgs[msgs.length - 1];
-    const preview = last ? `${last.user}: ${last.text}` : '';
-    div.innerHTML = `<span class="titem-icon">${esc(t.emoji||'💬')}</span>
+  const list=document.getElementById('thread-list'); if(!list) return;
+  list.innerHTML='';
+  getThreads().forEach(t=>{
+    const div=document.createElement('div');
+    div.className=`titem${activeThread?.id===t.id&&activeSection==='chat'?' active':''}`;
+    div.addEventListener('click',()=>handleThreadClick(t));
+    const msgs=(DB.messages[t.id]||[]).filter(m=>!m.deleted);
+    const last=msgs[msgs.length-1];
+    const preview=last?`${last.user}: ${last.text}`:'';
+    const lockIcon=t.password
+      ?`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="10" height="10" style="flex-shrink:0;opacity:.45;margin-left:3px;"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>`
+      :'';
+    div.innerHTML=`<span class="titem-icon">${esc(t.emoji||'💬')}</span>
       <div style="flex:1;min-width:0;">
-        <div class="titem-name">${esc(t.name)}</div>
-        ${preview ? `<div class="titem-preview">${esc(preview.slice(0,40))}</div>` : ''}
+        <div style="display:flex;align-items:center;gap:2px;">
+          <div class="titem-name">${esc(t.name)}</div>${lockIcon}
+        </div>
+        ${preview?`<div class="titem-preview">${esc(preview.slice(0,40))}</div>`:''}
       </div>`;
     list.appendChild(div);
   });
@@ -921,9 +943,18 @@ function renderThreadList(){
 
 function handleThreadClick(t){
   if(t.password && !canEnterThread(t)){
-    pendingThread = t;
-    document.getElementById('tpass-inp').value = '';
-    document.getElementById('tp-err').textContent = '';
+    pendingThread=t;
+    document.getElementById('tpass-inp').value='';
+    document.getElementById('tp-err').textContent='';
+    const hint=document.getElementById('tp-hint');
+    if(hint){
+      if(currentUser?.rank==='goat'||currentUser?.isAdmin){
+        hint.textContent=`🔑 Password: ${t.password}`;
+        hint.style.display='block';
+      } else {
+        hint.style.display='none';
+      }
+    }
     openModal('tpass-modal'); return;
   }
   switchThread(t);
@@ -992,23 +1023,27 @@ async function wipeThread(tid){
 }
 
 function openCreateThread(){
-  ['ct-name','ct-emoji'].forEach(id => document.getElementById(id).value = '');
-  document.getElementById('ct-announce').checked = false;
-  document.getElementById('ct-err').textContent  = '';
+  ['ct-name','ct-emoji','ct-password'].forEach(id=>{
+    const el=document.getElementById(id); if(el) el.value='';
+  });
+  document.getElementById('ct-announce').checked=false;
+  document.getElementById('ct-modonly') && (document.getElementById('ct-modonly').checked=false);
+  document.getElementById('ct-err').textContent='';
   openModal('ct-modal');
 }
 
 async function submitCT(){
-  const name    = document.getElementById('ct-name').value.trim().toLowerCase().replace(/[^a-z0-9\-_]/g,'');
-  const emoji   = document.getElementById('ct-emoji').value.trim() || '💬';
-  const announce = document.getElementById('ct-announce').checked;
-  const err     = document.getElementById('ct-err');
-  if(!name){ err.textContent = 'Name required.'; return; }
-  if(getThreads().find(x => x.id === name)){ err.textContent = 'Name taken.'; return; }
+  const name=document.getElementById('ct-name').value.trim().toLowerCase().replace(/[^a-z0-9\-_]/g,'');
+  const emoji=document.getElementById('ct-emoji').value.trim()||'💬';
+  const announce=document.getElementById('ct-announce').checked;
+  const password=(document.getElementById('ct-password')?.value||'').trim();
+  const err=document.getElementById('ct-err');
+  if(!name){err.textContent='Name required.';return;}
+  if(getThreads().find(x=>x.id===name)){err.textContent='Name taken.';return;}
   try{
-    await setDoc(REFS.threads, { list:[...getThreads(), { id:name, name, emoji, password:'', locked:false, announceOnly:announce }] });
+    await setDoc(REFS.threads,{list:[...getThreads(),{id:name,name,emoji,password,locked:false,announceOnly:announce}]});
     closeModal('ct-modal'); notify(`#${name} created`,'success');
-  }catch{ err.textContent = 'Failed.'; }
+  }catch{err.textContent='Failed.';}
 }
 
 async function deleteThread(id){
@@ -1312,24 +1347,24 @@ function openMentionModal(ctx){
 }
 
 function filterMentionSearch(){
-  const q   = document.getElementById('mention-search-inp').value.toLowerCase();
-  const res = document.getElementById('mention-results'); res.innerHTML = '';
+  const q=document.getElementById('mention-search-inp').value.toLowerCase();
+  const res=document.getElementById('mention-results'); res.innerHTML='';
   Object.entries(DB.accounts)
-    .filter(([u, a]) => a.approved && !a.banned && u.toLowerCase().includes(q))
-    .slice(0,10)
-    .forEach(([u]) => {
-      const div = document.createElement('div');
-      div.style.cssText = 'display:flex;align-items:center;gap:.5rem;padding:.42rem .54rem;border-radius:7px;cursor:pointer;transition:background .14s;';
-      div.onmouseenter = () => div.style.background = 'rgba(255,255,255,.06)';
-      div.onmouseleave = () => div.style.background = '';
-      div.innerHTML = `<div style="width:24px;height:24px;border-radius:50%;background:${userColor(u)};display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.6rem;">${avatarLetter(u)}</div><span style="font-size:.8rem;font-weight:700;">${esc(u)}</span>`;
-      div.addEventListener('click', () => {
+    .filter(([u,a])=>a.approved&&!a.banned&&u.toLowerCase().includes(q))
+    .sort(([a],[b])=>a.localeCompare(b))
+    .forEach(([u])=>{
+      const div=document.createElement('div');
+      div.style.cssText='display:flex;align-items:center;gap:.5rem;padding:.42rem .54rem;border-radius:7px;cursor:pointer;transition:background .14s;';
+      div.onmouseenter=()=>div.style.background='rgba(255,255,255,.06)';
+      div.onmouseleave=()=>div.style.background='';
+      div.innerHTML=`<div style="width:24px;height:24px;border-radius:50%;background:${userColor(u)};display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.6rem;">${avatarLetter(u)}</div><span style="font-size:.8rem;font-weight:700;">${esc(u)}</span>`;
+      div.addEventListener('click',()=>{
         closeModal('mention-modal');
-        const inputId = _mentionCtx === 'chat' ? 'chat-input' : 'dm-input';
-        const inp = document.getElementById(inputId); if(!inp) return;
-        const cur = inp.value; const pos = inp.selectionStart || cur.length;
-        const before = cur.slice(0, pos); const after = cur.slice(pos);
-        inp.value = before + (before.endsWith(' ') || before === '' ? '' : ' ') + `@${u} ` + after;
+        const inputId=_mentionCtx==='chat'?'chat-input':'dm-input';
+        const inp=document.getElementById(inputId); if(!inp) return;
+        const cur=inp.value; const pos=inp.selectionStart||cur.length;
+        const before=cur.slice(0,pos); const after=cur.slice(pos);
+        inp.value=before+(before.endsWith(' ')||before===''?'':' ')+`@${u} `+after;
         inp.focus();
       });
       res.appendChild(div);
@@ -1369,24 +1404,44 @@ function renderMembersList(){
    DIRECT MESSAGES
 ══════════════════════════════════════════ */
 function renderDMList(){
-  const list = document.getElementById('dm-list'); if(!list) return;
-  list.innerHTML = '';
-  const myU = currentUser.username; const seen = new Set();
-  Object.keys(DB.dms).filter(k => k.includes(myU)).forEach(k => {
-    const other = k.split('__').find(p => p !== myU);
-    if(!other || seen.has(other)) return; seen.add(other);
-    const acct = DB.accounts[other]; if(!acct) return;
-    const msgs    = DB.dms[k] || [];
-    const last    = msgs.filter(m => !m.deleted).slice(-1)[0];
-    const preview = last ? `${last.user === myU ? 'You' : last.user}: ${last.text}` : '';
-    const div     = document.createElement('div');
-    div.className = `titem${activeDM === other && activeSection === 'dms' ? ' active' : ''}`;
-    div.addEventListener('click', () => openDMWith(other));
-    div.innerHTML = `<div style="width:22px;height:22px;border-radius:50%;background:${userColor(other)};display:inline-flex;align-items:center;justify-content:center;font-weight:800;font-size:.6rem;flex-shrink:0;">${avatarLetter(other)}</div>
-      <div style="flex:1;min-width:0;margin-left:.4rem;">
+  const list=document.getElementById('dm-list'); if(!list) return;
+  list.innerHTML='';
+  const myU=currentUser.username; const seen=new Set();
+  Object.keys(DB.dms).filter(k=>k.includes(myU)).forEach(k=>{
+    const other=k.split('__').find(p=>p!==myU);
+    if(!other||seen.has(other)) return; seen.add(other);
+    const acct=DB.accounts[other]; if(!acct) return;
+    const msgs=DB.dms[k]||[];
+    const allDeleted=msgs.every(m=>m.deleted);
+    if(allDeleted && msgs.length>0) return; // hide fully-deleted threads
+    const last=msgs.filter(m=>!m.deleted).slice(-1)[0];
+    const preview=last?`${last.user===myU?'You':last.user}: ${last.text}`:'';
+    const div=document.createElement('div');
+    div.className=`titem dm-titem${activeDM===other&&activeSection==='dms'?' active':''}`;
+    div.addEventListener('click',()=>openDMWith(other));
+
+    const delBtn=document.createElement('button');
+    delBtn.className='dm-del-btn'; delBtn.title='Delete conversation';
+    delBtn.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="11" height="11"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>';
+    delBtn.addEventListener('click',async e=>{
+      e.stopPropagation();
+      if(!confirm(`Delete conversation with ${other}?`)) return;
+      const nd={...DB.dms,[k]:msgs.map(m=>({...m,deleted:true}))};
+      DB.dms=nd; scheduleDMWrite(nd);
+      if(activeDM===other){
+        activeDM=null;
+        document.getElementById('dm-window').classList.add('hidden');
+        document.getElementById('dm-no-select').classList.remove('hidden');
+      }
+      renderDMList(); notify('Conversation deleted','success');
+    });
+
+    div.innerHTML=`<div style="width:24px;height:24px;border-radius:50%;background:${userColor(other)};display:inline-flex;align-items:center;justify-content:center;font-weight:800;font-size:.62rem;flex-shrink:0;">${avatarLetter(other)}</div>
+      <div style="flex:1;min-width:0;margin-left:.45rem;">
         <div class="titem-name">${esc(other)}</div>
-        ${preview ? `<div class="titem-preview">${esc(preview.slice(0,36))}</div>` : ''}
+        ${preview?`<div class="titem-preview">${esc(preview.slice(0,36))}</div>`:''}
       </div>`;
+    div.appendChild(delBtn);
     list.appendChild(div);
   });
 }
@@ -1399,19 +1454,19 @@ function openNewDM(){
 }
 
 function filterDMSearch(){
-  const q   = document.getElementById('dm-search-inp').value.toLowerCase();
-  const res = document.getElementById('dm-search-results'); res.innerHTML = '';
+  const q=document.getElementById('dm-search-inp').value.toLowerCase();
+  const res=document.getElementById('dm-search-results'); res.innerHTML='';
   Object.entries(DB.accounts)
-    .filter(([u, a]) => u !== currentUser.username && a.approved && !a.banned && (u.toLowerCase().includes(q) || (isMod(currentUser) && (a.name||'').toLowerCase().includes(q))))
-    .slice(0,10)
-    .forEach(([u, a]) => {
-      const div = document.createElement('div');
-      div.style.cssText = 'display:flex;align-items:center;gap:.5rem;padding:.44rem .54rem;border-radius:7px;cursor:pointer;transition:background .14s;';
-      div.onmouseenter = () => div.style.background = 'rgba(255,255,255,.06)';
-      div.onmouseleave = () => div.style.background = '';
-      div.innerHTML = `<div style="width:28px;height:28px;border-radius:50%;background:${userColor(u)};display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.7rem;flex-shrink:0;">${avatarLetter(u)}</div>`
-        + `<div><div style="font-size:.8rem;font-weight:700;">${esc(u)}</div>${isMod(currentUser) ? `<div style="font-size:.66rem;color:var(--text-muted);">${esc(a.name||'')}</div>` : ''}</div>`;
-      div.addEventListener('click', () => { closeModal('newdm-modal'); openDMWith(u); });
+    .filter(([u,a])=>u!==currentUser.username&&a.approved&&!a.banned&&(u.toLowerCase().includes(q)||(isMod(currentUser)&&(a.name||'').toLowerCase().includes(q))))
+    .sort(([a],[b])=>a.localeCompare(b))
+    .forEach(([u,a])=>{
+      const div=document.createElement('div');
+      div.style.cssText='display:flex;align-items:center;gap:.5rem;padding:.44rem .54rem;border-radius:7px;cursor:pointer;transition:background .14s;';
+      div.onmouseenter=()=>div.style.background='rgba(255,255,255,.06)';
+      div.onmouseleave=()=>div.style.background='';
+      div.innerHTML=`<div style="width:28px;height:28px;border-radius:50%;background:${userColor(u)};display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.7rem;flex-shrink:0;">${avatarLetter(u)}</div>`
+        +`<div><div style="font-size:.8rem;font-weight:700;">${esc(u)}</div>${isMod(currentUser)?`<div style="font-size:.66rem;color:var(--text-muted);">${esc(a.name||'')}</div>`:''}</div>`;
+      div.addEventListener('click',()=>{closeModal('newdm-modal');openDMWith(u);});
       res.appendChild(div);
     });
 }
@@ -1527,7 +1582,12 @@ function admTab(tab){
 
 function renderAdminPanel(){
   if(!isMod(currentUser)) return;
-  renderAdmUsers(); renderAdmPending(); renderAdmChannels(); renderAdmProxyAccess();
+  // Proxy Access tab visible only to goat rank (isAdmin)
+  const paTab=document.querySelector('.adm-tab-admin-only');
+  if(paTab) paTab.classList.toggle('hidden',!isAdmin(currentUser));
+  renderAdmUsers(); renderAdmPending(); renderAdmChannels();
+  if(isAdmin(currentUser)) renderAdmProxyAccess();
+  renderAdmReports();
 }
 
 function renderAdmUsers(){
