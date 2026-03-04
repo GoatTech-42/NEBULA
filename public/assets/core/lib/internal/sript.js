@@ -1,8 +1,8 @@
 // script.js — NEBULA core (Firebase, auth, state, chat, DMs, admin, proxies, vault, UI)
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
 import { getFirestore, doc, onSnapshot, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
-import { initCanvas, initParallax, setParallaxActive } from "./ui.js";
-import { loadGnMathGames, loadUGSGames, fetchGnMathPopularity, filterAndSort, resolveGameUrl, resolveCoverUrl } from './gamefetch.js';
+import { initCanvas, initParallax, setParallaxActive } from "../../../../ui.js";
+import { loadGnMathGames, loadUGSGames, fetchGnMathPopularity, filterAndSort, resolveGameUrl, resolveCoverUrl } from "../../../../gamefetch.js";
 const $=id=>document.getElementById(id);
 
 const firebaseConfig = {
@@ -1882,6 +1882,14 @@ function setupGameObserver(){
 
 /* setupFeatured — seeded random, exactly as GhostLink */
 function setupFeatured(){
+  if(vaultSource === 'ugs'){
+    document.getElementById('vault-featured-block')?.remove();
+    const wrap = document.getElementById('vault-featured-wrap');
+    if(wrap) wrap.style.display = 'none';
+    return;
+  }
+  const wrap = document.getElementById('vault-featured-wrap');
+  if(wrap) wrap.style.display = '';
   if(zones.length < 5) return;
   const now  = new Date();
   const seed = now.getFullYear() + '-' + now.getMonth() + '-' + now.getDate() + (now.getHours() < 12 ? 'AM' : 'PM');

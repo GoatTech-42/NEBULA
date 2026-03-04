@@ -79,50 +79,36 @@ export async function loadUGSGames() {
     }
   } catch {}
 
-  return new Promise((resolve) => {
-    // Create a hidden container for UGS to populate
-    const container = document.createElement('div');
-    container.id = 'sections-container';
-    container.style.cssText = 'position:absolute;left:-9999px;top:-9999px;width:1px;height:1px;overflow:hidden;visibility:hidden;pointer-events:none;';
-    document.body.appendChild(container);
-
-    const script = document.createElement('script');
-    script.src = 'https://cdn.jsdelivr.net/gh/genizy/ugs-singlefile@main/games.js?t=' + Date.now();
-
-    const timeout = setTimeout(() => {
-      scrape();
-    }, 8000);
-
-    function scrape() {
-      clearTimeout(timeout);
-      const games = [];
-      const buttons = container.querySelectorAll('input[type="button"]');
-      buttons.forEach((btn, i) => {
-        const name = btn.value || btn.getAttribute('value') || '';
-        if (!name) return;
-        // Extract URL from onclick: location.href='...' or window.location='...' or location='...'
-        const onclick = btn.getAttribute('onclick') || '';
-        let url = '';
-        const m = onclick.match(/(?:location\.href|window\.location|location)\s*=\s*['"]([^'"]+)['"]/);
-        if (m) url = m[1];
-        if (!url) return;
-        games.push({ id: 'ugs_' + i, name, url, cover: null, source: 'ugs' });
-      });
-      try { document.body.removeChild(container); } catch {}
-      try { sessionStorage.setItem(cacheKey, JSON.stringify({ ts: Date.now(), data: games })); } catch {}
-      resolve(games);
+  const ctrl = new AbortController();
+  const tid  = setTimeout(() => ctrl.abort(), 10000);
+  try {
+    const res  = await fetch('https://cdn.jsdelivr.net/gh/genizy/ugs-singlefile@main/games.js?t=' + Date.now(), { signal: ctrl.signal });
+    clearTimeout(tid);
+    const text = await res.text();
+    const games = [];
+    // Match patterns like: value="Game Name" ... onclick="location.href='URL'"
+    // or: input type="button" value="Name" onclick="location.href='url'"
+    const btnRe = /input[^>]*type\s*=\s*["']button["'][^>]*>/gi;
+    const valRe = /value\s*=\s*["']([^"']+)["']/i;
+    const urlRe = /(?:location\.href|window\.location(?:\.href)?|location)\s*=\s*["']([^"']+)["']/i;
+    let idx = 0;
+    let m;
+    while ((m = btnRe.exec(text)) !== null) {
+      const tag  = m[0];
+      const valM = valRe.exec(tag);
+      const urlM = urlRe.exec(tag);
+      if (!valM || !urlM) continue;
+      const name = valM[1].trim();
+      const url  = urlM[1].trim();
+      if (!name || !url) continue;
+      games.push({ id: 'ugs_' + idx++, name, url, cover: null, source: 'ugs' });
     }
-
-    script.onload = () => {
-      // Give the script a tick to populate the DOM
-      setTimeout(scrape, 100);
-    };
-    script.onerror = () => {
-      try { document.body.removeChild(container); } catch {}
-      resolve([]);
-    };
-    document.head.appendChild(script);
-  });
+    try { sessionStorage.setItem(cacheKey, JSON.stringify({ ts: Date.now(), data: games })); } catch {}
+    return games;
+  } catch {
+    clearTimeout(tid);
+    return [];
+  }
 }
 
 /* ══════════════════════════════════════════
