@@ -1925,47 +1925,29 @@ function toggleFS(){
   if(req) req.call(f);
 }
 
-/* ══════════════════════════════════════════
-   TOOLTIPS
-══════════════════════════════════════════ */
+/* ── TOOLTIPS ── */
 async function loadTooltips(){
-  const c = document.getElementById('tt-wrap'); if(!c) return;
-  let msgs = ["GOAT TECH INDUSTRIES","STAY ENCRYPTED","LEGENDS NEVER DIE","SYSTEM ONLINE"];
-  try{ const d = await (await fetch('tooltips.json')).json(); if(d.messages?.length) msgs = d.messages; }catch{}
-  const shuffle = arr => { const a = [...arr]; for(let i = a.length-1; i > 0; i--){ const j = Math.floor(Math.random()*(i+1)); [a[i],a[j]] = [a[j],a[i]]; } return a; };
-  let deck = [], last = null;
-  const next = () => {
-    if(!deck.length){ deck = shuffle(msgs); if(deck[0] === last && deck.length > 1) deck.push(deck.shift()); }
-    last = deck.shift(); return last;
-  };
-  const mk = t => { const e = document.createElement('span'); e.className = 'tt-el'; e.textContent = t; return e; };
-  async function show(t){
-    const e = mk(t); e.classList.add('enter'); c.appendChild(e);
-    await new Promise(r => setTimeout(r, 550)); e.classList.replace('enter','vis');
-    await new Promise(r => setTimeout(r, 7500)); e.classList.replace('vis','exit');
-    await new Promise(r => setTimeout(r, 400)); e.remove();
-  }
-  (async () => { while(true){ await show(next()); await new Promise(r => setTimeout(r, 80)); } })();
+  const c=$('tt-wrap');if(!c)return;let msgs=["GOAT TECH INDUSTRIES","STAY ENCRYPTED","LEGENDS NEVER DIE","SYSTEM ONLINE"];
+  try{const d=await(await fetch('tooltips.json')).json();if(d.messages?.length)msgs=d.messages}catch{}
+  const shuffle=arr=>{const a=[...arr];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+  let deck=[],last=null;
+  const next=()=>{if(!deck.length){deck=shuffle(msgs);if(deck[0]===last&&deck.length>1)deck.push(deck.shift())}last=deck.shift();return last};
+  const mk=t=>{const e=document.createElement('span');e.className='tt-el';e.textContent=t;return e};
+  async function show(t){const e=mk(t);e.classList.add('enter');c.appendChild(e);await new Promise(r=>setTimeout(r,550));e.classList.replace('enter','vis');await new Promise(r=>setTimeout(r,7500));e.classList.replace('vis','exit');await new Promise(r=>setTimeout(r,400));e.remove()}
+  (async()=>{while(true){await show(next());await new Promise(r=>setTimeout(r,80))}})();
 }
 
-/* ══════════════════════════════════════════
-   KEYBOARD
-══════════════════════════════════════════ */
-function globalKeyHandler(e){
-  if(e.key === 'Escape'){
-    const o = document.querySelector('.modal:not(.hidden)'); if(o){ closeModal(o.id); return; }
-    if(document.getElementById('game-vault')?.style.display === 'flex'){ doCloseGame(); return; }
-    if(!document.getElementById('mobile-drawer')?.classList.contains('hidden')){ closeMobileDrawer(); return; }
-    document.getElementById('epicker')?.classList.add('hidden');
-  }
-  if((e.ctrlKey || e.metaKey) && e.key === 'k'){
-    e.preventDefault();
-    if(activeSection === 'chat') document.getElementById('chat-input')?.focus();
-    if(activeSection === 'dms')  document.getElementById('dm-input')?.focus();
-  }
-}
 /* ── KEYBOARD ── */
 function globalKeyHandler(e){
-  if(e.key==='Escape'){const o=document.querySelector('.modal:not(.hidden)');if(o){closeModal(o.id);return}if($('game-vault')?.style.display==='flex'){doCloseGame();return}if(!$('mobile-drawer')?.classList.contains('hidden')){closeMobileDrawer();return}$('epicker')?.classList.add('hidden')}
-  if((e.ctrlKey||e.metaKey)&&e.key==='k'){e.preventDefault();if(activeSection==='chat')$('chat-input')?.focus();if(activeSection==='dms')$('dm-input')?.focus()}
+  if(e.key==='Escape'){
+    const o=document.querySelector('.modal:not(.hidden)');if(o){closeModal(o.id);return}
+    if($('game-vault')?.style.display==='flex'){doCloseGame();return}
+    if(!$('mobile-drawer')?.classList.contains('hidden')){closeMobileDrawer();return}
+    $('epicker')?.classList.add('hidden');
+  }
+  if((e.ctrlKey||e.metaKey)&&e.key==='k'){
+    e.preventDefault();
+    if(activeSection==='chat')$('chat-input')?.focus();
+    if(activeSection==='dms')$('dm-input')?.focus();
+  }
 }
