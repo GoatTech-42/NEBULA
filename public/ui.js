@@ -157,9 +157,10 @@ export function initCanvas() {
 ══════════════════════════════════════════ */
 export function initParallax() {
   const layerDefs = [
-    { id: 'neb-1', speedX: 0.020, speedY: 0.013 },
-    { id: 'neb-2', speedX: 0.032, speedY: 0.022 },
-    { id: 'neb-3', speedX: 0.014, speedY: 0.020 },
+    { id: 'neb-1', speedX: 0.022, speedY: 0.015 },
+    { id: 'neb-2', speedX: 0.034, speedY: 0.025 },
+    { id: 'neb-3', speedX: 0.015, speedY: 0.020 },
+    { id: 'neb-4', speedX: 0.028, speedY: 0.018 },
   ];
   const layers = layerDefs.map(def => ({ ...def, el: document.getElementById(def.id) })).filter(l => l.el);
   if (!layers.length) return;

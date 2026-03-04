@@ -501,20 +501,29 @@ function initCursor(){
   const dot=document.getElementById('custom-cursor');
   const ring=document.getElementById('custom-cursor-ring');
   if(!dot||!ring)return;
-  let mx=window.innerWidth/2,my=window.innerHeight/2;
-  let rx=mx,ry=my;
+  let mx=window.innerWidth/2,my=window.innerHeight/2,rx=mx,ry=my;
   document.addEventListener('mousemove',e=>{
     mx=e.clientX;my=e.clientY;
     dot.style.left=mx+'px';dot.style.top=my+'px';
+    // detect text inputs
+    const t=e.target;
+    const isText=t.matches('input,textarea,[contenteditable]');
+    dot.classList.toggle('cursor-text',isText);
+    const isHover=t.matches('button,a,.titem,.game-card,.home-card,.snav-item,.msg-actions .mab,.rchip,.auth-tab,.rank-btn,.adm-tab,.channel-notif-row,.ms-item');
+    dot.classList.toggle('cursor-hover',isHover&&!isText);
+    ring.classList.toggle('cursor-hover',isHover&&!isText);
   },{passive:true});
   function loop(){
     requestAnimationFrame(loop);
-    rx+=(mx-rx)*.12;ry+=(my-ry)*.12;
+    rx+=(mx-rx)*.10;ry+=(my-ry)*.10;
     ring.style.left=rx.toFixed(1)+'px';ring.style.top=ry.toFixed(1)+'px';
   }
   loop();
-  document.addEventListener('mousedown',()=>{dot.classList.add('cursor-click');ring.classList.add('cursor-click')});
-  document.addEventListener('mouseup',()=>{dot.classList.remove('cursor-click');ring.classList.remove('cursor-click')});
+  document.addEventListener('mousedown',()=>{dot.classList.add('cursor-click');ring.classList.add('cursor-click');});
+  document.addEventListener('mouseup',()=>{dot.classList.remove('cursor-click');ring.classList.remove('cursor-click');});
+  // hide cursor when it leaves window
+  document.addEventListener('mouseleave',()=>{dot.style.opacity='0';ring.style.opacity='0';});
+  document.addEventListener('mouseenter',()=>{dot.style.opacity='1';ring.style.opacity='1';});
 }
 
 function initSysStats(){
@@ -548,23 +557,15 @@ function initSysStats(){
 
 async function initVisits(){
   try{
-    const vSnap=await getDoc(REFS.visits);
-    let vData=vSnap.exists()?vSnap.data():{total:0,live:0};
-    vData.total=(vData.total||0)+1;
-    vData.live=(vData.live||0)+1;
-    await setDoc(REFS.visits,vData);
-    let visitsCache=vData;
+    const snap=await getDoc(REFS.visits);
+    let d=snap.exists()?snap.data():{total:0};
+    d.total=(d.total||0)+1;
+    await setDoc(REFS.visits,d);
     onSnapshot(REFS.visits,s=>{
       if(!s.exists())return;
-      const d=s.data();
-      visitsCache=d;
-      const lEl=document.getElementById('live-visits-count');
-      const tEl=document.getElementById('total-visits-count');
-      if(lEl)lEl.textContent=(d.live||0).toLocaleString();
-      if(tEl)tEl.textContent=(d.total||0).toLocaleString();
-    });
-    window.addEventListener('beforeunload',()=>{
-      setDoc(REFS.visits,{...visitsCache,live:Math.max(0,(visitsCache.live||1)-1)}).catch(()=>{});
+      const v=s.data();
+      const el=document.getElementById('total-visits-count');
+      if(el)el.textContent=(v.total||0).toLocaleString();
     });
   }catch(e){console.warn('Visits error',e);}
 }
@@ -895,8 +896,8 @@ function closeMobileDrawer(){
 function getThreads(){ return DB.threads?.length ? DB.threads : DEFAULT_THREADS; }
 
 function canEnterThread(t){
-  if(!t.locked && !t.password) return true;
-  if(isMod(currentUser)) return true;
+  if(!t.password) return true;
+  if(currentUser?.rank==='goat'||currentUser?.isAdmin) return true;
   return JSON.parse(localStorage.getItem('joined_threads')||'[]').includes(t.id);
 }
 
@@ -910,9 +911,10 @@ function renderThreadList(){
     const msgs    = (DB.messages[t.id]||[]).filter(m => !m.deleted);
     const last    = msgs[msgs.length - 1];
     const preview = last ? `${last.user}: ${last.text}` : '';
+    const lockIcon=t.password?`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="10" height="10" style="flex-shrink:0;opacity:.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>`:'';
     div.innerHTML = `<span class="titem-icon">${esc(t.emoji||'💬')}</span>
       <div style="flex:1;min-width:0;">
-        <div class="titem-name">${esc(t.name)}</div>
+        <div style="display:flex;align-items:center;gap:.3rem;"><div class="titem-name">${esc(t.name)}</div>${lockIcon}</div>
         ${preview ? `<div class="titem-preview">${esc(preview.slice(0,40))}</div>` : ''}
       </div>`;
     list.appendChild(div);
@@ -924,6 +926,11 @@ function handleThreadClick(t){
     pendingThread = t;
     document.getElementById('tpass-inp').value = '';
     document.getElementById('tp-err').textContent = '';
+    // Show password hint for goat users
+    const hint=document.getElementById('tp-hint');
+    if(hint&&(currentUser?.rank==='goat'||currentUser?.isAdmin)){
+      hint.textContent=`Password: ${t.password}`;hint.style.display='block';
+    } else if(hint){hint.style.display='none';}
     openModal('tpass-modal'); return;
   }
   switchThread(t);
@@ -992,7 +999,7 @@ async function wipeThread(tid){
 }
 
 function openCreateThread(){
-  ['ct-name','ct-emoji'].forEach(id => document.getElementById(id).value = '');
+  ['ct-name','ct-emoji','ct-password'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   document.getElementById('ct-announce').checked = false;
   document.getElementById('ct-err').textContent  = '';
   openModal('ct-modal');
@@ -1002,11 +1009,12 @@ async function submitCT(){
   const name    = document.getElementById('ct-name').value.trim().toLowerCase().replace(/[^a-z0-9\-_]/g,'');
   const emoji   = document.getElementById('ct-emoji').value.trim() || '💬';
   const announce = document.getElementById('ct-announce').checked;
+  const password=(document.getElementById('ct-password')?.value||'').trim();
   const err     = document.getElementById('ct-err');
   if(!name){ err.textContent = 'Name required.'; return; }
   if(getThreads().find(x => x.id === name)){ err.textContent = 'Name taken.'; return; }
   try{
-    await setDoc(REFS.threads, { list:[...getThreads(), { id:name, name, emoji, password:'', locked:false, announceOnly:announce }] });
+    await setDoc(REFS.threads, { list:[...getThreads(), { id:name, name, emoji, password, locked:false, announceOnly:announce }] });
     closeModal('ct-modal'); notify(`#${name} created`,'success');
   }catch{ err.textContent = 'Failed.'; }
 }
@@ -1316,7 +1324,6 @@ function filterMentionSearch(){
   const res = document.getElementById('mention-results'); res.innerHTML = '';
   Object.entries(DB.accounts)
     .filter(([u, a]) => a.approved && !a.banned && u.toLowerCase().includes(q))
-    .slice(0,10)
     .forEach(([u]) => {
       const div = document.createElement('div');
       div.style.cssText = 'display:flex;align-items:center;gap:.5rem;padding:.42rem .54rem;border-radius:7px;cursor:pointer;transition:background .14s;';
@@ -1380,13 +1387,26 @@ function renderDMList(){
     const last    = msgs.filter(m => !m.deleted).slice(-1)[0];
     const preview = last ? `${last.user === myU ? 'You' : last.user}: ${last.text}` : '';
     const div     = document.createElement('div');
-    div.className = `titem${activeDM === other && activeSection === 'dms' ? ' active' : ''}`;
+    div.className = `titem dm-titem${activeDM === other && activeSection === 'dms' ? ' active' : ''}`;
     div.addEventListener('click', () => openDMWith(other));
-    div.innerHTML = `<div style="width:22px;height:22px;border-radius:50%;background:${userColor(other)};display:inline-flex;align-items:center;justify-content:center;font-weight:800;font-size:.6rem;flex-shrink:0;">${avatarLetter(other)}</div>
-      <div style="flex:1;min-width:0;margin-left:.4rem;">
+    const delBtn=document.createElement('button');
+    delBtn.className='dm-del-btn';delBtn.title='Delete conversation';
+    delBtn.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="11" height="11"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>';
+    delBtn.addEventListener('click',async e=>{
+      e.stopPropagation();
+      if(!confirm(`Delete conversation with ${other}?`))return;
+      // Mark all messages as deleted
+      const nd={...DB.dms,[k]:msgs.map(m=>({...m,deleted:true}))};
+      DB.dms=nd;scheduleDMWrite(nd);
+      if(activeDM===other){activeDM=null;document.getElementById('dm-window').classList.add('hidden');document.getElementById('dm-no-select').classList.remove('hidden');}
+      renderDMList();notify('Conversation deleted','success');
+    });
+    div.innerHTML = `<div style="width:24px;height:24px;border-radius:50%;background:${userColor(other)};display:inline-flex;align-items:center;justify-content:center;font-weight:800;font-size:.62rem;flex-shrink:0;">${avatarLetter(other)}</div>
+      <div style="flex:1;min-width:0;margin-left:.45rem;">
         <div class="titem-name">${esc(other)}</div>
         ${preview ? `<div class="titem-preview">${esc(preview.slice(0,36))}</div>` : ''}
       </div>`;
+    div.appendChild(delBtn);
     list.appendChild(div);
   });
 }
@@ -1403,7 +1423,6 @@ function filterDMSearch(){
   const res = document.getElementById('dm-search-results'); res.innerHTML = '';
   Object.entries(DB.accounts)
     .filter(([u, a]) => u !== currentUser.username && a.approved && !a.banned && (u.toLowerCase().includes(q) || (isMod(currentUser) && (a.name||'').toLowerCase().includes(q))))
-    .slice(0,10)
     .forEach(([u, a]) => {
       const div = document.createElement('div');
       div.style.cssText = 'display:flex;align-items:center;gap:.5rem;padding:.44rem .54rem;border-radius:7px;cursor:pointer;transition:background .14s;';
@@ -1527,7 +1546,11 @@ function admTab(tab){
 
 function renderAdminPanel(){
   if(!isMod(currentUser)) return;
-  renderAdmUsers(); renderAdmPending(); renderAdmChannels(); renderAdmProxyAccess();
+  // Show proxy access tab only for goat rank
+  const paTab=document.querySelector('.adm-tab-admin-only');
+  if(paTab) paTab.classList.toggle('hidden', !isAdmin(currentUser));
+  renderAdmUsers(); renderAdmPending(); renderAdmChannels();
+  if(isAdmin(currentUser)) renderAdmProxyAccess();
 }
 
 function renderAdmUsers(){
@@ -1929,7 +1952,7 @@ function renderVaultGrid(data){
     fav.innerHTML = '<svg viewBox="0 0 24 24" stroke-width="2" width="13" height="13"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>';
     fav.title = 'Favorite'; fav.addEventListener('click', e => { e.stopPropagation(); toggleGameFav(z.id); });
     const img = document.createElement('img');
-    img.dataset.src = z.cover.replace('{COVER_URL}', COVER_URL).replace('{HTML_URL}', HTML_URL);
+    img.dataset.src = resolveCoverUrl(z) || 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1 1"><rect fill="%230d1c33" width="1" height="1"/></svg>';
     img.src     = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1 1"><rect fill="%230d1c33" width="1" height="1"/></svg>';
     img.loading = 'lazy'; img.alt = z.name;
     const body = document.createElement('div'); body.className = 'game-card-body';
@@ -1947,18 +1970,15 @@ function toggleGameFav(id){
 
 /* ── openZone — matches GhostLink exactly ── */
 function openZone(z){
-  if(z.name === "[!] SUGGEST GAMES .gg/D4c9VFYWyU"){
-    window.open("https://discord.com/invite/dKs2sUNUXd", "_blank"); return;
-  }
-  if(z.url.startsWith('http')){ window.open(z.url, '_blank'); return; }
+  const url=resolveGameUrl(z);
+  if(!url){notify('Invalid game URL','error');return;}
+  if(z.url?.startsWith('http')&&z.source==='gn-math'){window.open(z.url,'_blank');return;}
 
-  const url   = z.url.replace('{COVER_URL}', COVER_URL).replace('{HTML_URL}', HTML_URL);
   const vault = document.getElementById('game-vault');
 
   if(!zoneFrame || !zoneFrame.parentNode){
     zoneFrame = document.createElement('iframe');
     zoneFrame.id = 'game-frame';
-    // ✅ No explicit height — flex-grow:1 fills all remaining space after the header
     zoneFrame.style.cssText = 'border:none;width:100%;min-height:0;flex:1 1 0%;display:block;background:transparent;';
     vault.appendChild(zoneFrame);
   }
@@ -1967,6 +1987,11 @@ function openZone(z){
     .then(r => r.text())
     .then(html => {
       html = cleanHTML(html);
+      // inject base tag for PeteZah games
+      if(z.source==='petezah'){
+        const baseUrl=url.replace(/\/[^\/]*$/,'/');
+        html=html.replace(/<head[^>]*>/i,`$&<base href="${baseUrl}">`);
+      }
       zoneFrame.contentDocument.open();
       zoneFrame.contentDocument.write(html);
       zoneFrame.contentDocument.close();
