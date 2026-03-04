@@ -7,46 +7,14 @@
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌌</text></svg>">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
-<style>
-  /* ── Game vault sits above everything, including modal overlay ── */
-  #game-vault {
-    position: fixed;
-    inset: 0;
-    background: #000;
-    z-index: 10000;   /* above modal-overlay (7000) and epicker (8000) */
-    display: none;
-    flex-direction: column;
-  }
-  /* ── Header inside vault must also be above the iframe ── */
-  .ghdr {
-    position: relative;
-    z-index: 10001;
-    height: 50px;
-    flex-shrink: 0;
-    background: rgba(4,9,22,.98);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 0 1.15rem;
-    border-bottom: 1px solid rgba(255,255,255,.06);
-    pointer-events: all;
-  }
-  /* ── Iframe must NOT overlap the header ── */
-  #game-frame {
-    border: none;
-    width: 100%;
-    flex-grow: 1;
-    display: block;
-    min-height: 0;
-    /* keep the iframe below the header so clicks on buttons always land */
-    position: relative;
-    z-index: 10000;
-  }
-</style>
 </head>
 <body>
 
-<!-- ═══════════════ PARALLAX NEBULA ═══════════════ -->
+<!-- CUSTOM CURSOR -->
+<div id="custom-cursor"></div>
+<div id="custom-cursor-ring"></div>
+
+<!-- PARALLAX -->
 <div id="parallax-root" aria-hidden="true">
   <div class="neb-layer" id="neb-1"></div>
   <div class="neb-layer" id="neb-2"></div>
@@ -57,7 +25,7 @@
 <canvas id="bg-canvas"></canvas>
 <div id="notif-stack"></div>
 
-<!-- ═══════════════ SKELETON OVERLAYS ═══════════════ -->
+<!-- SKELETON -->
 <div id="app-skeleton" class="skeleton-screen">
   <div class="skel-sidebar">
     <div class="skel-logo skel-pulse"></div>
@@ -66,12 +34,10 @@
     <div class="skel-nav-item skel-pulse"></div>
     <div class="skel-nav-item skel-pulse"></div>
   </div>
-  <div class="skel-main">
-    <div class="skel-hero skel-pulse"></div>
-  </div>
+  <div class="skel-main"><div class="skel-hero skel-pulse"></div></div>
 </div>
 
-<!-- ═══════════════ AUTH ═══════════════ -->
+<!-- AUTH -->
 <div id="auth-screen" class="hidden">
   <div class="auth-inner">
     <div class="auth-logo">NEBULA</div>
@@ -82,34 +48,16 @@
         <button class="auth-tab" id="tab-signup" data-tab="signup">Sign Up</button>
       </div>
       <div id="panel-signin">
-        <div class="field-group">
-          <label class="field-label">Username</label>
-          <input type="text" id="si-user" class="field-input" placeholder="username" autocomplete="off" spellcheck="false">
-        </div>
-        <div class="field-group">
-          <label class="field-label">Password</label>
-          <input type="password" id="si-pass" class="field-input" placeholder="••••••••" autocomplete="off" data-form-type="other">
-        </div>
+        <div class="field-group"><label class="field-label">Username</label><input type="text" id="si-user" class="field-input" placeholder="username" autocomplete="off" spellcheck="false"></div>
+        <div class="field-group"><label class="field-label">Password</label><input type="password" id="si-pass" class="field-input" placeholder="••••••••" autocomplete="off" data-form-type="other"></div>
         <button class="btn btn-full" id="signin-btn">Sign In</button>
         <div class="auth-err" id="si-err"></div>
       </div>
       <div id="panel-signup" class="hidden">
-        <div class="field-group">
-          <label class="field-label">Full Name</label>
-          <input type="text" id="su-name" class="field-input" placeholder="Your Name" autocomplete="off">
-        </div>
-        <div class="field-group">
-          <label class="field-label">Username</label>
-          <input type="text" id="su-user" class="field-input" placeholder="lowercase_only" autocomplete="off" spellcheck="false">
-        </div>
-        <div class="field-group">
-          <label class="field-label">Password</label>
-          <input type="password" id="su-pass" class="field-input" placeholder="6+ characters" autocomplete="off" data-form-type="other">
-        </div>
-        <div class="field-group">
-          <label class="field-label">Confirm Password</label>
-          <input type="password" id="su-pass2" class="field-input" placeholder="••••••••" autocomplete="off" data-form-type="other">
-        </div>
+        <div class="field-group"><label class="field-label">Full Name</label><input type="text" id="su-name" class="field-input" placeholder="Your Name" autocomplete="off"></div>
+        <div class="field-group"><label class="field-label">Username</label><input type="text" id="su-user" class="field-input" placeholder="lowercase_only" autocomplete="off" spellcheck="false"></div>
+        <div class="field-group"><label class="field-label">Password</label><input type="password" id="su-pass" class="field-input" placeholder="6+ characters" autocomplete="off" data-form-type="other"></div>
+        <div class="field-group"><label class="field-label">Confirm Password</label><input type="password" id="su-pass2" class="field-input" placeholder="••••••••" autocomplete="off" data-form-type="other"></div>
         <button class="btn btn-full" id="signup-btn">Request Account</button>
         <div class="auth-err" id="su-err"></div>
       </div>
@@ -118,7 +66,7 @@
   </div>
 </div>
 
-<!-- ═══════════════ PENDING ═══════════════ -->
+<!-- PENDING -->
 <div id="pending-screen" class="hidden">
   <div class="pending-inner">
     <div class="pending-icon">⏳</div>
@@ -128,17 +76,15 @@
   </div>
 </div>
 
-<!-- ═══════════════ APP ═══════════════ -->
+<!-- APP -->
 <div id="app" class="hidden">
 
-  <!-- MOBILE CHANNEL DRAWER -->
+  <!-- MOBILE DRAWER -->
   <div id="mobile-drawer-overlay" class="hidden"></div>
   <div id="mobile-drawer" class="hidden">
     <div class="mobile-drawer-header">
       <span id="mobile-drawer-title">Channels</span>
-      <button id="mobile-drawer-close" aria-label="Close">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="18" height="18"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-      </button>
+      <button id="mobile-drawer-close" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="18" height="18"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
     </div>
     <div id="mobile-drawer-list"></div>
   </div>
@@ -149,46 +95,18 @@
       <span class="logo-pulse"></span>
     </div>
     <nav class="sidebar-nav">
-      <button class="snav-item active" id="snav-home" data-section="home">
-        <span class="snav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z"/><path d="M9 21V12h6v9"/></svg></span>
-        <span class="snav-label">Home</span>
-      </button>
-      <button class="snav-item" id="snav-chat" data-section="chat">
-        <span class="snav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg></span>
-        <span class="snav-label">Chat</span>
-        <span class="snav-badge hidden" id="chat-badge">0</span>
-      </button>
-      <button class="snav-item" id="snav-dms" data-section="dms">
-        <span class="snav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></span>
-        <span class="snav-label">Messages</span>
-        <span class="snav-badge hidden" id="dm-badge">0</span>
-      </button>
-      <button class="snav-item" id="snav-games" data-section="games">
-        <span class="snav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 12h4M8 10v4M15 12h.01M18 12h.01"/></svg></span>
-        <span class="snav-label">Vault</span>
-      </button>
-      <button class="snav-item hidden" id="snav-proxy" data-section="proxy">
-        <span class="snav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg></span>
-        <span class="snav-label">Proxies</span>
-      </button>
-      <button class="snav-item" id="snav-notifications" data-section="notifications">
-        <span class="snav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg></span>
-        <span class="snav-label">Alerts</span>
-      </button>
-      <button class="snav-item hidden" id="snav-admin" data-section="admin">
-        <span class="snav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span>
-        <span class="snav-label">Admin</span>
-      </button>
+      <button class="snav-item active" id="snav-home" data-section="home"><span class="snav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z"/><path d="M9 21V12h6v9"/></svg></span><span class="snav-label">Home</span></button>
+      <button class="snav-item" id="snav-chat" data-section="chat"><span class="snav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg></span><span class="snav-label">Chat</span><span class="snav-badge hidden" id="chat-badge">0</span></button>
+      <button class="snav-item" id="snav-dms" data-section="dms"><span class="snav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></span><span class="snav-label">Messages</span><span class="snav-badge hidden" id="dm-badge">0</span></button>
+      <button class="snav-item" id="snav-games" data-section="games"><span class="snav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 12h4M8 10v4M15 12h.01M18 12h.01"/></svg></span><span class="snav-label">Vault</span></button>
+      <button class="snav-item hidden" id="snav-proxy" data-section="proxy"><span class="snav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg></span><span class="snav-label">Proxies</span></button>
+      <button class="snav-item" id="snav-notifications" data-section="notifications"><span class="snav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg></span><span class="snav-label">Alerts</span></button>
+      <button class="snav-item hidden" id="snav-admin" data-section="admin"><span class="snav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span><span class="snav-label">Admin</span><span class="snav-badge hidden" id="reports-ct" style="background:var(--danger);"></span></button>
     </nav>
     <div class="sidebar-profile" id="sidebar-profile" data-section="profile">
       <div class="sp-ava" id="sp-ava">?</div>
-      <div class="sp-info">
-        <div class="sp-name" id="sp-name">—</div>
-        <div class="sp-rank" id="sp-rank"></div>
-      </div>
-      <button class="sp-signout" id="signout-btn" title="Sign out">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-      </button>
+      <div class="sp-info"><div class="sp-name" id="sp-name">—</div><div class="sp-rank" id="sp-rank"></div></div>
+      <button class="sp-signout" id="signout-btn" title="Sign out"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></button>
     </div>
   </div>
 
@@ -200,21 +118,15 @@
         <div class="home-title">NEBULA</div>
         <div id="tt-wrap"></div>
         <div class="home-cards">
-          <div class="home-card" data-section="chat">
-            <div class="hcard-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" width="28" height="28"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg></div>
-            <div class="hcard-title">Chat</div>
-            <div class="hcard-sub">Community channels</div>
-          </div>
-          <div class="home-card" data-section="dms">
-            <div class="hcard-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" width="28" height="28"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></div>
-            <div class="hcard-title">Messages</div>
-            <div class="hcard-sub">Direct messages</div>
-          </div>
-          <div class="home-card" data-section="games">
-            <div class="hcard-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" width="28" height="28"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 12h4M8 10v4M15 12h.01M18 12h.01"/></svg></div>
-            <div class="hcard-title">Vault</div>
-            <div class="hcard-sub">Play games</div>
-          </div>
+          <div class="home-card" data-section="chat"><div class="hcard-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" width="28" height="28"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg></div><div class="hcard-title">Chat</div><div class="hcard-sub">Community channels</div></div>
+          <div class="home-card" data-section="dms"><div class="hcard-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" width="28" height="28"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></div><div class="hcard-title">Messages</div><div class="hcard-sub">Direct messages</div></div>
+          <div class="home-card" data-section="games"><div class="hcard-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" width="28" height="28"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 12h4M8 10v4M15 12h.01M18 12h.01"/></svg></div><div class="hcard-title">Vault</div><div class="hcard-sub">Play games</div></div>
+        </div>
+        <!-- Live visits counter -->
+        <div class="home-visits">
+          <div class="visits-item"><span class="visits-dot live-dot"></span><span id="live-visits-count">—</span> online now</div>
+          <div class="visits-sep">·</div>
+          <div class="visits-item"><span id="total-visits-count">—</span> total visits</div>
         </div>
         <div class="home-copy">© GoatTech Industries</div>
       </div>
@@ -225,9 +137,7 @@
       <div class="chat-layout">
         <div class="thread-sidebar" id="thread-sidebar">
           <div class="ts-header">
-            <button class="mobile-back-btn hidden" id="chat-mobile-back" aria-label="Back">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14"><polyline points="15 18 9 12 15 6"/></svg>
-            </button>
+            <button class="mobile-back-btn hidden" id="chat-mobile-back" aria-label="Back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14"><polyline points="15 18 9 12 15 6"/></svg></button>
             <span class="ts-title">Channels</span>
             <button class="ts-add hidden" id="ts-add-btn" title="New channel">+</button>
           </div>
@@ -243,26 +153,20 @@
           <div class="chat-window hidden" id="chat-window">
             <div class="chat-topbar">
               <div class="ctb-left">
-                <button class="mobile-menu-btn hidden" id="chat-open-drawer" aria-label="Channels">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="16" height="16"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-                </button>
+                <button class="mobile-menu-btn hidden" id="chat-open-drawer" aria-label="Channels"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="16" height="16"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
                 <span class="ctb-hash"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14"><line x1="4" y1="9" x2="20" y2="9"/><line x1="4" y1="15" x2="20" y2="15"/><line x1="10" y1="3" x2="8" y2="21"/><line x1="16" y1="3" x2="14" y2="21"/></svg></span>
                 <span class="ctb-name" id="ctb-name">general</span>
                 <span class="ctb-announce hidden" id="ctb-announce"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="11" height="11"><path d="M22 3L2 10l7.5 2.5L12 21l3-6 7-12z"/></svg> announce only</span>
               </div>
               <div class="ctb-right" id="ctb-right"></div>
             </div>
-            <div class="messages-wrap" id="messages-wrap">
-              <div class="messages" id="messages"></div>
-            </div>
+            <div class="messages-wrap" id="messages-wrap"><div class="messages" id="messages"></div></div>
             <div class="typing-bar" id="typing-bar"></div>
             <div class="chat-input-area" id="chat-input-area">
               <div class="chat-input-wrap">
                 <input type="text" id="chat-input" placeholder="Message…" maxlength="500" autocomplete="off" spellcheck="false">
                 <span class="char-ctr" id="char-ctr"></span>
-                <button class="send-btn" id="send-btn">
-                  <svg viewBox="0 0 24 24" fill="currentColor"><path d="M2 21l21-9L2 3v7l15 2-15 2z"/></svg>
-                </button>
+                <button class="send-btn" id="send-btn"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M2 21l21-9L2 3v7l15 2-15 2z"/></svg></button>
               </div>
               <div class="rate-msg hidden" id="rate-msg"></div>
             </div>
@@ -294,24 +198,19 @@
           <div class="chat-window hidden" id="dm-window">
             <div class="chat-topbar">
               <div class="ctb-left">
-                <button class="mobile-menu-btn hidden" id="dm-open-drawer" aria-label="DMs">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="16" height="16"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-                </button>
+                <button class="mobile-menu-btn hidden" id="dm-open-drawer" aria-label="DMs"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="16" height="16"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
                 <span class="ctb-hash">@</span>
                 <span class="ctb-name" id="dm-ctb-name">user</span>
               </div>
+              <div class="ctb-right" id="dm-ctb-right"></div>
             </div>
-            <div class="messages-wrap" id="dm-messages-wrap">
-              <div class="messages" id="dm-messages"></div>
-            </div>
+            <div class="messages-wrap" id="dm-messages-wrap"><div class="messages" id="dm-messages"></div></div>
             <div class="typing-bar" id="dm-typing-bar"></div>
             <div class="chat-input-area">
               <div class="chat-input-wrap">
                 <input type="text" id="dm-input" placeholder="Message…" maxlength="500" autocomplete="off" spellcheck="false">
                 <span class="char-ctr" id="dm-char-ctr"></span>
-                <button class="send-btn" id="dm-send-btn">
-                  <svg viewBox="0 0 24 24" fill="currentColor"><path d="M2 21l21-9L2 3v7l15 2-15 2z"/></svg>
-                </button>
+                <button class="send-btn" id="dm-send-btn"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M2 21l21-9L2 3v7l15 2-15 2z"/></svg></button>
               </div>
               <div class="rate-msg hidden" id="dm-rate-msg"></div>
             </div>
@@ -324,20 +223,19 @@
     <div class="section" id="section-games">
       <div class="vault-scroll" id="vault-scroll">
         <div class="vault-topbar">
-  <div class="vault-search-wrap">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-    <input type="text" id="vault-search" placeholder="Search games…" autocomplete="off" spellcheck="false">
-  </div>
-  <select id="vault-sort">
-    <option value="popular">Popular</option>
-    <option value="name">Name</option>
-    <option value="id">Date (ID)</option>
-  </select>
-  <button id="fav-filter-btn">
-    <svg viewBox="0 0 24 24" stroke-width="2" width="13" height="13"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
-    Favorites
-  </button>
-</div>
+          <div class="vault-search-wrap">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+            <input type="text" id="vault-search" placeholder="Search games…" autocomplete="off" spellcheck="false">
+          </div>
+          <select id="vault-source">
+            <option value="gn-math">gn-math</option>
+            <option value="petezah">PeteZah Lite</option>
+          </select>
+          <button id="fav-filter-btn">
+            <svg viewBox="0 0 24 24" stroke-width="2" width="13" height="13"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
+            Favorites
+          </button>
+        </div>
         <div id="vault-loading" class="vault-loading">Loading games…</div>
         <div id="vault-featured-wrap"></div>
         <div id="game-grid"></div>
@@ -362,56 +260,16 @@
       <div class="pad" style="max-width:640px;">
         <div class="pg-title">Notifications</div>
         <div class="pg-sub">Choose what you want to be notified about</div>
-        <div class="notif-section-card">
-          <div class="nsc-header">
-            <div class="nsc-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg></div>
-            <div>
-              <div class="nsc-title">Browser Notifications</div>
-              <div class="nsc-sub">Required to receive alerts when the tab is in the background</div>
-            </div>
-            <button class="btn btn-sm" id="notif-perm-btn">Enable</button>
-          </div>
-          <div class="nsc-status" id="notif-perm-status"></div>
-        </div>
-        <div class="notif-section-card">
-          <div class="nsc-header">
-            <div class="nsc-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></div>
-            <div style="flex:1">
-              <div class="nsc-title">Direct Messages</div>
-              <div class="nsc-sub">Get notified when someone messages you</div>
-            </div>
-            <label class="toggle-switch"><input type="checkbox" id="ntog-dms"><span class="toggle-track"></span></label>
-          </div>
-        </div>
-        <div class="notif-section-card">
-          <div class="nsc-header" style="margin-bottom:.75rem;">
-            <div class="nsc-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg></div>
-            <div style="flex:1">
-              <div class="nsc-title">Channel Subscriptions</div>
-              <div class="nsc-sub">Pick which channels send you notifications</div>
-            </div>
-          </div>
-          <div id="notif-channel-list"></div>
-        </div>
-        <div class="notif-section-card">
-          <div class="nsc-header">
-            <div class="nsc-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><line x1="1" y1="1" x2="23" y2="23"/></svg></div>
-            <div style="flex:1">
-              <div class="nsc-title">Mute All</div>
-              <div class="nsc-sub">Override everything — no notifications at all</div>
-            </div>
-            <label class="toggle-switch"><input type="checkbox" id="ntog-mute"><span class="toggle-track"></span></label>
-          </div>
-        </div>
+        <div class="notif-section-card"><div class="nsc-header"><div class="nsc-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg></div><div><div class="nsc-title">Browser Notifications</div><div class="nsc-sub">Required to receive alerts when the tab is in the background</div></div><button class="btn btn-sm" id="notif-perm-btn">Enable</button></div><div class="nsc-status" id="notif-perm-status"></div></div>
+        <div class="notif-section-card"><div class="nsc-header"><div class="nsc-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></div><div style="flex:1"><div class="nsc-title">Direct Messages</div><div class="nsc-sub">Get notified when someone messages you</div></div><label class="toggle-switch"><input type="checkbox" id="ntog-dms"><span class="toggle-track"></span></label></div></div>
+        <div class="notif-section-card"><div class="nsc-header" style="margin-bottom:.75rem;"><div class="nsc-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg></div><div style="flex:1"><div class="nsc-title">Channel Subscriptions</div><div class="nsc-sub">Pick which channels send you notifications</div></div></div><div id="notif-channel-list"></div></div>
+        <div class="notif-section-card"><div class="nsc-header"><div class="nsc-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><line x1="1" y1="1" x2="23" y2="23"/></svg></div><div style="flex:1"><div class="nsc-title">Mute All</div><div class="nsc-sub">Override everything — no notifications at all</div></div><label class="toggle-switch"><input type="checkbox" id="ntog-mute"><span class="toggle-track"></span></label></div></div>
       </div>
     </div>
 
     <!-- PROFILE -->
     <div class="section" id="section-profile">
-      <div class="pad">
-        <div class="pg-title">Profile</div>
-        <div class="profile-card" id="profile-card"></div>
-      </div>
+      <div class="pad"><div class="pg-title">Profile</div><div class="profile-card" id="profile-card"></div></div>
     </div>
 
     <!-- ADMIN -->
@@ -422,73 +280,59 @@
           <button class="adm-tab active" data-adm="users">Users</button>
           <button class="adm-tab" data-adm="pending">Pending <span id="pending-ct"></span></button>
           <button class="adm-tab" data-adm="channels">Channels</button>
-          <button class="adm-tab" data-adm="proxy-access">Proxy Access</button>
+          <button class="adm-tab adm-tab-admin-only hidden" data-adm="proxy-access">Proxy Access</button>
+          <button class="adm-tab" data-adm="reports">Reports <span id="reports-badge"></span></button>
         </div>
         <div id="adm-users"        class="adm-panel active"></div>
         <div id="adm-pending"      class="adm-panel"></div>
         <div id="adm-channels"     class="adm-panel"></div>
         <div id="adm-proxy-access" class="adm-panel"></div>
+        <div id="adm-reports"      class="adm-panel"></div>
       </div>
     </div>
 
   </div><!-- #main -->
 </div><!-- #app -->
 
-<!-- ═══════════════ GAME VIEWER ═══════════════
-     IMPORTANT: #game-vault lives OUTSIDE #app so nothing inside the
-     app layout can ever sit on top of it. z-index 10000 in the <style>
-     block above guarantees it covers the modal overlay (7000).
-     The close button has BOTH a JS listener (wired in wireStaticListeners)
-     AND a direct onclick attribute as a hard fallback — one of them will
-     always fire regardless of event propagation.
-════════════════════════════════════════════ -->
-<div id="game-vault">
+<!-- GAME VIEWER -->
+<div id="game-vault" style="position:fixed;inset:0;background:#000;z-index:10000;display:none;flex-direction:column;">
   <div class="ghdr">
     <span class="ghdr-logo" id="vault-title">NEBULA VAULT</span>
     <div style="display:flex;gap:8px;align-items:center;">
-  <button
-    class="btn btn-ghost btn-sm"
-    id="game-fs-btn"
-    onclick="(function(e){e.stopPropagation();if(typeof toggleFS==='function')toggleFS();})(event)"
-  >
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13">
-      <path d="M8 3H5a2 2 0 00-2 2v3m18 0V5a2 2 0 00-2-2h-3m0 18h3a2 2 0 002-2v-3M3 16v3a2 2 0 002 2h3"/>
-    </svg>
-    Fullscreen
-  </button>
-  
-  <button
-    class="btn btn-danger btn-sm"
-    id="game-close-btn"
-    onclick="(function(e){e.stopPropagation();if(typeof doCloseGame==='function')doCloseGame();})(event)"
-    style="cursor:pointer;"
-  >
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="12" height="12">
-      <line x1="18" y1="6" x2="6" y2="18"/>
-      <line x1="6" y1="6" x2="18" y2="18"/>
-    </svg>
-    Close
-  </button>
-</div>
+      <button class="btn btn-ghost btn-sm" id="game-fs-btn" onclick="(function(e){e.stopPropagation();if(typeof toggleFS==='function')toggleFS();})(event)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M8 3H5a2 2 0 00-2 2v3m18 0V5a2 2 0 00-2-2h-3m0 18h3a2 2 0 002-2v-3M3 16v3a2 2 0 002 2h3"/></svg>
+        Fullscreen
+      </button>
+      <button class="btn btn-danger btn-sm" id="game-close-btn" onclick="(function(e){e.stopPropagation();if(typeof doCloseGame==='function')doCloseGame();})(event)" style="cursor:pointer;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="12" height="12"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        Close
+      </button>
+    </div>
   </div>
-  <!--
-    The iframe is STATIC — script.js writes into it with
-    contentDocument.write() instead of removing/recreating it.
-    This keeps getElementById('game-frame') always valid.
-  -->
-  <iframe id="game-frame" src="about:blank"></iframe>
 </div>
 
-<!-- ═══════════════ MODALS ═══════════════ -->
+<!-- MODALS -->
 <div id="modal-overlay" class="hidden"></div>
 
-<div id="del-modal" class="modal hidden">
+<div id="del-modal" class="modal hidden"><div class="modal-box"><h3>Delete Message?</h3><p class="modal-p">This cannot be undone.</p><div class="modal-actions"><button class="btn btn-ghost btn-sm" id="cancel-del-btn">Cancel</button><button class="btn btn-danger btn-sm" id="confirm-del-btn">Delete</button></div></div></div>
+
+<div id="report-modal" class="modal hidden">
   <div class="modal-box">
-    <h3>Delete Message?</h3>
-    <p class="modal-p">This cannot be undone.</p>
+    <h3>🚩 Report Message</h3>
+    <p class="modal-p">This will be sent to moderators for review.</p>
+    <div class="field-group">
+      <label class="field-label">Reason</label>
+      <select id="report-reason" class="field-input" style="cursor:pointer;">
+        <option value="spam">Spam</option>
+        <option value="harassment">Harassment</option>
+        <option value="inappropriate">Inappropriate content</option>
+        <option value="misinformation">Misinformation</option>
+        <option value="other">Other</option>
+      </select>
+    </div>
     <div class="modal-actions">
-      <button class="btn btn-ghost btn-sm" id="cancel-del-btn">Cancel</button>
-      <button class="btn btn-danger btn-sm" id="confirm-del-btn">Delete</button>
+      <button class="btn btn-ghost btn-sm" id="close-report-btn">Cancel</button>
+      <button class="btn btn-danger btn-sm" id="confirm-report-btn">Submit Report</button>
     </div>
   </div>
 </div>
@@ -498,84 +342,31 @@
     <h3>Create Channel</h3>
     <input type="text" class="field-input" id="ct-name" placeholder="channel-name" maxlength="24" autocomplete="off" style="margin-bottom:.6rem;">
     <input type="text" class="field-input" id="ct-emoji" placeholder="Emoji icon (e.g. 💬)" maxlength="4" style="margin-bottom:.6rem;">
-    <label style="display:flex;align-items:center;gap:.6rem;margin-bottom:.65rem;cursor:pointer;">
-      <input type="checkbox" id="ct-announce" style="accent-color:var(--accent);width:15px;height:15px;">
-      <span style="font-size:.78rem;color:var(--text-muted);">Announce-only (mods post, others react)</span>
-    </label>
-    <div class="modal-actions">
-      <button class="btn btn-ghost btn-sm" id="close-ct-btn">Cancel</button>
-      <button class="btn btn-sm" id="submit-ct-btn">Create</button>
-    </div>
+    <label style="display:flex;align-items:center;gap:.6rem;margin-bottom:.45rem;cursor:pointer;"><input type="checkbox" id="ct-announce" style="accent-color:var(--accent);width:15px;height:15px;"><span style="font-size:.78rem;color:var(--text-muted);">Announce-only</span></label>
+    <label style="display:flex;align-items:center;gap:.6rem;margin-bottom:.65rem;cursor:pointer;"><input type="checkbox" id="ct-modonly" style="accent-color:var(--warn);width:15px;height:15px;"><span style="font-size:.78rem;color:var(--text-muted);">Moderators only</span></label>
+    <div class="modal-actions"><button class="btn btn-ghost btn-sm" id="close-ct-btn">Cancel</button><button class="btn btn-sm" id="submit-ct-btn">Create</button></div>
     <div class="merr" id="ct-err"></div>
   </div>
 </div>
 
-<div id="tpass-modal" class="modal hidden">
-  <div class="modal-box">
-    <h3>
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16" style="vertical-align:middle;margin-right:5px;">
-        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/>
-      </svg>
-      Private Channel
-    </h3>
-    <p class="modal-p">Enter the password to join this channel.</p>
-    <input type="password" class="field-input" id="tpass-inp" placeholder="Password…" autocomplete="off" data-form-type="other" style="margin-bottom:.6rem;">
-    <div class="modal-actions">
-      <button class="btn btn-ghost btn-sm" id="close-tpass-btn">Cancel</button>
-      <button class="btn btn-sm" id="submit-tpass-btn">Enter</button>
-    </div>
-    <div class="merr" id="tp-err"></div>
-  </div>
-</div>
+<div id="tpass-modal" class="modal hidden"><div class="modal-box"><h3>🔒 Private Channel</h3><p class="modal-p">Enter the password to join this channel.</p><input type="password" class="field-input" id="tpass-inp" placeholder="Password…" autocomplete="off" data-form-type="other" style="margin-bottom:.6rem;"><div class="modal-actions"><button class="btn btn-ghost btn-sm" id="close-tpass-btn">Cancel</button><button class="btn btn-sm" id="submit-tpass-btn">Enter</button></div><div class="merr" id="tp-err"></div></div></div>
 
-<div id="newdm-modal" class="modal hidden">
-  <div class="modal-box">
-    <h3>New Message</h3>
-    <p class="modal-p">Search for a user to start a conversation.</p>
-    <input type="text" class="field-input" id="dm-search-inp" placeholder="Search username…" autocomplete="off" style="margin-bottom:.6rem;">
-    <div id="dm-search-results" style="max-height:200px;overflow-y:auto;"></div>
-    <div class="modal-actions" style="margin-top:.65rem;">
-      <button class="btn btn-ghost btn-sm" id="close-newdm-btn">Cancel</button>
-    </div>
-  </div>
-</div>
+<div id="newdm-modal" class="modal hidden"><div class="modal-box"><h3>New Message</h3><p class="modal-p">Search for a user to start a conversation.</p><input type="text" class="field-input" id="dm-search-inp" placeholder="Search username…" autocomplete="off" style="margin-bottom:.6rem;"><div id="dm-search-results" style="max-height:220px;overflow-y:auto;"></div><div class="modal-actions" style="margin-top:.65rem;"><button class="btn btn-ghost btn-sm" id="close-newdm-btn">Cancel</button></div></div></div>
 
-<div id="rank-modal" class="modal hidden">
-  <div class="modal-box">
-    <h3>Change Rank</h3>
-    <p class="modal-p" id="rank-mdesc"></p>
-    <div id="rank-buttons"></div>
-    <button class="btn btn-ghost btn-sm" style="width:100%;margin-top:.4rem;" id="close-rank-btn">Cancel</button>
-  </div>
-</div>
+<div id="rank-modal" class="modal hidden"><div class="modal-box"><h3>Change Rank</h3><p class="modal-p" id="rank-mdesc"></p><div id="rank-buttons"></div><button class="btn btn-ghost btn-sm" style="width:100%;margin-top:.4rem;" id="close-rank-btn">Cancel</button></div></div>
 
-<!-- game-close-modal kept for Escape key path in globalKeyHandler -->
-<div id="game-close-modal" class="modal hidden">
-  <div class="modal-box">
-    <h3>Close Game?</h3>
-    <p class="modal-p">Your progress will be lost.</p>
-    <div class="modal-actions">
-      <button class="btn btn-ghost btn-sm" id="game-close-cancel-btn">Keep Playing</button>
-      <button class="btn btn-danger btn-sm" id="game-close-confirm-btn"
-        onclick="(function(e){e.stopPropagation();if(typeof doCloseGame==='function')doCloseGame();})(event)">
-        Close
-      </button>
-    </div>
-  </div>
-</div>
+<div id="game-close-modal" class="modal hidden"><div class="modal-box"><h3>Close Game?</h3><p class="modal-p">Your progress will be lost.</p><div class="modal-actions"><button class="btn btn-ghost btn-sm" id="game-close-cancel-btn">Keep Playing</button><button class="btn btn-danger btn-sm" id="game-close-confirm-btn" onclick="(function(e){e.stopPropagation();if(typeof doCloseGame==='function')doCloseGame();})(event)">Close</button></div></div></div>
 
-<div id="mention-modal" class="modal hidden">
-  <div class="modal-box" style="max-width:320px;">
-    <h3>Mention User</h3>
-    <input type="text" class="field-input" id="mention-search-inp" placeholder="Search username…" autocomplete="off" style="margin-bottom:.6rem;">
-    <div id="mention-results" style="max-height:180px;overflow-y:auto;"></div>
-    <div class="modal-actions">
-      <button class="btn btn-ghost btn-sm" id="close-mention-btn">Cancel</button>
-    </div>
-  </div>
-</div>
+<div id="mention-modal" class="modal hidden"><div class="modal-box" style="max-width:320px;"><h3>Mention User</h3><input type="text" class="field-input" id="mention-search-inp" placeholder="Search username…" autocomplete="off" style="margin-bottom:.6rem;"><div id="mention-results" style="max-height:180px;overflow-y:auto;"></div><div class="modal-actions"><button class="btn btn-ghost btn-sm" id="close-mention-btn">Cancel</button></div></div></div>
 
 <div id="epicker" class="epicker hidden"></div>
+
+<!-- HUD — FPS + Battery (bottom right corner of home) -->
+<div id="home-hud">
+  <span id="fps-counter">— FPS</span>
+  <span class="hud-sep">·</span>
+  <span id="battery-status">🔋 —</span>
+</div>
 
 <script type="module" src="script.js"></script>
 </body>

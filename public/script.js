@@ -10,7 +10,6 @@ const firebaseConfig = {
   storageBucket: "__FIREBASE_STORAGE_BUCKET__",
   messagingSenderId: "__FIREBASE_MESSAGING_SENDER_ID__",
   appId: "__FIREBASE_APP_ID__",
-  measurementId: "G-VQVP2X5R2T"
 };
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
@@ -1854,11 +1853,11 @@ function openZone(z){
   const url   = z.url.replace('{COVER_URL}', COVER_URL).replace('{HTML_URL}', HTML_URL);
   const vault = document.getElementById('game-vault');
 
-  // Recreate iframe if it was removed on close (GhostLink behaviour)
   if(!zoneFrame || !zoneFrame.parentNode){
     zoneFrame = document.createElement('iframe');
     zoneFrame.id = 'game-frame';
-    zoneFrame.style.cssText = 'border:none;width:calc(100% - 24px);height:calc(100% - 24px);margin:0 12px 12px 12px;background:transparent;border-radius:12px;display:block;flex-grow:1;';
+    // ✅ No explicit height — flex-grow:1 fills all remaining space after the header
+    zoneFrame.style.cssText = 'border:none;width:100%;min-height:0;flex:1 1 0%;display:block;background:transparent;';
     vault.appendChild(zoneFrame);
   }
 
@@ -1964,4 +1963,9 @@ function globalKeyHandler(e){
     if(activeSection === 'chat') document.getElementById('chat-input')?.focus();
     if(activeSection === 'dms')  document.getElementById('dm-input')?.focus();
   }
+}
+/* ── KEYBOARD ── */
+function globalKeyHandler(e){
+  if(e.key==='Escape'){const o=document.querySelector('.modal:not(.hidden)');if(o){closeModal(o.id);return}if($('game-vault')?.style.display==='flex'){doCloseGame();return}if(!$('mobile-drawer')?.classList.contains('hidden')){closeMobileDrawer();return}$('epicker')?.classList.add('hidden')}
+  if((e.ctrlKey||e.metaKey)&&e.key==='k'){e.preventDefault();if(activeSection==='chat')$('chat-input')?.focus();if(activeSection==='dms')$('dm-input')?.focus()}
 }
