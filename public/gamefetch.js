@@ -79,50 +79,62 @@ export async function loadUGSGames() {
     }
   } catch {}
 
-  return new Promise((resolve) => {
-    // Create a hidden container for UGS to populate
-    const container = document.createElement('div');
-    container.id = 'sections-container';
-    container.style.cssText = 'position:absolute;left:-9999px;top:-9999px;width:1px;height:1px;overflow:hidden;visibility:hidden;pointer-events:none;';
-    document.body.appendChild(container);
+  try {
+    const ctrl = new AbortController();
+    const tid = setTimeout(() => ctrl.abort(), 10000);
+    const res = await fetch('https://cdn.jsdelivr.net/gh/genizy/ugs-singlefile@main/games.js?t=' + Date.now(), { signal: ctrl.signal });
+    clearTimeout(tid);
+    const text = await res.text();
 
-    const script = document.createElement('script');
-    script.src = 'https://cdn.jsdelivr.net/gh/genizy/ugs-singlefile@main/games.js?t=' + Date.now();
+    const games = [];
+    let i = 0;
 
-    const timeout = setTimeout(() => {
-      scrape();
-    }, 8000);
-
-    function scrape() {
-      clearTimeout(timeout);
-      const games = [];
-      const buttons = container.querySelectorAll('input[type="button"]');
-      buttons.forEach((btn, i) => {
-        const name = btn.value || btn.getAttribute('value') || '';
-        if (!name) return;
-        // Extract URL from onclick: location.href='...' or window.location='...' or location='...'
-        const onclick = btn.getAttribute('onclick') || '';
-        let url = '';
-        const m = onclick.match(/(?:location\.href|window\.location|location)\s*=\s*['"]([^'"]+)['"]/);
-        if (m) url = m[1];
-        if (!url) return;
-        games.push({ id: 'ugs_' + i, name, url, cover: null, source: 'ugs' });
-      });
-      try { document.body.removeChild(container); } catch {}
-      try { sessionStorage.setItem(cacheKey, JSON.stringify({ ts: Date.now(), data: games })); } catch {}
-      resolve(games);
+    // Pattern 1: addGame('Name', 'url') or addGame("Name", "url")
+    const pat1 = /addGame\s*\(\s*['"]([^'"]+)['"]\s*,\s*['"]([^'"]+)['"]\s*\)/g;
+    let m;
+    while ((m = pat1.exec(text)) !== null) {
+      games.push({ id: 'ugs_' + i++, name: m[1], url: m[2], cover: null, source: 'ugs' });
     }
 
-    script.onload = () => {
-      // Give the script a tick to populate the DOM
-      setTimeout(scrape, 100);
-    };
-    script.onerror = () => {
-      try { document.body.removeChild(container); } catch {}
-      resolve([]);
-    };
-    document.head.appendChild(script);
-  });
+    // Pattern 2: addButton('Name', 'url')
+    if (games.length === 0) {
+      const pat2 = /addButton\s*\(\s*['"]([^'"]+)['"]\s*,\s*['"]([^'"]+)['"]\s*\)/g;
+      while ((m = pat2.exec(text)) !== null) {
+        games.push({ id: 'ugs_' + i++, name: m[1], url: m[2], cover: null, source: 'ugs' });
+      }
+    }
+
+    // Pattern 3: value='Name' onclick="location.href='url'" — input button in HTML-in-JS strings
+    if (games.length === 0) {
+      const pat3 = /value=['"]([^'"]+)['"]\s+onclick=['"](?:location\.href|window\.location)\s*=\s*\\?['"]([^'"\\]+)\\?['"]/g;
+      while ((m = pat3.exec(text)) !== null) {
+        games.push({ id: 'ugs_' + i++, name: m[1], url: m[2], cover: null, source: 'ugs' });
+      }
+    }
+
+    // Pattern 4: innerHTML / template literal patterns with location.href
+    if (games.length === 0) {
+      const pat4 = /value=['"]((?:[^'"\\]|\\.)+)['"]\s+onclick=['"]\s*location\.href\s*=\s*\\?['"]([^'"\\]+)/g;
+      while ((m = pat4.exec(text)) !== null) {
+        games.push({ id: 'ugs_' + i++, name: m[1].replace(/\\'/g, "'"), url: m[2], cover: null, source: 'ugs' });
+      }
+    }
+
+    // Pattern 5: Generic — find all pairs of quoted strings where 2nd looks like a URL
+    if (games.length === 0) {
+      const pat5 = /['"]([A-Za-z0-9 :!@#$%^&*()\-_+=,.?/\\]{3,60})['"]\s*,\s*['"]((https?:\/\/|\/)[^'"]{5,})['"]/g;
+      while ((m = pat5.exec(text)) !== null) {
+        if (!m[2].includes('.js') && !m[2].includes('.css')) {
+          games.push({ id: 'ugs_' + i++, name: m[1], url: m[2], cover: null, source: 'ugs' });
+        }
+      }
+    }
+
+    try { sessionStorage.setItem(cacheKey, JSON.stringify({ ts: Date.now(), data: games })); } catch {}
+    return games;
+  } catch {
+    return [];
+  }
 }
 
 /* ══════════════════════════════════════════
