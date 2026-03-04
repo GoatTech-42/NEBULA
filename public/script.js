@@ -1,8 +1,8 @@
 // script.js — NEBULA core (Firebase, auth, state, chat, DMs, admin, proxies, vault, UI)
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
 import { getFirestore, doc, onSnapshot, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
-import { initCanvas, initParallax } from "./ui.js";
-import { loadGnMathGames, loadPeteZahGames, fetchGnMathPopularity, filterAndSort, resolveGameUrl, resolveCoverUrl } from './gamefetch.js';
+import { initCanvas, initParallax, setParallaxActive } from "./ui.js";
+import { loadGnMathGames, loadUGSGames, fetchGnMathPopularity, filterAndSort, resolveGameUrl, resolveCoverUrl } from './gamefetch.js';
 const $=id=>document.getElementById(id);
 
 const firebaseConfig = {
@@ -462,6 +462,7 @@ async function loadAccounts(){
 (async () => {
   initCanvas();
   initParallax();
+  initCursor();
   showSkeleton();
   try{
     const saved = localStorage.getItem('nebula_sess');
@@ -590,7 +591,7 @@ async function loadGames(){
       zones=await loadGnMathGames();
       popularityData=await fetchGnMathPopularity();
     } else {
-      zones=await loadPeteZahGames();
+      zones=await loadUGSGames();
       popularityData={};
     }
     finishZonesLoad();
@@ -603,6 +604,7 @@ async function launchApp(){
   document.getElementById('auth-screen').classList.add('hidden');
   document.getElementById('pending-screen').classList.add('hidden');
   document.getElementById('app').classList.remove('hidden');
+  document.body.classList.add('app-ready');
 
   if(isMod(currentUser)){
     document.getElementById('snav-admin').classList.remove('hidden');
@@ -617,7 +619,6 @@ async function launchApp(){
   startListeners();
   if(canAccessGames(currentUser)) loadGames();
   loadProfileSection();
-  initCursor();
   initSysStats();
   initVisits();
 
@@ -848,8 +849,7 @@ function showSection(s){
   if(sec){ sec.classList.remove('hidden'); sec.classList.add('active'); }
   document.getElementById(`snav-${s}`)?.classList.add('active');
   activeSection = s;
-  const hud = document.getElementById('home-hud');
-  if(hud) hud.style.display = (s === 'home') ? 'flex' : 'none';
+  setParallaxActive(s === 'home');
   if(s === 'chat'){ if(activeThread){ unreadThreads[activeThread.id] = 0; newMsgCount = 0; } updateChatBadge(); renderThreadList(); }
   if(s === 'dms'){ if(activeDM) unreadDMs[activeDM] = 0; updateDMBadge(); renderDMList(); }
   if(s === 'admin')         renderAdminPanel();
@@ -1590,7 +1590,15 @@ function renderAdminPanel(){
 
 function renderAdmUsers(){
   const el = document.getElementById('adm-users'); if(!el) return;
-  const users = Object.entries(DB.accounts).filter(([,a]) => a.approved && !a.banned);
+  const RANK_ORDER = { goat: 0, universal: 1, galactic: 2, solar: 3, planetary: 4, earthbound: 5 };
+  const users = Object.entries(DB.accounts)
+    .filter(([,a]) => a.approved && !a.banned)
+    .sort(([ua, a], [ub, b]) => {
+      const ra = RANK_ORDER[a.rank] ?? 99;
+      const rb = RANK_ORDER[b.rank] ?? 99;
+      if (ra !== rb) return ra - rb;
+      return ua.localeCompare(ub);
+    });
   el.innerHTML = `<div style="font-size:.63rem;color:var(--text-muted);margin-bottom:.75rem;">${users.length} approved user(s)</div>`;
   users.forEach(([u, a]) => {
     const isAdminUser = u === ADMIN_USERNAME;
@@ -1739,7 +1747,10 @@ function renderProxies(){
   const pl = document.getElementById('proxy-list'); if(!pl) return;
   const adminUser = currentUser?.isAdmin;
   const ed = document.getElementById('proxy-editor'); if(ed) ed.classList.toggle('hidden', !adminUser);
-  pl.innerHTML = (DB.proxies||[]).map((p,i) => `
+  const proxies = DB.proxies || [];
+  const sortedProxies = proxies.map((p, i) => ({ p, i })).sort((a, b) => a.p.name.localeCompare(b.p.name));
+  pl.innerHTML = sortedProxies.map(({ p, i }) => {
+    return `
     <div class="card">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.72rem;">
         <div class="card-title">${esc(p.name)}</div>
@@ -1754,7 +1765,8 @@ function renderProxies(){
         <input type="text" id="link-in-${i}" class="sinput" placeholder="Add URL…" autocomplete="off">
         <button class="btn btn-sm" onclick="addLink(${i})" style="width:100%;margin-top:.3rem">Save Link</button>
       </div>` : ''}
-    </div>`).join('');
+    </div>`;
+  }).join('');
 }
 
 window.addCat = async () => {
@@ -1981,18 +1993,25 @@ function renderVaultGrid(data){
     return;
   }
   data.forEach(z => {
-    const card = document.createElement('div'); card.className = 'game-card';
+    const noCover = !z.cover;
+    const card = document.createElement('div'); card.className = 'game-card' + (noCover ? ' no-cover' : '');
     card.addEventListener('click', () => openZone(z));
     const fav = document.createElement('button'); fav.className = `game-fav-btn${gameFavs.includes(z.id) ? ' active' : ''}`;
     fav.innerHTML = '<svg viewBox="0 0 24 24" stroke-width="2" width="13" height="13"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>';
     fav.title = 'Favorite'; fav.addEventListener('click', e => { e.stopPropagation(); toggleGameFav(z.id); });
-    const img = document.createElement('img');
-    img.dataset.src = z.cover.replace('{COVER_URL}', COVER_URL).replace('{HTML_URL}', HTML_URL);
-    img.src     = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1 1"><rect fill="%230d1c33" width="1" height="1"/></svg>';
-    img.loading = 'lazy'; img.alt = z.name;
     const body = document.createElement('div'); body.className = 'game-card-body';
     const name = document.createElement('div'); name.className = 'game-card-name'; name.textContent = z.name;
-    body.appendChild(name); card.append(fav, img, body); grid.appendChild(card);
+    body.appendChild(name);
+    if(noCover){
+      card.append(fav, body);
+    } else {
+      const img = document.createElement('img');
+      img.dataset.src = z.cover.replace('{COVER_URL}', COVER_URL).replace('{HTML_URL}', HTML_URL);
+      img.src     = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1 1"><rect fill="%230d1c33" width="1" height="1"/></svg>';
+      img.loading = 'lazy'; img.alt = z.name;
+      card.append(fav, img, body);
+    }
+    grid.appendChild(card);
   });
   requestAnimationFrame(setupGameObserver);
 }
@@ -2028,14 +2047,6 @@ function openZone(z){
       return r.text();
     })
     .then(html => {
-      if(z.source === 'petezah'){
-        const baseUrl = new URL('./', url).href;
-        if(!html.match(/<head[^>]*>/i)){
-          html = html.replace(/<html[^>]*>/i, m => m + `<head><base href="${baseUrl}"></head>`);
-        } else {
-          html = html.replace(/(<head[^>]*>)/i, `$1<base href="${baseUrl}">`);
-        }
-      }
       html = cleanHTML(html);
       zoneFrame.contentDocument.open();
       zoneFrame.contentDocument.write(html);
@@ -2043,6 +2054,7 @@ function openZone(z){
       document.getElementById('vault-title').textContent = 'VAULT: ' + z.name.toUpperCase();
       vault.dataset.zoneId = z.id;
       vault.style.display = 'flex';
+      document.body.classList.add('game-active');
     })
     .catch(e => { if(e?.name !== 'AbortError') notify('Failed to load game','error'); });
 }
@@ -2051,6 +2063,7 @@ function openZone(z){
 function doCloseGame(){
   const vault = document.getElementById('game-vault');
   if(vault) vault.style.display = 'none';
+  document.body.classList.remove('game-active');
 
   if(zoneFrame && zoneFrame.parentNode){
     try{ zoneFrame.contentWindow?.stop?.(); }catch{}
