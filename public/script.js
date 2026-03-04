@@ -521,6 +521,7 @@ function initCursor(){
 
   function loop(){
     requestAnimationFrame(loop);
+    if(Math.abs(mx-rx)<0.1&&Math.abs(my-ry)<0.1)return;
     rx+=(mx-rx)*.10;ry+=(my-ry)*.10;
     ring.style.left=rx.toFixed(1)+'px';ring.style.top=ry.toFixed(1)+'px';
   }
@@ -530,14 +531,6 @@ function initCursor(){
   document.addEventListener('mouseup',()=>{dot.classList.remove('cursor-click');ring.classList.remove('cursor-click');});
   document.addEventListener('mouseleave',()=>{dot.style.opacity='0';ring.style.opacity='0';});
   document.addEventListener('mouseenter',()=>{dot.style.opacity='1';ring.style.opacity='1';});
-
-  // Hide cursor elements when mouse is over game vault
-  document.getElementById('game-vault')?.addEventListener('mouseenter',()=>{
-    dot.style.display='none';ring.style.display='none';
-  });
-  document.getElementById('game-vault')?.addEventListener('mouseleave',()=>{
-    dot.style.display='';ring.style.display='';
-  });
 }
 
 function initSysStats(){
@@ -559,12 +552,15 @@ function initSysStats(){
   if(batEl){
     function showBat(b){
       const p=Math.round(b.level*100);
-      batEl.textContent=(b.charging?'⚡':p>60?'🔋':p>20?'🪫':'🔴')+' '+p+'%';
+      const fillColor=b.charging?'#10b981':p>60?'#38bdf8':p>20?'#f59e0b':'#ef4444';
+      const fillW=Math.round((p/100)*18);
+      const svg=`<svg width="22" height="12" viewBox="0 0 22 12" fill="none" xmlns="http://www.w3.org/2000/svg" style="vertical-align:middle;margin-right:3px"><rect x="0.5" y="0.5" width="18" height="11" rx="2" stroke="currentColor" stroke-opacity="0.5"/><rect x="1.5" y="1.5" width="${fillW}" height="9" rx="1.5" fill="${fillColor}"/><path d="M19.5 4v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>${b.charging?'<text x="2" y="9" font-size="7" fill="#fff" font-family="Inter,sans-serif" font-weight="800">⚡</text>':''}</svg>${p}%`;
+      batEl.innerHTML=svg;
     }
     if(navigator.getBattery){
-      navigator.getBattery().then(b=>{showBat(b);b.addEventListener('levelchange',()=>showBat(b));b.addEventListener('chargingchange',()=>showBat(b))}).catch(()=>{batEl.textContent='🔋 N/A'});
+      navigator.getBattery().then(b=>{showBat(b);b.addEventListener('levelchange',()=>showBat(b));b.addEventListener('chargingchange',()=>showBat(b))}).catch(()=>{batEl.textContent='N/A'});
     } else {
-      batEl.textContent='🔋 N/A';
+      batEl.textContent='N/A';
     }
   }
 }
@@ -852,6 +848,8 @@ function showSection(s){
   if(sec){ sec.classList.remove('hidden'); sec.classList.add('active'); }
   document.getElementById(`snav-${s}`)?.classList.add('active');
   activeSection = s;
+  const hud = document.getElementById('home-hud');
+  if(hud) hud.style.display = (s === 'home') ? 'flex' : 'none';
   if(s === 'chat'){ if(activeThread){ unreadThreads[activeThread.id] = 0; newMsgCount = 0; } updateChatBadge(); renderThreadList(); }
   if(s === 'dms'){ if(activeDM) unreadDMs[activeDM] = 0; updateDMBadge(); renderDMList(); }
   if(s === 'admin')         renderAdminPanel();
@@ -2010,9 +2008,10 @@ function openZone(z){
   if(z.name === "[!] SUGGEST GAMES .gg/D4c9VFYWyU"){
     window.open("https://discord.com/invite/dKs2sUNUXd", "_blank"); return;
   }
-  if(z.url.startsWith('http')){ window.open(z.url, '_blank'); return; }
 
-  const url   = z.url.replace('{COVER_URL}', COVER_URL).replace('{HTML_URL}', HTML_URL);
+  const url = resolveGameUrl(z);
+  if(!url){ notify('No game URL','error'); return; }
+
   const vault = document.getElementById('game-vault');
 
   if(!zoneFrame || !zoneFrame.parentNode){
@@ -2024,8 +2023,19 @@ function openZone(z){
   }
 
   fetch(url + "?t=" + Date.now())
-    .then(r => r.text())
+    .then(r => {
+      if(!r.ok) throw new Error('HTTP ' + r.status);
+      return r.text();
+    })
     .then(html => {
+      if(z.source === 'petezah'){
+        const baseUrl = new URL('./', url).href;
+        if(!html.match(/<head[^>]*>/i)){
+          html = html.replace(/<html[^>]*>/i, m => m + `<head><base href="${baseUrl}"></head>`);
+        } else {
+          html = html.replace(/(<head[^>]*>)/i, `$1<base href="${baseUrl}">`);
+        }
+      }
       html = cleanHTML(html);
       zoneFrame.contentDocument.open();
       zoneFrame.contentDocument.write(html);
@@ -2066,7 +2076,7 @@ function downloadZone(){
   const vault = document.getElementById('game-vault'); if(!vault) return;
   const z = zones.find(z => String(z.id) === String(vault.dataset.zoneId));
   if(!z){ notify('Zone not found','error'); return; }
-  const url = z.url.replace('{HTML_URL}', HTML_URL).replace('{COVER_URL}', COVER_URL);
+  const url = resolveGameUrl(z);
   fetch(url + "?t=" + Date.now())
     .then(r => r.text())
     .then(text => {

@@ -21,6 +21,8 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;-webk
 *{cursor:none!important;}
 /* Restore normal cursor inside the game iframe */
 #game-vault iframe,#game-vault iframe *{cursor:auto!important;}
+/* Restore pointer cursor on vault header buttons */
+#game-vault .ghdr,#game-vault .ghdr *{cursor:pointer!important;}
 
 #custom-cursor{
   position:fixed;width:10px;height:10px;
