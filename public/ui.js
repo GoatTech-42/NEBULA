@@ -155,6 +155,9 @@ export function initCanvas() {
 /* ══════════════════════════════════════════
    PARALLAX NEBULA
 ══════════════════════════════════════════ */
+let parallaxActive = false;
+export function setParallaxActive(v) { parallaxActive = v; }
+
 export function initParallax() {
   const layerDefs = [
   { id:'neb-1', speedX:0.022, speedY:0.015 },
@@ -182,6 +185,7 @@ export function initParallax() {
   }
 
   window.addEventListener('mousemove', e => {
+    if (!parallaxActive) return;
     suppressIdle();
     targetX = (e.clientX / window.innerWidth  - 0.5) * 2;
     targetY = (e.clientY / window.innerHeight - 0.5) * 2;
@@ -213,6 +217,10 @@ export function initParallax() {
   function animate(now) {
     requestAnimationFrame(animate);
     if (window._canvasPaused) return;
+    if (!parallaxActive) {
+      targetX += (0 - targetX) * 0.05;
+      targetY += (0 - targetY) * 0.05;
+    }
     const idle = idleOffset(now);
     const fx = targetX + idle.x, fy = targetY + idle.y;
     currentX += (fx - currentX) * LERP; currentY += (fy - currentY) * LERP;

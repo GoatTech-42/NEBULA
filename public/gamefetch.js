@@ -1,6 +1,6 @@
 /**
  * gamefetch.js — NEBULA game fetching logic
- * Supports two sources: gn-math (default) and PeteZah Lite
+ * Supports two sources: gn-math (default) and UGS (Ultimate Game Stash)
  */
 
 export const COVER_URL = "https://cdn.jsdelivr.net/gh/gn-math/covers@main";
@@ -11,7 +11,6 @@ const GN_ZONE_URLS = [
   "https://cdn.jsdelivr.net/gh/gn-math/assets@latest/zones.json",
   "https://cdn.jsdelivr.net/gh/gn-math/assets@master/zones.json",
 ];
-const PETEZAH_JSON = "https://cdn.jsdelivr.net/gh/PeteZah-G/singlefile-json@main/search.json";
 
 /* ═══════════════════════════════════��══════
    GN-MATH SOURCE
@@ -67,10 +66,10 @@ export async function fetchGnMathPopularity() {
 }
 
 /* ══════════════════════════════════════════
-   PETEZAH SOURCE
+   UGS SOURCE
 ══════════════════════════════════════════ */
-export async function loadPeteZahGames() {
-  const cacheKey = 'nebula-zones-pz-cache';
+export async function loadUGSGames() {
+  const cacheKey = 'nebula-zones-ugs-cache';
   const cacheTTL = 30 * 60 * 1000;
   try {
     const cached = sessionStorage.getItem(cacheKey);
@@ -80,19 +79,50 @@ export async function loadPeteZahGames() {
     }
   } catch {}
 
-  const res  = await fetch(PETEZAH_JSON + "?t=" + Date.now());
-  const json = await res.json();
-  const games = (json.games || []).map((g, i) => ({
-    id      : 'pz_' + i,
-    name    : g.label || g.name || 'Unknown',
-    url     : g.url,
-    cover   : g.imageUrl || g.cover || '',
-    source  : 'petezah',
-    category: Array.isArray(g.categories) ? g.categories[0] || '' : '',
-  }));
+  return new Promise((resolve) => {
+    // Create a hidden container for UGS to populate
+    const container = document.createElement('div');
+    container.id = 'sections-container';
+    container.style.cssText = 'position:absolute;left:-9999px;top:-9999px;width:1px;height:1px;overflow:hidden;visibility:hidden;pointer-events:none;';
+    document.body.appendChild(container);
 
-  try { sessionStorage.setItem(cacheKey, JSON.stringify({ ts: Date.now(), data: games })); } catch {}
-  return games;
+    const script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/gh/genizy/ugs-singlefile@main/games.js?t=' + Date.now();
+
+    const timeout = setTimeout(() => {
+      scrape();
+    }, 8000);
+
+    function scrape() {
+      clearTimeout(timeout);
+      const games = [];
+      const buttons = container.querySelectorAll('input[type="button"]');
+      buttons.forEach((btn, i) => {
+        const name = btn.value || btn.getAttribute('value') || '';
+        if (!name) return;
+        // Extract URL from onclick: location.href='...' or window.location='...' or location='...'
+        const onclick = btn.getAttribute('onclick') || '';
+        let url = '';
+        const m = onclick.match(/(?:location\.href|window\.location|location)\s*=\s*['"]([^'"]+)['"]/);
+        if (m) url = m[1];
+        if (!url) return;
+        games.push({ id: 'ugs_' + i, name, url, cover: null, source: 'ugs' });
+      });
+      try { document.body.removeChild(container); } catch {}
+      try { sessionStorage.setItem(cacheKey, JSON.stringify({ ts: Date.now(), data: games })); } catch {}
+      resolve(games);
+    }
+
+    script.onload = () => {
+      // Give the script a tick to populate the DOM
+      setTimeout(scrape, 100);
+    };
+    script.onerror = () => {
+      try { document.body.removeChild(container); } catch {}
+      resolve([]);
+    };
+    document.head.appendChild(script);
+  });
 }
 
 /* ══════════════════════════════════════════
@@ -134,13 +164,8 @@ export function filterAndSort(games, { query = '', sortBy = 'popular', popularit
 ══════════════════════════════════════════ */
 export function resolveGameUrl(z) {
   if (!z) return '';
-  if (z.source === 'petezah') {
-    // Normalize: ensure index.html suffix
-    let url = z.url || '';
-    if (!url.endsWith('index.html') && !url.match(/\.\w+$/)) {
-      url = url.replace(/\/$/, '') + '/index.html';
-    }
-    return url;
+  if (z.source === 'ugs' || z.source === 'petezah') {
+    return z.url || '';
   }
   // gn-math
   if (z.url && z.url.startsWith('http')) return z.url;
@@ -149,6 +174,7 @@ export function resolveGameUrl(z) {
 
 export function resolveCoverUrl(z) {
   if (!z) return '';
+  if (z.source === 'ugs') return '';
   if (z.source === 'petezah') return z.cover || '';
   return (z.cover || '').replace('{COVER_URL}', COVER_URL).replace('{HTML_URL}', HTML_URL);
 }
