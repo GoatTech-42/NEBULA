@@ -68,16 +68,6 @@ export async function fetchGnMathPopularity() {
 /* ══════════════════════════════════════════
    UGS SOURCE
 ══════════════════════════════════════════ */
-function formatUGSName(key) {
-  const stripped = key.startsWith('cl') ? key.slice(2) : key;
-  const spaced = stripped
-    .replace(/([A-Z])/g, ' $1')
-    .replace(/(\d)([A-Za-z])/g, '$1 $2')
-    .replace(/([A-Za-z])(\d)/g, '$1 $2')
-    .trim();
-  return spaced.replace(/\b\w/g, c => c.toUpperCase());
-}
-
 export async function loadUGSGames() {
   const cacheKey = 'nebula-zones-ugs-cache';
   const cacheTTL = 30 * 60 * 1000;
@@ -89,38 +79,62 @@ export async function loadUGSGames() {
     }
   } catch {}
 
-  const ctrl = new AbortController();
-  const tid  = setTimeout(() => ctrl.abort(), 10000);
-  try {
-    const res = await fetch('https://cdn.jsdelivr.net/gh/genizy/ugs-singlefile@main/games.js?t=' + Date.now(), { signal: ctrl.signal });
-    clearTimeout(tid);
-    if (!res.ok) return [];
-    const text = await res.text();
+  return new Promise((resolve) => {
+    // Build a minimal host page that mirrors the UGS reference HTML
+    const html = `<!DOCTYPE html><html><head></head><body>
+      <div id="sections-container"></div>
+      <script>
+        // Relay parsed games back to parent once script finishes
+        function _sendGames() {
+          const games = [];
+          document.querySelectorAll('input[type="button"]').forEach((btn, i) => {
+            const name = btn.value || '';
+            const onclick = btn.getAttribute('onclick') || '';
+            const m = onclick.match(/(?:location\\.href|window\\.location(?:\\.href)?|location)\\s*=\\s*['"]([^'"]+)['"]/);
+            if (name && m && m[1]) {
+              games.push({ id: 'ugs_' + i, name, url: m[1], cover: null, source: 'ugs' });
+            }
+          });
+          window.parent.postMessage({ type: '__ugs_games__', games }, '*');
+        }
+      <\/script>
+      <script
+        src="https://cdn.jsdelivr.net/gh/genizy/ugs-singlefile@main/games.js"
+        onload="setTimeout(_sendGames, 200)"
+        onerror="window.parent.postMessage({type:'__ugs_games__',games:[]},'*')"
+      ><\/script>
+    </body></html>`;
 
-    const games = [];
-    const arrM = /let\s+files\s*=\s*\[([\s\S]*?)\]/.exec(text);
-    if (arrM) {
-      const inner = arrM[1];
-      const entryRe = /['"]([^'"]+)['"]/g;
-      let m;
-      let idx = 0;
-      while ((m = entryRe.exec(inner)) !== null) {
-        const key = m[1];
-        games.push({
-          id: 'ugs_' + idx++,
-          name: formatUGSName(key),
-          url: `https://cdn.jsdelivr.net/gh/genizy/ugs-singlefile@main/${key.endsWith('.html') ? key : key + '.html'}`,
-          cover: null,
-          source: 'ugs',
-        });
-      }
+    const blob = new Blob([html], { type: 'text/html' });
+    const blobUrl = URL.createObjectURL(blob);
+
+    const iframe = document.createElement('iframe');
+    iframe.style.cssText = 'position:absolute;left:-9999px;top:-9999px;width:1px;height:1px;border:none;visibility:hidden;pointer-events:none;';
+    iframe.src = blobUrl;
+
+    const timeout = setTimeout(() => {
+      cleanup();
+      resolve([]);
+    }, 12000);
+
+    function onMessage(e) {
+      if (!e.data || e.data.type !== '__ugs_games__') return;
+      cleanup();
+      const games = e.data.games || [];
+      try { sessionStorage.setItem(cacheKey, JSON.stringify({ ts: Date.now(), data: games })); } catch {}
+      resolve(games);
     }
-    try { sessionStorage.setItem(cacheKey, JSON.stringify({ ts: Date.now(), data: games })); } catch {}
-    return games;
-  } catch {
-    clearTimeout(tid);
-    return [];
-  }
+
+    function cleanup() {
+      clearTimeout(timeout);
+      window.removeEventListener('message', onMessage);
+      try { document.body.removeChild(iframe); } catch {}
+      URL.revokeObjectURL(blobUrl);
+    }
+
+    window.addEventListener('message', onMessage);
+    document.body.appendChild(iframe);
+  });
 }
 
 /* ══════════════════════════════════════════
