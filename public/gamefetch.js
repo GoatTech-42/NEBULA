@@ -68,9 +68,14 @@ export async function fetchGnMathPopularity() {
 /* ══════════════════════════════════════════
    UGS SOURCE
 ══════════════════════════════════════════ */
-function formatUGSName(fileName) {
-  const stripped = fileName.startsWith('cl') ? fileName.slice(2) : fileName;
-  return stripped.charAt(0).toUpperCase() + stripped.slice(1);
+function formatUGSName(key) {
+  const stripped = key.startsWith('cl') ? key.slice(2) : key;
+  const spaced = stripped
+    .replace(/([A-Z])/g, ' $1')
+    .replace(/(\d)([A-Za-z])/g, '$1 $2')
+    .replace(/([A-Za-z])(\d)/g, '$1 $2')
+    .trim();
+  return spaced.replace(/\b\w/g, c => c.toUpperCase());
 }
 
 export async function loadUGSGames() {
@@ -80,25 +85,17 @@ export async function loadUGSGames() {
     const cached = sessionStorage.getItem(cacheKey);
     if (cached) {
       const { ts, data } = JSON.parse(cached);
-      if (Date.now() - ts < cacheTTL) return data;
+      if (Date.now() - ts < cacheTTL && data.length > 0) return data;
     }
   } catch {}
-
-  const UGS_URL_TEMPLATES = [
-    'https://cdn.jsdelivr.net/gh/bubbls/ugs-singlefile/UGS-Files/file_list.js?t=',
-    'https://cdn.jsdelivr.net/gh/bubbls/ugs-singlefile@main/UGS-Files/file_list.js?t=',
-  ];
 
   const ctrl = new AbortController();
   const tid  = setTimeout(() => ctrl.abort(), 10000);
   try {
-    let text = null;
-    for (const tpl of UGS_URL_TEMPLATES) {
-      const res = await fetch(tpl + Date.now(), { signal: ctrl.signal });
-      if (res.ok) { text = await res.text(); break; }
-    }
+    const res = await fetch('https://cdn.jsdelivr.net/gh/genizy/ugs-singlefile@main/games.js?t=' + Date.now(), { signal: ctrl.signal });
     clearTimeout(tid);
-    if (!text) return [];
+    if (!res.ok) return [];
+    const text = await res.text();
 
     const games = [];
     const arrM = /let\s+files\s*=\s*\[([\s\S]*?)\]/.exec(text);
@@ -108,12 +105,11 @@ export async function loadUGSGames() {
       let m;
       let idx = 0;
       while ((m = entryRe.exec(inner)) !== null) {
-        const fileName = m[1];
+        const key = m[1];
         games.push({
           id: 'ugs_' + idx++,
-          name: formatUGSName(fileName),
-          fileName,
-          url: null,
+          name: formatUGSName(key),
+          url: `https://cdn.jsdelivr.net/gh/genizy/ugs-singlefile@main/${key.endsWith('.html') ? key : key + '.html'}`,
           cover: null,
           source: 'ugs',
         });
@@ -166,14 +162,7 @@ export function filterAndSort(games, { query = '', sortBy = 'popular', popularit
 ══════════════════════════════════════════ */
 export function resolveGameUrl(z) {
   if (!z) return '';
-  if (z.source === 'ugs') {
-    if (!z.fileName) return z.url || '';
-    const normalized = z.fileName.includes('.')
-      ? z.fileName
-      : z.fileName + '.html';
-    const encoded = encodeURIComponent(normalized);
-    return `https://cdn.jsdelivr.net/gh/bubbls/ugs-singlefile/UGS-Files/${encoded}`;
-  }
+  if (z.source === 'ugs') return z.url || '';
   if (z.source === 'petezah') {
     return z.url || '';
   }
