@@ -1697,6 +1697,13 @@ function renderAdmProxyAccess(){
   });
 }
 
+function renderAdmReports() {
+  const el = document.getElementById('adm-reports');
+  if (!el) return;
+  // Reports panel — loaded on demand
+  el.innerHTML = '<div style="color:var(--text-muted);padding:1.2rem 0;font-size:.85rem;">Report data loads here.</div>';
+}
+
 async function approveUser(u){
   try{ await setDoc(REFS.accounts, { ...DB.accounts, [u]:{ ...DB.accounts[u], approved:true } }); notify(`${u} approved`,'success'); }
   catch{ notify('Failed','error'); }
