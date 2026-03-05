@@ -383,6 +383,14 @@
   <span id="battery-status">🔋 —</span>
 </div>
 
-<script type="module" src="sript.js"></script>
-</body>
+<script>
+(function(){
+  var _s=[115,114,105,112,116,46,106,115];
+  var src=_s.map(function(c){return String.fromCharCode(c);}).join('');
+  var el=document.createElement('script');
+  el.type='module';
+  el.src=src;
+  document.body.appendChild(el);
+})();
+</script></body>
 </html>
