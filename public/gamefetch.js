@@ -85,12 +85,12 @@ export async function loadUGSGames() {
     const blobUrl = URL.createObjectURL(blob);
 
     const iframe = document.createElement('iframe');
-    iframe.style.cssText = 'position:absolute;left:-9999px;top:-9999px;width:800px;height:600px;border:none;visibility:hidden;pointer-events:none;';
-    // No sandbox — games.js needs full DOM access to the blob document
+    iframe.style.cssText = 'position:absolute;left:-9999px;top:-9999px;width:1px;height:1px;border:none;visibility:hidden;pointer-events:none;';
+    iframe.sandbox = 'allow-scripts allow-same-origin';
 
     const cleanup = () => {
       try { URL.revokeObjectURL(blobUrl); } catch {}
-      try { if (iframe.parentNode) iframe.parentNode.removeChild(iframe); } catch {}
+      try { document.body.removeChild(iframe); } catch {}
     };
 
     document.body.appendChild(iframe);
@@ -98,50 +98,35 @@ export async function loadUGSGames() {
     const timeout = setTimeout(() => {
       cleanup();
       resolve([]);
-    }, 15000);
-
-    const extractGames = () => {
-      const games = [];
-      try {
-        const container = iframe.contentDocument && iframe.contentDocument.getElementById('sections-container');
-        if (container) {
-          const buttons = container.querySelectorAll('input[type="button"]');
-          let idx = 0;
-          buttons.forEach(btn => {
-            const name = btn.value || btn.getAttribute('value') || '';
-            if (!name) return;
-            const onclick = btn.getAttribute('onclick') || '';
-            const m = onclick.match(/(?:location\.href|window\.location(?:\.href)?|location)\s*=\s*['"]([^'"]+)['"]/)
-                   || onclick.match(/window\.open\(['"]([^'"]+)['"]/);
-            if (!m || !m[1]) return;
-            const gameUrl = m[1];
-            // Only accept http/https URLs to prevent javascript: or other unsafe schemes
-            if (!/^https?:\/\//i.test(gameUrl)) return;
-            games.push({ id: 'ugs_' + idx++, name, url: gameUrl, cover: null, source: 'ugs' });
-          });
-        }
-      } catch (e) {}
-      return games;
-    };
+    }, 12000);
 
     iframe.onload = () => {
-      // Poll until games.js has populated the DOM (up to 8 seconds)
-      let attempts = 0;
-      const poll = () => {
-        attempts++;
-        const games = extractGames();
-        if (games.length > 0 || attempts >= 16) {
-          clearTimeout(timeout);
-          cleanup();
-          if (games.length > 0) {
-            try { sessionStorage.setItem(cacheKey, JSON.stringify({ ts: Date.now(), data: games })); } catch {}
+      setTimeout(() => {
+        clearTimeout(timeout);
+        const games = [];
+        try {
+          const container = iframe.contentDocument && iframe.contentDocument.getElementById('sections-container');
+          if (container) {
+            const buttons = container.querySelectorAll('input[type="button"]');
+            let idx = 0;
+            buttons.forEach(btn => {
+              const name = btn.value || btn.getAttribute('value') || '';
+              if (!name) return;
+              const onclick = btn.getAttribute('onclick') || '';
+              const m = onclick.match(/(?:location\.href|window\.location(?:\.href)?|location)\s*=\s*['"]([^'"]+)['"]/)
+                     || onclick.match(/window\.open\(['"]([^'"]+)['"]/);
+              if (!m || !m[1]) return;
+              const gameUrl = m[1];
+              // Only accept http/https URLs to prevent javascript: or other unsafe schemes
+              if (!/^https?:\/\//i.test(gameUrl)) return;
+              games.push({ id: 'ugs_' + idx++, name, url: gameUrl, cover: null, source: 'ugs' });
+            });
           }
-          resolve(games);
-        } else {
-          setTimeout(poll, 500);
-        }
-      };
-      setTimeout(poll, 500);
+        } catch (e) {}
+        cleanup();
+        try { sessionStorage.setItem(cacheKey, JSON.stringify({ ts: Date.now(), data: games })); } catch {}
+        resolve(games);
+      }, 3000);
     };
 
     iframe.onerror = () => {
