@@ -134,45 +134,23 @@ const rankColorText = r => ({
   galactic:'#a855f7',   universal:'#e2e8f0', goat:'#fde68a'
 }[r] || '#38bdf8');
 
-const tsNow = () => Date.now();
+const tsNow = () => new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',timeZone:'America/Los_Angeles'});
 const dmKey = (a, b) => [a, b].sort().join('__');
 
 const relTime = ts => {
   if(!ts) return '';
-  let d;
-  const n = Number(ts);
-  if(!isNaN(n) && n > 1000000000000) {
-    // New format: Unix ms timestamp
-    d = new Date(n);
-  } else {
-    // Legacy format: "12:34 PM" time-only string — best-effort parse
-    const str = String(ts);
-    const [time, period] = str.split(' ');
-    if(!period) return str;
-    let [hh, mm] = time.split(':').map(Number);
-    if(period === 'PM' && hh !== 12) hh += 12;
-    if(period === 'AM' && hh === 12) hh = 0;
-    d = new Date(); d.setHours(hh, mm, 0, 0);
-    if(d > new Date()) d.setDate(d.getDate() - 1);
-  }
-  const now = new Date();
-  const diff = now - d;
-  if(diff < 0) return 'just now';
-  const mins = Math.floor(diff / 60000);
-  const hrs  = Math.floor(diff / 3600000);
-  // Format the wall-clock time in LA timezone for display
-  const timeStr = d.toLocaleTimeString('en-US', { hour:'2-digit', minute:'2-digit', timeZone:'America/Los_Angeles' });
+  const [time, period] = ts.split(' '); if(!period) return ts;
+  let [hh, mm] = time.split(':').map(Number);
+  if(period === 'PM' && hh !== 12) hh += 12; if(period === 'AM' && hh === 12) hh = 0;
+  const d = new Date(); d.setHours(hh, mm, 0, 0); if(d > new Date()) d.setDate(d.getDate() - 1);
+  const diff = new Date() - d, mins = Math.floor(diff/60000), hrs = Math.floor(diff/3600000), days = Math.floor(diff/86400000);
   if(mins < 1)  return 'just now';
   if(mins < 60) return `${mins}m ago`;
   if(hrs  < 6)  return `${hrs}h ago`;
-  // Compare calendar dates in LA timezone
-  const todayLA     = new Date().toLocaleDateString('en-US', { timeZone:'America/Los_Angeles' });
-  const msgLA       = d.toLocaleDateString('en-US', { timeZone:'America/Los_Angeles' });
-  const yesterdayLA = new Date(Date.now() - 86400000).toLocaleDateString('en-US', { timeZone:'America/Los_Angeles' });
-  if(msgLA === todayLA)     return `Today at ${timeStr}`;
-  if(msgLA === yesterdayLA) return `Yesterday at ${timeStr}`;
+  if(days === 0) return `Today at ${ts}`;
+  if(days === 1) return `Yesterday at ${ts}`;
   const M = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-  return `${M[d.getMonth()]} ${d.getDate()} at ${timeStr}`;
+  return `${M[d.getMonth()]} ${d.getDate()} at ${ts}`;
 };
 
 const renderMentions = escText => escText.replace(/@([a-z0-9_\-]+)/gi, (m, u) => {
@@ -597,7 +575,6 @@ async function initVisits(){
 }
 
 async function loadGames(){
-  if(gameObserver){ gameObserver.disconnect(); gameObserver = null; }
   const loading=document.getElementById('vault-loading');
   const grid=document.getElementById('game-grid');
   const featWrap=document.getElementById('vault-featured-wrap');
@@ -1899,11 +1876,7 @@ function setupGameObserver(){
 
 /* setupFeatured — seeded random, exactly as GhostLink */
 function setupFeatured(){
-  const sourceEl = document.getElementById('vault-source');
-  const source = sourceEl ? sourceEl.value : 'gn-math';
-  // Skip featured carousel for sources without cover images
-  if(source === 'ugs' || zones.length < 1) return;
-  if(zones.length < 5) return; // keep original threshold for gn-math
+  if(zones.length < 5) return;
   const now  = new Date();
   const seed = now.getFullYear() + '-' + now.getMonth() + '-' + now.getDate() + (now.getHours() < 12 ? 'AM' : 'PM');
   let h = 0; for(let i = 0; i < seed.length; i++) h = seed.charCodeAt(i) + ((h << 5) - h);
@@ -1937,7 +1910,7 @@ function renderFeatured(){
     const d   = document.createElement('div'); d.className = 'feat-item';
     d.addEventListener('click', () => openZone(z));
     const img = document.createElement('img');
-    img.src     = resolveCoverUrl(z) || 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 120"><rect fill="%230d1c33" width="160" height="120"/></svg>';
+    img.src     = z.cover.replace('{COVER_URL}', COVER_URL).replace('{HTML_URL}', HTML_URL);
     img.loading = 'lazy'; img.alt = z.name;
     const p   = document.createElement('div');
     p.style.cssText = 'font-size:.63rem;color:var(--text-muted);margin-top:7px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;';
@@ -2023,14 +1996,8 @@ function renderVaultGrid(data){
     const name = document.createElement('div'); name.className = 'game-card-name'; name.textContent = z.name;
     body.appendChild(name);
     const img = document.createElement('img');
-    const coverSrc = resolveCoverUrl(z);
-    if(coverSrc) {
-      img.dataset.src = coverSrc;
-      img.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1 1"><rect fill="%230d1c33" width="1" height="1"/></svg>';
-    } else {
-      img.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 120"><rect fill="%230d1c33" width="160" height="120"/><text x="80" y="65" text-anchor="middle" font-family="sans-serif" font-size="11" fill="%23446688">No Cover</text></svg>';
-      img.removeAttribute('data-src');
-    }
+    img.dataset.src = z.cover.replace('{COVER_URL}', COVER_URL).replace('{HTML_URL}', HTML_URL);
+    img.src     = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1 1"><rect fill="%230d1c33" width="1" height="1"/></svg>';
     img.loading = 'lazy'; img.alt = z.name;
     card.append(fav, img, body);
     grid.appendChild(card);
