@@ -414,6 +414,9 @@ body.game-active #home-hud { display: none !important; }
 #fav-filter-btn:hover{background:rgba(255,255,255,.07);}
 #fav-filter-btn.active{border-color:rgba(239,68,68,.42);color:#ef4444;background:rgba(239,68,68,.05);}
 #fav-filter-btn.active svg{fill:#ef4444;stroke:#ef4444;}
+#vault-source{flex-shrink:0;height:44px;padding:0 14px;background:rgba(255,255,255,.04);border:1.5px solid var(--border2);border-radius:11px;color:var(--text);font-family:'Inter',sans-serif;font-size:.78rem;font-weight:600;cursor:pointer;outline:none;color-scheme:dark;transition:all var(--tm);appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%2338bdf8'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:30px;}
+#vault-source:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(56,189,248,.07);}
+#vault-source option{background:#0a1628;color:var(--text);}
 
 /* Featured carousel */
 .vault-featured{width:100%;max-width:1100px;position:relative;margin-bottom:30px;padding:0 50px;box-sizing:border-box;}

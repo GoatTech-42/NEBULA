@@ -139,6 +139,11 @@ const dmKey = (a, b) => [a, b].sort().join('__');
 
 const relTime = ts => {
   if(!ts) return '';
+  if(typeof ts !== 'string') {
+    // Handle Firestore Timestamp objects gracefully
+    if(typeof ts.toDate === 'function') ts = ts.toDate().getTime();
+    else if(typeof ts === 'object') return '';
+  }
   let d;
   const n = Number(ts);
   if(!isNaN(n) && n > 1000000000000) {
@@ -694,9 +699,6 @@ function wireStaticListeners(){
     renderVaultGrid(getFilteredZones());
   }, 180));
   document.getElementById('vault-source')?.addEventListener('change', () => {
-    // clear the per-source cache so it always reloads fresh on switch
-    try { sessionStorage.removeItem('nebula-zones-gn-cache'); } catch {}
-    try { sessionStorage.removeItem('nebula-zones-ugs-cache'); } catch {}
     loadGames();
   });
   document.getElementById('vault-sort')?.addEventListener('change', () => {
@@ -1093,7 +1095,7 @@ function renderMessages(){
   let lastUser = null, lastDate = null;
   msgs.forEach((m, idx) => {
     if(m.deleted && !isMod(currentUser)){ lastUser = null; return; }
-    const ts = m.time||'', ds = ts.split(' ')[0];
+    const ts = typeof m.time === 'string' ? m.time : '', ds = ts.split(' ')[0];
     if(ds && ds !== lastDate && (ds === 'Today' || ds === 'Yesterday' || /Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec/.test(ds))){
       const dd = document.createElement('div'); dd.className = 'date-divider';
       dd.innerHTML = `<span>${ds}</span>`; container.appendChild(dd); lastDate = ds;
@@ -1876,7 +1878,8 @@ async function fetchPopularity(){
 function finishZonesLoad(){
   const loading=document.getElementById('vault-loading');
   if(loading) loading.style.display='none';
-  showGameSkeletons();
+  const src = document.getElementById('vault-source')?.value || 'gn-math';
+  if(src !== 'ugs') showGameSkeletons();
   setTimeout(() => {
     document.getElementById('game-skel-grid')?.remove();
     setupFeatured();
@@ -1915,7 +1918,10 @@ function setupFeatured(){
   const sourceEl = document.getElementById('vault-source');
   const source = sourceEl ? sourceEl.value : 'gn-math';
   // Skip featured carousel for sources without cover images
-  if(source === 'ugs' || zones.length < 1) return;
+  if(source === 'ugs' || zones.length < 1) {
+    document.getElementById('vault-featured-block')?.remove();
+    return;
+  }
   if(zones.length < 5) return; // keep original threshold for gn-math
   const now  = new Date();
   const seed = now.getFullYear() + '-' + now.getMonth() + '-' + now.getDate() + (now.getHours() < 12 ? 'AM' : 'PM');
