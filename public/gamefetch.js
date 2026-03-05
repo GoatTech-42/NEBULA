@@ -68,6 +68,11 @@ export async function fetchGnMathPopularity() {
 /* ══════════════════════════════════════════
    UGS SOURCE
 ══════════════════════════════════════════ */
+function formatUGSName(fileName) {
+  const stripped = fileName.startsWith('cl') ? fileName.slice(2) : fileName;
+  return stripped.charAt(0).toUpperCase() + stripped.slice(1);
+}
+
 export async function loadUGSGames() {
   const cacheKey = 'nebula-zones-ugs-cache';
   const cacheTTL = 30 * 60 * 1000;
@@ -79,29 +84,40 @@ export async function loadUGSGames() {
     }
   } catch {}
 
+  const UGS_URL_TEMPLATES = [
+    'https://cdn.jsdelivr.net/gh/bubbls/ugs-singlefile/UGS-Files/file_list.js?t=',
+    'https://cdn.jsdelivr.net/gh/bubbls/ugs-singlefile@main/UGS-Files/file_list.js?t=',
+  ];
+
   const ctrl = new AbortController();
   const tid  = setTimeout(() => ctrl.abort(), 10000);
   try {
-    const res  = await fetch('https://cdn.jsdelivr.net/gh/genizy/ugs-singlefile@main/games.js?t=' + Date.now(), { signal: ctrl.signal });
+    let text = null;
+    for (const tpl of UGS_URL_TEMPLATES) {
+      const res = await fetch(tpl + Date.now(), { signal: ctrl.signal });
+      if (res.ok) { text = await res.text(); break; }
+    }
     clearTimeout(tid);
-    const text = await res.text();
+    if (!text) return [];
+
     const games = [];
-    // Match patterns like: value="Game Name" ... onclick="location.href='URL'"
-    // or: input type="button" value="Name" onclick="location.href='url'"
-    const btnRe = /input[^>]*type\s*=\s*["']button["'][^>]*>/gi;
-    const valRe = /value\s*=\s*["']([^"']+)["']/i;
-    const urlRe = /(?:location\.href|window\.location(?:\.href)?|location)\s*=\s*["']([^"']+)["']/i;
-    let idx = 0;
-    let m;
-    while ((m = btnRe.exec(text)) !== null) {
-      const tag  = m[0];
-      const valM = valRe.exec(tag);
-      const urlM = urlRe.exec(tag);
-      if (!valM || !urlM) continue;
-      const name = valM[1].trim();
-      const url  = urlM[1].trim();
-      if (!name || !url) continue;
-      games.push({ id: 'ugs_' + idx++, name, url, cover: null, source: 'ugs' });
+    const arrM = /let\s+files\s*=\s*\[([\s\S]*?)\]/.exec(text);
+    if (arrM) {
+      const inner = arrM[1];
+      const entryRe = /['"]([^'"]+)['"]/g;
+      let m;
+      let idx = 0;
+      while ((m = entryRe.exec(inner)) !== null) {
+        const fileName = m[1];
+        games.push({
+          id: 'ugs_' + idx++,
+          name: formatUGSName(fileName),
+          fileName,
+          url: null,
+          cover: null,
+          source: 'ugs',
+        });
+      }
     }
     try { sessionStorage.setItem(cacheKey, JSON.stringify({ ts: Date.now(), data: games })); } catch {}
     return games;
@@ -150,7 +166,15 @@ export function filterAndSort(games, { query = '', sortBy = 'popular', popularit
 ══════════════════════════════════════════ */
 export function resolveGameUrl(z) {
   if (!z) return '';
-  if (z.source === 'ugs' || z.source === 'petezah') {
+  if (z.source === 'ugs') {
+    if (!z.fileName) return z.url || '';
+    const normalized = z.fileName.includes('.')
+      ? z.fileName
+      : z.fileName + '.html';
+    const encoded = encodeURIComponent(normalized);
+    return `https://cdn.jsdelivr.net/gh/bubbls/ugs-singlefile/UGS-Files/${encoded}`;
+  }
+  if (z.source === 'petezah') {
     return z.url || '';
   }
   // gn-math
