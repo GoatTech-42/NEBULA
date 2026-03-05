@@ -114,7 +114,8 @@ export async function loadUGSGames() {
               const name = btn.value || btn.getAttribute('value') || '';
               if (!name) return;
               const onclick = btn.getAttribute('onclick') || '';
-              const m = onclick.match(/(?:location\.href|window\.location(?:\.href)?|location)\s*=\s*['"]([^'"]+)['"]/);
+              const m = onclick.match(/(?:location\.href|window\.location(?:\.href)?|location)\s*=\s*['"]([^'"]+)['"]/)
+                     || onclick.match(/window\.open\(['"]([^'"]+)['"]/);
               if (!m || !m[1]) return;
               games.push({ id: 'ugs_' + idx++, name, url: m[1], cover: null, source: 'ugs' });
             });
@@ -123,7 +124,7 @@ export async function loadUGSGames() {
         cleanup();
         try { sessionStorage.setItem(cacheKey, JSON.stringify({ ts: Date.now(), data: games })); } catch {}
         resolve(games);
-      }, 1500);
+      }, 3000);
     };
 
     iframe.onerror = () => {
