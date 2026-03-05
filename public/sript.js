@@ -585,7 +585,14 @@ async function initVisits(){
 
 async function loadGames(){
   const loading=document.getElementById('vault-loading');
+  const grid=document.getElementById('game-grid');
+  const featWrap=document.getElementById('vault-featured-wrap');
+  if(grid) grid.innerHTML='';
   if(loading){loading.style.display='flex';loading.textContent='Loading games…';}
+  if(featWrap){
+    if(vaultSource==='gn-math'){ featWrap.style.removeProperty('display'); }
+    else { featWrap.innerHTML=''; featWrap.style.display='none'; }
+  }
   try{
     if(vaultSource==='gn-math'){
       zones=await loadGnMathGames();
@@ -1845,11 +1852,12 @@ async function fetchPopularity(){
 }
 
 function finishZonesLoad(){
-  document.getElementById('vault-loading')?.remove();
-  showGameSkeletons();
+  const loading=document.getElementById('vault-loading');
+  if(loading) loading.style.display='none';
+  if(vaultSource==='gn-math') showGameSkeletons();
   setTimeout(() => {
     document.getElementById('game-skel-grid')?.remove();
-    setupFeatured();
+    if(vaultSource==='gn-math') setupFeatured();
     renderVaultGrid(getFilteredZones());
     setupGameObserver();
   }, 300);

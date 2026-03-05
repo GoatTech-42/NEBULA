@@ -113,9 +113,9 @@ The UI leans hard into a deep-space aesthetic: layered CSS nebula blobs, a canva
 ```
 NEBULA/
 ├── public/
-│   ├── main.html        # Single-page app shell — all HTML
+│   ├── rehhehehehheh.html  # Single-page app shell — all HTML
 │   ├── style.css        # All styles (~900 lines, no preprocessor)
-│   ├── script.js        # App logic — Firebase, auth, chat, DMs, admin, vault
+│   ├── sript.js         # App logic — Firebase, auth, chat, DMs, admin, vault
 │   ├── ui.js            # Visual layer — canvas starfield + parallax nebula
 │   ├── icons.js         # SVG icon library (inline, no external icon font)
 │   ├── tooltips.json    # Rotating home-screen taglines
@@ -137,20 +137,20 @@ No install required. Just serve the `public/` folder over HTTP — ES Modules re
 ```bash
 cd public
 python -m http.server 5500
-# open http://localhost:5500/main.html
+# open http://localhost:5500/rehhehehehheh.html
 ```
 
 **Option B — Node `serve`**
 ```bash
 npx serve public
-# open http://localhost:3000/main.html
+# open http://localhost:3000/rehhehehehheh.html
 ```
 
 **Option C — VS Code Live Server**
 
-Right-click `public/main.html` → *Open with Live Server*.
+Right-click `public/rehhehehehheh.html` → *Open with Live Server*.
 
-> **Firebase credentials** are baked into `script.js`. The project uses Firestore security rules — contact the admin if you need write access.
+> **Firebase credentials** are baked into `sript.js`. The project uses Firestore security rules — contact the admin if you need write access.
 
 ---
 
