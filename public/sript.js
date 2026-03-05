@@ -2,7 +2,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
 import { getFirestore, doc, onSnapshot, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 import { initCanvas, initParallax, setParallaxActive } from "./ui.js";
-import { loadGnMathGames, fetchGnMathPopularity, resolveGameUrl, resolveCoverUrl } from './gamefetch.js';
+import { loadGnMathGames, fetchGnMathPopularity, loadUGSGames, filterAndSort, resolveGameUrl, resolveCoverUrl } from './gamefetch.js';
 const $=id=>document.getElementById(id);
 
 const firebaseConfig = {
@@ -578,12 +578,19 @@ async function loadGames(){
   const loading=document.getElementById('vault-loading');
   const grid=document.getElementById('game-grid');
   const featWrap=document.getElementById('vault-featured-wrap');
+  const sourceEl=document.getElementById('vault-source');
+  const source = sourceEl ? sourceEl.value : 'gn-math';
   if(grid) grid.innerHTML='';
   if(loading){loading.style.display='flex';loading.textContent='Loading games…';}
   if(featWrap){ featWrap.style.removeProperty('display'); }
   try{
-    zones=await loadGnMathGames();
-    popularityData=await fetchGnMathPopularity();
+    if(source === 'ugs'){
+      zones = await loadUGSGames();
+      popularityData = {};
+    } else {
+      zones = await loadGnMathGames();
+      popularityData = await fetchGnMathPopularity();
+    }
     finishZonesLoad();
   } catch(e){
     if(loading)loading.innerHTML='<span>⚠️ Failed to load games</span>';
@@ -663,6 +670,12 @@ function wireStaticListeners(){
     vaultQuery = document.getElementById('vault-search').value;
     renderVaultGrid(getFilteredZones());
   }, 180));
+  document.getElementById('vault-source')?.addEventListener('change', () => {
+    // clear the per-source cache so it always reloads fresh on switch
+    try { sessionStorage.removeItem('nebula-zones-gn-cache'); } catch {}
+    try { sessionStorage.removeItem('nebula-zones-ugs-cache'); } catch {}
+    loadGames();
+  });
   document.getElementById('vault-sort')?.addEventListener('change', () => {
     vaultSortBy = document.getElementById('vault-sort').value;
     renderVaultGrid(getFilteredZones());
@@ -2024,11 +2037,34 @@ function openZone(z){
   const frame = document.getElementById('game-frame');
   if(!vault || !frame){ notify('Game viewer unavailable','error'); return; }
 
-  frame.src = url;
   document.getElementById('vault-title').textContent = 'VAULT: ' + z.name.toUpperCase();
   vault.dataset.zoneId = z.id;
   vault.style.display = 'flex';
   document.body.classList.add('game-active');
+
+  // For UGS and external URLs, use src directly
+  if(z.source === 'ugs' || (z.source !== 'gn-math' && url.startsWith('http'))){
+    frame.removeAttribute('srcdoc');
+    frame.src = url;
+    return;
+  }
+
+  // For gn-math HTML games: fetch HTML and inject via srcdoc so it executes properly
+  frame.src = 'about:blank';
+  frame.removeAttribute('srcdoc');
+  fetch(url + (url.includes('?') ? '&' : '?') + '_nc=' + Date.now())
+    .then(r => {
+      if(!r.ok) throw new Error('fetch failed');
+      return r.text();
+    })
+    .then(html => {
+      frame.srcdoc = html;
+    })
+    .catch(() => {
+      // Fallback to src if fetch fails
+      frame.removeAttribute('srcdoc');
+      frame.src = url;
+    });
 }
 
 /* ── doCloseGame — resets #game-frame src and hides vault ── */
@@ -2037,6 +2073,7 @@ function doCloseGame(){
   const frame = document.getElementById('game-frame');
   if(frame){
     try{ frame.contentWindow?.stop?.(); }catch{}
+    frame.removeAttribute('srcdoc');
     frame.src = 'about:blank';
   }
   if(vault) vault.style.display = 'none';
