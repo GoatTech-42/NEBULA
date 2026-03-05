@@ -1,6 +1,6 @@
 /**
  * gamefetch.js — NEBULA game fetching logic
- * Supports two sources: gn-math (default) and UGS (Ultimate Game Stash)
+ * Source: gn-math
  */
 
 export const COVER_URL = "https://cdn.jsdelivr.net/gh/gn-math/covers@main";
@@ -66,80 +66,6 @@ export async function fetchGnMathPopularity() {
 }
 
 /* ══════════════════════════════════════════
-   UGS SOURCE
-══════════════════════════════════════════ */
-export async function loadUGSGames() {
-  const cacheKey = 'nebula-zones-ugs-cache';
-  const cacheTTL = 30 * 60 * 1000;
-  try {
-    const cached = sessionStorage.getItem(cacheKey);
-    if (cached) {
-      const { ts, data } = JSON.parse(cached);
-      if (Date.now() - ts < cacheTTL && data.length > 0) return data;
-    }
-  } catch {}
-
-  return new Promise((resolve) => {
-    const html = `<!DOCTYPE html><html><body><div id="sections-container"></div><script src="https://cdn.jsdelivr.net/gh/genizy/ugs-singlefile@main/games.js"><\/script></body></html>`;
-    const blob = new Blob([html], { type: 'text/html' });
-    const blobUrl = URL.createObjectURL(blob);
-
-    const iframe = document.createElement('iframe');
-    iframe.style.cssText = 'position:absolute;left:-9999px;top:-9999px;width:1px;height:1px;border:none;visibility:hidden;pointer-events:none;';
-    iframe.sandbox = 'allow-scripts allow-same-origin';
-
-    const cleanup = () => {
-      try { URL.revokeObjectURL(blobUrl); } catch {}
-      try { document.body.removeChild(iframe); } catch {}
-    };
-
-    document.body.appendChild(iframe);
-
-    const timeout = setTimeout(() => {
-      cleanup();
-      resolve([]);
-    }, 12000);
-
-    iframe.onload = () => {
-      setTimeout(() => {
-        clearTimeout(timeout);
-        const games = [];
-        try {
-          const container = iframe.contentDocument && iframe.contentDocument.getElementById('sections-container');
-          if (container) {
-            const buttons = container.querySelectorAll('input[type="button"]');
-            let idx = 0;
-            buttons.forEach(btn => {
-              const name = btn.value || btn.getAttribute('value') || '';
-              if (!name) return;
-              const onclick = btn.getAttribute('onclick') || '';
-              const m = onclick.match(/(?:location\.href|window\.location(?:\.href)?|location)\s*=\s*['"]([^'"]+)['"]/)
-                     || onclick.match(/window\.open\(['"]([^'"]+)['"]/);
-              if (!m || !m[1]) return;
-              const gameUrl = m[1];
-              // Only accept http/https URLs to prevent javascript: or other unsafe schemes
-              if (!/^https?:\/\//i.test(gameUrl)) return;
-              games.push({ id: 'ugs_' + idx++, name, url: gameUrl, cover: null, source: 'ugs' });
-            });
-          }
-        } catch (e) {}
-        cleanup();
-        try { sessionStorage.setItem(cacheKey, JSON.stringify({ ts: Date.now(), data: games })); } catch {}
-        resolve(games);
-      }, 3000);
-    };
-
-    iframe.onerror = () => {
-      clearTimeout(timeout);
-      cleanup();
-      resolve([]);
-    };
-
-    iframe.src = blobUrl;
-  });
-}
-
-/* ══════════════════════════════════════════
    FILTER + SORT
 ══════════════════════════════════════════ */
 /**
@@ -178,8 +104,9 @@ export function filterAndSort(games, { query = '', sortBy = 'popular', popularit
 ══════════════════════════════════════════ */
 export function resolveGameUrl(z) {
   if (!z) return '';
-  if (z.source === 'ugs') return z.url || '';
-  if (z.source === 'petezah') return z.url || '';
+  if (z.source === 'petezah') {
+    return z.url || '';
+  }
   // gn-math
   if (z.url && z.url.startsWith('http')) return z.url;
   return (z.url || '').replace('{HTML_URL}', HTML_URL).replace('{COVER_URL}', COVER_URL);
@@ -187,7 +114,6 @@ export function resolveGameUrl(z) {
 
 export function resolveCoverUrl(z) {
   if (!z) return '';
-  if (z.source === 'ugs') return '';
   if (z.source === 'petezah') return z.cover || '';
   return (z.cover || '').replace('{COVER_URL}', COVER_URL).replace('{HTML_URL}', HTML_URL);
 }
