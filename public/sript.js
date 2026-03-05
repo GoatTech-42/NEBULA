@@ -6,7 +6,7 @@ import { loadGnMathGames, loadUGSGames, fetchGnMathPopularity, filterAndSort, re
 const $=id=>document.getElementById(id);
 
 const firebaseConfig = {
-   apiKey: "__FIREBASE_API_KEY__",
+  apiKey: "__FIREBASE_API_KEY__",
   authDomain: "__FIREBASE_AUTH_DOMAIN__",
   projectId: "__FIREBASE_PROJECT_ID__",
   storageBucket: "__FIREBASE_STORAGE_BUCKET__",
@@ -29,7 +29,7 @@ const REFS = {
 };
 
 const ADMIN_USERNAME   = "__ADMIN_USERNAME__"
-const ADMIN_PASSWORD   = ""
+const ADMIN_PASSWORD   = "__ADMIN_PASSWORD__"
 const ADMIN_NAME       = "__ADMIN_NAME__"
 const MAX_CHANNEL_MSGS = 75;
 const MAX_DM_MSGS      = 100;
