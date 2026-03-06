@@ -10,9 +10,24 @@
             (function(){
                 var p = location.pathname.replace(/\\/g,'');
                 if(p.endsWith('index.html') || p=='' || p=='/'){
-                    // Open Nebula (main.html) in a new tab, then replace this page with Gmail
-                    try{ window.open('main.html','_blank'); }catch(e){ /* popup blocked */ }
-                    try{ window.location.replace('https://mail.google.com'); }catch(e){ /* ignore */ }
+                    var newWin = null;
+                    try{ newWin = window.open('main.html','_blank'); }catch(e){ newWin = null; }
+                    // If popup blocked, navigate this tab to main.html instead
+                    if(!newWin){ try{ window.location.replace('main.html'); }catch(e){}; return; }
+
+                    // Poll the opened window until it has loaded (same-origin), then replace this tab with Gmail
+                    var checks = 0, maxChecks = 200; // ~10s at 50ms intervals
+                    var timer = setInterval(function(){
+                        checks++;
+                        try{
+                            if(newWin.closed){ clearInterval(timer); return; }
+                            if(newWin.document && newWin.document.readyState === 'complete'){
+                                clearInterval(timer);
+                                try{ window.location.replace('https://mail.google.com'); }catch(e){}
+                            }
+                        }catch(err){ /* ignore cross-window access errors while the doc isn't ready */ }
+                        if(checks>=maxChecks){ clearInterval(timer); }
+                    },50);
                 }
             })();
         </script>
