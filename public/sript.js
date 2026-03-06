@@ -1051,7 +1051,9 @@ function renderMessages(){
     if(m.deleted && !isMod(currentUser)){ lastUser = null; return; }
     const ds = formatDateLabel(m.time);
     if(ds && ds !== lastDate){ const dd = document.createElement('div'); dd.className = 'date-divider'; dd.innerHTML = `<span>${ds}</span>`; container.appendChild(dd); lastDate = ds; }
-    container.appendChild(buildMessage(m, idx, m.user !== lastUser, activeThread.id, false));
+    // show header/avatar when it's a new user group OR when the message is from the current user
+    const showHeader = (m.user !== lastUser) || (currentUser && m.user === currentUser.username);
+    container.appendChild(buildMessage(m, idx, showHeader, activeThread.id, false));
     lastUser = m.user;
   });
   requestAnimationFrame(() => {
@@ -1486,7 +1488,8 @@ function renderDMMessages(){
     if(m.deleted && m.user !== currentUser.username && !isMod(currentUser)){ lastUser = null; return; }
     const ds = formatDateLabel(m.time);
     if(ds && ds !== lastDate){ const dd = document.createElement('div'); dd.className = 'date-divider'; dd.innerHTML = `<span>${ds}</span>`; container.appendChild(dd); lastDate = ds; }
-    container.appendChild(buildMessage(m, idx, m.user !== lastUser, activeDM, true));
+    const showHeader = (m.user !== lastUser) || (currentUser && m.user === currentUser.username);
+    container.appendChild(buildMessage(m, idx, showHeader, activeDM, true));
     lastUser = m.user;
   });
   requestAnimationFrame(() => {
