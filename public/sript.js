@@ -1052,7 +1052,10 @@ function renderMessages(){
     const ds = formatDateLabel(m.time);
     if(ds && ds !== lastDate){ const dd = document.createElement('div'); dd.className = 'date-divider'; dd.innerHTML = `<span>${ds}</span>`; container.appendChild(dd); lastDate = ds; }
     // show header/avatar when it's a new user group OR when the message is from the current user
-    const showHeader = (m.user !== lastUser) || (currentUser && m.user === currentUser.username);
+    // Show header/avatar when message starts a new group, or when this is the
+    // first message of a consecutive group from the current user. If the
+    // previous message is also from the current user, hide the avatar (Discord-like).
+    const showHeader = (m.user !== lastUser) || (currentUser && m.user === currentUser.username && lastUser !== currentUser.username);
     container.appendChild(buildMessage(m, idx, showHeader, activeThread.id, false));
     lastUser = m.user;
   });
@@ -1488,7 +1491,7 @@ function renderDMMessages(){
     if(m.deleted && m.user !== currentUser.username && !isMod(currentUser)){ lastUser = null; return; }
     const ds = formatDateLabel(m.time);
     if(ds && ds !== lastDate){ const dd = document.createElement('div'); dd.className = 'date-divider'; dd.innerHTML = `<span>${ds}</span>`; container.appendChild(dd); lastDate = ds; }
-    const showHeader = (m.user !== lastUser) || (currentUser && m.user === currentUser.username);
+    const showHeader = (m.user !== lastUser) || (currentUser && m.user === currentUser.username && lastUser !== currentUser.username);
     container.appendChild(buildMessage(m, idx, showHeader, activeDM, true));
     lastUser = m.user;
   });
