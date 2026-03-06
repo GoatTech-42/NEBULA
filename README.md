@@ -28,17 +28,17 @@
  ```bash
  cd public
  python -m http.server 5500
- # Open: http://localhost:5500/rehhehehehheh.html
+ # Open: http://localhost:5500/main.html
  ```
 
  Option B — Node
  ```bash
  npx serve public
- # Open: http://localhost:3000/rehhehehehheh.html
+ # Open: http://localhost:3000/main.html
  ```
 
  Option C — VS Code Live Server
- - Right-click `public/rehhehehehheh.html` → *Open with Live Server*
+ - Right-click `public/main.html` → *Open with Live Server*
 
  Notes:
  - Firebase credentials are present in `sript.js` for the hosted demo. Firestore security rules enforce server-side access control — contact the admin for write access.
@@ -60,7 +60,7 @@
  ## Project layout
 
  public/ — Static frontend (ES modules)
- - `rehhehehehheh.html` — App shell
+ - `main.html` — App shell
  - `sript.js` — App logic (Firebase, auth, chat, DMs, admin, vault)
  - `ui.js` — Visual layer (canvas starfield, parallax)
  - `style.css` — All styles (no preprocessor)
