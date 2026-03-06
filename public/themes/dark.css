@@ -1,0 +1,36 @@
+/* Dark theme: high-contrast black background with white text */
+:root{
+  --bg: #000000;
+  --bg2:#0b0b0b;
+  --bg3:#111111;
+  --sidebar-w:220px;
+  --thread-w:224px;
+  --members-w:196px;
+  --accent:#4fc9ea;
+  --accent-glow:rgba(79,201,234,.36);
+  --accent-dim:rgba(79,201,234,.18);
+  --text:#ffffff;
+  --text-muted:rgba(255,255,255,.72);
+  --text-faint:rgba(255,255,255,.32);
+  --border:rgba(79,201,234,.12);
+  --border2:rgba(255,255,255,.06);
+  --danger:#ff6b6b;
+  --danger-dim:rgba(255,107,107,.2);
+  --success:#3beab0;
+  --warn:#ffe07a;
+  --grad:linear-gradient(135deg,#ffffff 0%,#e6f7ff 100%);
+  --r:8px;--rl:14px;
+  --t:.14s ease;--tm:.22s ease;--ts:.36s cubic-bezier(.16,1,.3,1);
+  --pill-radius:50px; --xs-radius:4px; --tiny-radius:3px;
+  --card-bg: rgba(10,10,10,.88);
+  --card-border: 1px solid rgba(255,255,255,.03);
+  --card-shadow: 0 18px 60px rgba(0,0,0,.7);
+  --surface-radius: 12px;
+  --surface-padding: 1.2rem;
+  --btn-radius: 10px;
+  --control-shadow: 0 8px 28px rgba(0,0,0,.6);
+  --soft-shadow: 0 6px 18px rgba(0,0,0,.5);
+  --base-font-size: 15px;
+  --surface-blur: 12px;
+  --control-gap: 0.75rem;
+}

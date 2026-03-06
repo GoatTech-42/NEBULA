@@ -6,7 +6,8 @@
 <title>NEBULA</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌌</text></svg>">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="themes/og.css" id="theme-link">
+  <link rel="stylesheet" href="style.css">
 <style>
   #game-vault {
     position: fixed;
@@ -148,6 +149,10 @@
       <span class="logo-pulse"></span>
     </div>
     <nav class="sidebar-nav">
+      <button class="snav-item" id="snav-settings" data-section="settings">
+        <span class="snav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M12 8a4 4 0 100 8 4 4 0 000-8z"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83l-.7.7a2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2h-1a2 2 0 01-2-2v-.09a1.65 1.65 0 00-1-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0l-.7-.7a2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2v-1a2 2 0 012-2h.09a1.65 1.65 0 001.51-1 1.65 1.65 0 00-.33-1.82L3.3 3.34a2 2 0 010-2.83l.7-.7a2 2 0 012.83 0l.06.06c.45.45 1.08.61 1.65.44h.09A1.65 1.65 0 009 1h1a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82.33l.06-.06a2 2 0 012.83 0l.7.7a2 2 0 010 2.83l-.06.06c-.18.57-.01 1.2.44 1.65v.09a1.65 1.65 0 001.51 1H21a2 2 0 012 2v1a2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg></span>
+        <span class="snav-label">Settings</span>
+      </button>
       <button class="snav-item active" id="snav-home" data-section="home">
         <span class="snav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z"/><path d="M9 21V12h6v9"/></svg></span>
         <span class="snav-label">Home</span>
@@ -416,6 +421,50 @@
       <div class="pad">
         <div class="pg-title">Profile</div>
         <div class="profile-card" id="profile-card"></div>
+      </div>
+    </div>
+
+    <!-- SETTINGS -->
+    <div class="section hidden" id="section-settings">
+      <div class="pad">
+        <div class="pg-title">Settings</div>
+        <div class="pg-sub">Configure notifications and theme</div>
+        <div class="card" style="max-width:720px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.6rem;">
+            <div>
+              <div style="font-weight:800;">Notifications</div>
+              <div style="font-size:.82rem;color:var(--text-muted);">Control browser and in-app alerts</div>
+            </div>
+          </div>
+          <div style="display:flex;gap:12px;align-items:center;margin-top:.6rem;">
+            <label class="toggle-switch"><input type="checkbox" id="st-desktop-notifs"><span class="toggle-track"></span></label>
+            <div style="flex:1">
+              <div style="font-weight:700;">Desktop notifications</div>
+              <div style="font-size:.78rem;color:var(--text-faint);">Allow browser notifications when enabled</div>
+            </div>
+          </div>
+          <div style="display:flex;gap:12px;align-items:center;margin-top:.6rem;">
+            <label class="toggle-switch"><input type="checkbox" id="st-mute-all"><span class="toggle-track"></span></label>
+            <div style="flex:1">
+              <div style="font-weight:700;">Mute all in-app alerts</div>
+              <div style="font-size:.78rem;color:var(--text-faint);">Silence toast notifications and sounds</div>
+            </div>
+          </div>
+          <div style="margin-top:1rem;border-top:1px solid var(--border2);padding-top:1rem;">
+            <div style="font-weight:800;margin-bottom:.5rem;">Themes</div>
+            <div style="display:flex;gap:10px;align-items:center;">
+              <div style="display:flex;flex-direction:column;gap:6px;min-width:160px;">
+                <label style="font-size:.78rem;font-weight:700;">Theme</label>
+                <select id="st-theme-select" class="field-input" style="min-width:160px;padding:.44rem .6rem;border-radius:8px;"></select>
+              </div>
+              <div style="flex:1;color:var(--text-muted);font-size:.9rem;">Themes folder created; OG is available. More themes can be added to <code>public/themes/</code>.</div>
+            </div>
+          </div>
+          <div style="margin-top:1.1rem;display:flex;justify-content:flex-end;gap:8px;">
+            <button class="btn btn-ghost" id="st-reset-btn">Reset</button>
+            <button class="btn" id="st-save-btn">Save</button>
+          </div>
+        </div>
       </div>
     </div>
 

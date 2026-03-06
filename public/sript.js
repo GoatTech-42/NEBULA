@@ -752,6 +752,7 @@ function showSection(s){
   if(s === 'proxy')         renderProxies();
   if(s === 'profile')       loadProfileSection();
   if(s === 'notifications') renderNotifSection();
+  if(s === 'settings') renderSettings();
   // Toggle system meters (FPS & Battery) when on Home
   try{ toggleSystemMeters(s === 'home'); }catch(e){}
 }
@@ -2125,3 +2126,73 @@ function globalKeyHandler(e){
     if(activeSection === 'dms')  document.getElementById('dm-input')?.focus();
   }
 }
+
+/* ══════════════════════════════════════════
+   SETTINGS
+══════════════════════════════════════════ */
+async function renderSettings(){
+  const st = JSON.parse(localStorage.getItem('nebula_settings')||'{}');
+  document.getElementById('st-desktop-notifs').checked = !!st.desktopNotifications;
+  document.getElementById('st-mute-all').checked = !!st.muteAll;
+  const select = document.getElementById('st-theme-select');
+  if(select){
+    select.innerHTML = '<option>Loading…</option>'; select.disabled = true;
+    try{
+      const res = await fetch('themes/themes.json', { cache: 'no-store' });
+      const list = await res.json();
+      select.innerHTML = '';
+      list.forEach(name => {
+        const o = document.createElement('option'); o.value = name; o.textContent = name.toUpperCase();
+        select.appendChild(o);
+      });
+      // live preview when user picks a theme
+      select.onchange = (e) => { applyTheme(e.target.value); };
+      select.value = st.theme || (list[0] || 'og');
+      select.disabled = list.length <= 1;
+    }catch(e){ select.innerHTML = '<option>og</option>'; select.value = 'og'; select.disabled = true; }
+  }
+  // wire buttons
+  document.getElementById('st-save-btn').onclick = saveSettings;
+  document.getElementById('st-reset-btn').onclick = () => {
+    localStorage.removeItem('nebula_settings'); applyTheme('og'); renderSettings(); notify('Settings reset','success');
+  };
+}
+
+function saveSettings(){
+  const st = {
+    desktopNotifications: !!document.getElementById('st-desktop-notifs').checked,
+    muteAll: !!document.getElementById('st-mute-all').checked,
+    theme: document.getElementById('st-theme-select')?.value || 'og'
+  };
+  localStorage.setItem('nebula_settings', JSON.stringify(st));
+  applyTheme(st.theme);
+  // also persist theme in a cookie for automatic selection
+  setCookie('nebula_theme', st.theme, 365);
+  notify('Settings saved','success');
+}
+
+function applyTheme(name){
+  const link = document.getElementById('theme-link');
+  if(!link) return;
+  link.href = `themes/${name}.css`;
+}
+
+// Cookie helpers
+function setCookie(name, value, days){
+  let expires = '';
+  if(days){ const d = new Date(); d.setTime(d.getTime() + (days*24*60*60*1000)); expires = '; expires=' + d.toUTCString(); }
+  document.cookie = name + '=' + encodeURIComponent(value) + expires + '; path=/';
+}
+function getCookie(name){
+  const v = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
+  return v ? decodeURIComponent(v.pop()) : null;
+}
+
+// apply saved theme at startup (cookie takes precedence)
+try{
+  (function(){
+    const cookieTheme = getCookie('nebula_theme');
+    if(cookieTheme){ applyTheme(cookieTheme); return; }
+    const s = JSON.parse(localStorage.getItem('nebula_settings')||'{}'); applyTheme(s.theme || 'og');
+  })();
+}catch(e){}
