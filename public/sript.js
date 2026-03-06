@@ -1406,6 +1406,32 @@ function openDMWith(other){
   renderDMMessages();
   if(activeSection !== 'dms') showSection('dms');
   requestAnimationFrame(() => { const mw = document.getElementById('dm-messages-wrap'); if(mw) mw.scrollTop = mw.scrollHeight; });
+  // wire delete button
+  const delBtn = document.getElementById('dm-delete-btn');
+  if(delBtn){
+    delBtn.onclick = (e) => { e.stopPropagation(); deleteCurrentDM(); };
+    delBtn.style.display = 'inline-flex';
+  }
+}
+
+function deleteCurrentDM(){
+  if(!activeDM || !currentUser) return;
+  const other = activeDM;
+  if(currentUser.username !== currentUser.username && !isMod(currentUser)) return; // safety, though always true
+  if(!confirm(`Delete the conversation with ${other}? This will remove it for everyone.`)) return;
+  try{
+    const k = dmKey(currentUser.username, other);
+    const nd = { ...DB.dms };
+    if(nd.hasOwnProperty(k)) delete nd[k];
+    DB.dms = nd;
+    scheduleDMWrite(nd);
+    notify('Conversation deleted','success');
+    // close UI
+    activeDM = null;
+    document.getElementById('dm-window')?.classList.add('hidden');
+    document.getElementById('dm-no-select')?.classList.remove('hidden');
+    renderDMList();
+  }catch(e){ notify('Failed to delete conversation','error'); }
 }
 
 function renderDMMessages(){
