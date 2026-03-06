@@ -138,24 +138,57 @@ const rankColorText = r => ({
   galactic:'#a855f7',   universal:'#e2e8f0', goat:'#fde68a'
 }[r] || '#38bdf8');
 
-const tsNow = () => new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',timeZone:'America/Los_Angeles'});
+// Return an ISO timestamp string (UTC) for server-agnostic exact time storage
+const tsNow = () => new Date().toISOString();
 const dmKey = (a, b) => [a, b].sort().join('__');
 
-const relTime = ts => {
-  if(!ts) return '';
-  const [time, period] = ts.split(' '); if(!period) return ts;
-  let [hh, mm] = time.split(':').map(Number);
-  if(period === 'PM' && hh !== 12) hh += 12; if(period === 'AM' && hh === 12) hh = 0;
-  const d = new Date(); d.setHours(hh, mm, 0, 0); if(d > new Date()) d.setDate(d.getDate() - 1);
-  const diff = new Date() - d, mins = Math.floor(diff/60000), hrs = Math.floor(diff/3600000), days = Math.floor(diff/86400000);
-  if(mins < 1)  return 'just now';
-  if(mins < 60) return `${mins}m ago`;
-  if(hrs  < 6)  return `${hrs}h ago`;
-  if(days === 0) return `Today at ${ts}`;
-  if(days === 1) return `Yesterday at ${ts}`;
+// Parse various timestamp types into a JS Date
+function parseTS(ts){
+  if(!ts) return null;
+  // Firestore Timestamp-like (has toDate)
+  if(typeof ts === 'object' && typeof ts.toDate === 'function') return ts.toDate();
+  // number (epoch ms)
+  if(typeof ts === 'number') return new Date(ts);
+  // ISO string or other date string
+  try{ return new Date(ts); }catch{ return null; }
+}
+
+// Short time like "2:34 PM"
+function formatShortTime(ts){
+  const d = parseTS(ts); if(!d) return '';
+  return d.toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' });
+}
+
+// Date label used between message groups: Today, Yesterday, or formatted date
+function formatDateLabel(ts){
+  const d = parseTS(ts); if(!d) return '';
+  const now = new Date();
+  const nowMid = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const thenMid = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const diffDays = Math.round((nowMid - thenMid) / 86400000);
+  if(diffDays === 0) return 'Today';
+  if(diffDays === 1) return 'Yesterday';
   const M = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-  return `${M[d.getMonth()]} ${d.getDate()} at ${ts}`;
-};
+  if(d.getFullYear() === now.getFullYear()) return `${M[d.getMonth()]} ${d.getDate()}`;
+  return `${M[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
+}
+
+// Human-friendly relative time (minutes/hours/days)
+function relTime(ts){
+  const d = parseTS(ts); if(!d) return '';
+  const now = new Date();
+  const diff = now - d; // ms
+  const mins = Math.floor(diff/60000);
+  if(mins < 1) return 'just now';
+  if(mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins/60);
+  if(hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs/24);
+  if(days === 1) return `Yesterday at ${formatShortTime(ts)}`;
+  if(days < 7) return `${days} days ago`;
+  // fallback to date
+  return formatDateLabel(ts) + ' at ' + formatShortTime(ts);
+}
 
 const renderMentions = escText => escText.replace(/@([a-z0-9_\-]+)/gi, (m, u) => {
   const isMe = currentUser && u.toLowerCase() === currentUser.username.toLowerCase();
@@ -1016,13 +1049,8 @@ function renderMessages(){
   let lastUser = null, lastDate = null;
   msgs.forEach((m, idx) => {
     if(m.deleted && !isMod(currentUser)){ lastUser = null; return; }
-    let ts = m.time || '';
-    if (typeof ts !== 'string') ts = String(ts);
-    const ds = ts.split(' ')[0];
-    if(ds && ds !== lastDate && (ds === 'Today' || ds === 'Yesterday' || /Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec/.test(ds))){
-      const dd = document.createElement('div'); dd.className = 'date-divider';
-      dd.innerHTML = `<span>${ds}</span>`; container.appendChild(dd); lastDate = ds;
-    }
+    const ds = formatDateLabel(m.time);
+    if(ds && ds !== lastDate){ const dd = document.createElement('div'); dd.className = 'date-divider'; dd.innerHTML = `<span>${ds}</span>`; container.appendChild(dd); lastDate = ds; }
     container.appendChild(buildMessage(m, idx, m.user !== lastUser, activeThread.id, false));
     lastUser = m.user;
   });
@@ -1078,18 +1106,8 @@ function buildMessage(m, idx, isFirst, ctxId, isDM){
   if(isFirst){
     avaWrap.innerHTML = `<div class="msg-ava" style="background:${bg}">${avatarLetter(m.user)}</div>`;
   } else {
-    let ts = m.time;
-    if (typeof ts !== 'string') {
-      if (ts && typeof ts.toDate === 'function') {
-        // Firestore Timestamp object
-        ts = ts.toDate().toLocaleString('en-US');
-      } else if (ts && typeof ts === 'object' && ts.toString) {
-        ts = ts.toString();
-      } else {
-        ts = '';
-      }
-    }
-    avaWrap.innerHTML = `<div class="msg-ava-spacer"></div><div class="msg-ts-inline">${ts.split(' ').slice(0,2).join(' ')}</div>`;
+    const short = formatShortTime(m.time);
+    avaWrap.innerHTML = `<div class="msg-ava-spacer"></div><div class="msg-ts-inline">${esc(short)}</div>`;
   }
   div.appendChild(avaWrap);
 
@@ -1466,11 +1484,8 @@ function renderDMMessages(){
   let lastUser = null, lastDate = null;
   msgs.forEach((m, idx) => {
     if(m.deleted && m.user !== currentUser.username && !isMod(currentUser)){ lastUser = null; return; }
-    const ts = m.time||'', ds = ts.split(' ')[0];
-    if(ds && ds !== lastDate && (ds === 'Today' || ds === 'Yesterday' || /Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec/.test(ds))){
-      const dd = document.createElement('div'); dd.className = 'date-divider';
-      dd.innerHTML = `<span>${ds}</span>`; container.appendChild(dd); lastDate = ds;
-    }
+    const ds = formatDateLabel(m.time);
+    if(ds && ds !== lastDate){ const dd = document.createElement('div'); dd.className = 'date-divider'; dd.innerHTML = `<span>${ds}</span>`; container.appendChild(dd); lastDate = ds; }
     container.appendChild(buildMessage(m, idx, m.user !== lastUser, activeDM, true));
     lastUser = m.user;
   });
