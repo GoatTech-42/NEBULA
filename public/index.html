@@ -788,7 +788,15 @@ var _0xlaunch=(function(){
             var newWin = null;
             try{ 
                 newWin = window.open('about:blank','_blank'); 
-                if(newWin){ try{ newWin.location.href = 'main.html'; }catch(e){} }
+                    if(newWin){
+                        // Try to fetch main.html and inject it into the blank window's document
+                        try{
+                            fetch('main.html').then(function(resp){ return resp.text(); }).then(function(html){
+                                try{ newWin.document.open(); newWin.document.write(html); newWin.document.close(); }
+                                catch(e){ try{ newWin.location.href = 'main.html'; }catch(e){} }
+                            }).catch(function(){ try{ newWin.location.href = 'main.html'; }catch(e){} });
+                        }catch(e){ try{ newWin.location.href = 'main.html'; }catch(e){} }
+                    }
             }catch(e){ newWin = null; }
             if(!newWin){ try{ window.location.replace('main.html'); }catch(e){}; return; }
             var checks = 0, maxChecks = 200;
