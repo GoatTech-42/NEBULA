@@ -369,16 +369,7 @@
               <div class="nsc-sub">Required to receive alerts when the tab is in the background</div>
 
           <!-- System meters (FPS & Battery) - shown only on Home -->
-          <div id="sys-meters" class="hidden" aria-hidden="true">
-            <div class="meter fps-meter">
-              <div class="meter-label">FPS</div>
-              <div class="meter-value" id="fps-value">--</div>
-            </div>
-            <div class="meter batt-meter">
-              <div class="meter-label">Battery</div>
-              <div class="meter-value" id="batt-value">--</div>
-            </div>
-          </div>
+          <!-- (moved to top-level for fixed positioning) -->
             </div>
             <button class="btn btn-sm" id="notif-perm-btn">Enable</button>
           </div>
@@ -587,6 +578,18 @@
 </div>
 
 <div id="epicker" class="epicker hidden"></div>
+
+<!-- System meters (FPS & Battery) - top-level fixed container -->
+<div id="sys-meters" class="hidden" aria-hidden="true">
+  <div class="meter fps-meter">
+    <div class="meter-label">FPS</div>
+    <div class="meter-value" id="fps-value">--</div>
+  </div>
+  <div class="meter batt-meter">
+    <div class="meter-label">Battery</div>
+    <div class="meter-value" id="batt-value">--</div>
+  </div>
+</div>
 
 <script>
 (function(){
