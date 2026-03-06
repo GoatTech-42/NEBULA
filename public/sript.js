@@ -730,6 +730,69 @@ function showSection(s){
   if(s === 'proxy')         renderProxies();
   if(s === 'profile')       loadProfileSection();
   if(s === 'notifications') renderNotifSection();
+  // Toggle system meters (FPS & Battery) when on Home
+  try{ toggleSystemMeters(s === 'home'); }catch(e){}
+}
+
+/* ══════════════════════════════════════════
+   SYSTEM METERS (FPS & BATTERY)
+   - Visible only when `showSection('home')` is active
+══════════════════════════════════════════ */
+let _fpsRaf = null, _fpsLast = 0, _fpsCount = 0, _fpsLastReport = 0;
+let _fpsVisible = false;
+let _battery = null;
+
+function _fpsLoop(ts){
+  if(!_fpsVisible){ _fpsRaf = null; return; }
+  if(!_fpsLast) _fpsLast = ts;
+  _fpsCount++;
+  const delta = ts - _fpsLastReport;
+  if(delta >= 500){
+    const fps = Math.round((_fpsCount / delta) * 1000);
+    _updateFPSDisplay(fps);
+    _fpsCount = 0; _fpsLastReport = ts;
+  }
+  _fpsLast = ts;
+  _fpsRaf = requestAnimationFrame(_fpsLoop);
+}
+
+function _updateFPSDisplay(fps){
+  const el = document.getElementById('fps-value'); if(!el) return;
+  el.textContent = fps + ' fps';
+  el.classList.remove('fps-good','fps-warn','fps-bad');
+  if(fps >= 50) el.classList.add('fps-good');
+  else if(fps >= 30) el.classList.add('fps-warn');
+  else el.classList.add('fps-bad');
+}
+
+async function _initBattery(){
+  if(!('getBattery' in navigator)){
+    const el = document.getElementById('batt-value'); if(el) el.textContent = 'n/a';
+    return;
+  }
+  try{
+    _battery = await navigator.getBattery();
+    const upd = () => {
+      const el = document.getElementById('batt-value'); if(!el) return;
+      const pct = Math.round((_battery.level || 0) * 100);
+      el.textContent = ( _battery.charging ? '⚡ ' : '' ) + pct + '%';
+    };
+    _battery.addEventListener('levelchange', upd);
+    _battery.addEventListener('chargingchange', upd);
+    upd();
+  }catch(e){ const el = document.getElementById('batt-value'); if(el) el.textContent = 'n/a'; }
+}
+
+function toggleSystemMeters(show){
+  const wrap = document.getElementById('sys-meters'); if(!wrap) return;
+  if(show){
+    wrap.classList.remove('hidden');
+    if(!_fpsRaf){ _fpsLast = 0; _fpsLastReport = 0; _fpsCount = 0; _fpsVisible = true; _fpsRaf = requestAnimationFrame(_fpsLoop); }
+    if(!_battery) _initBattery();
+  } else {
+    wrap.classList.add('hidden');
+    _fpsVisible = false; if(_fpsRaf){ cancelAnimationFrame(_fpsRaf); _fpsRaf = null; }
+  }
 }
 
 function updateChatBadge(){ document.getElementById('chat-badge')?.classList.add('hidden'); }

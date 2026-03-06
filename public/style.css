@@ -731,3 +731,14 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;-webk
   .neb-layer{animation:none;opacity:.6;}
   *{transition-duration:.01ms!important;animation-duration:.01ms!important;}
 }
+
+/* ═══ SYSTEM METERS (FPS & BATTERY) ═══ */
+#sys-meters{position:fixed;right:20px;bottom:18px;display:flex;flex-direction:column;gap:10px;z-index:12000;max-width:36vw;min-width:180px;}
+#sys-meters .meter{display:flex;align-items:center;justify-content:space-between;padding:.5rem .75rem;background:var(--card-bg);border:var(--card-border);border-radius:var(--surface-radius);box-shadow:var(--soft-shadow);backdrop-filter:blur(calc(var(--surface-blur) - 6px));}
+#sys-meters .meter-label{font-size:.68rem;color:var(--text-faint);font-weight:700;}
+#sys-meters .meter-value{font-weight:800;font-size:.95rem;color:var(--text);min-width:56px;text-align:right}
+#sys-meters.hidden{display:none}
+
+.fps-good{color: #7ef59a}
+.fps-warn{color: #ffd166}
+.fps-bad{color: #ff7b7b}
