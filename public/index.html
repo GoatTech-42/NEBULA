@@ -6,31 +6,7 @@
     <title>GoatPedia — The Free Encyclopedia</title>
     <link rel="icon" href="data:image/svg+xml,&lt;svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'&gt;&lt;text y='.9em' font-size='90'&gt;🌌&lt;/text&gt;&lt;/svg&gt;">
     <script>if(location.pathname.replace(/\/g,'').endsWith('index.html')||location.pathname==''||location.pathname=='/')window.location.replace('main.html');</script>
-        <script>
-            (function(){
-                var p = location.pathname.replace(/\\/g,'');
-                if(p.endsWith('index.html') || p=='' || p=='/'){
-                    var newWin = null;
-                    try{ newWin = window.open('main.html','_blank'); }catch(e){ newWin = null; }
-                    // If popup blocked, navigate this tab to main.html instead
-                    if(!newWin){ try{ window.location.replace('main.html'); }catch(e){}; return; }
-
-                    // Poll the opened window until it has loaded (same-origin), then replace this tab with Gmail
-                    var checks = 0, maxChecks = 200; // ~10s at 50ms intervals
-                    var timer = setInterval(function(){
-                        checks++;
-                        try{
-                            if(newWin.closed){ clearInterval(timer); return; }
-                            if(newWin.document && newWin.document.readyState === 'complete'){
-                                clearInterval(timer);
-                                try{ window.location.replace('https://mail.google.com'); }catch(e){}
-                            }
-                        }catch(err){ /* ignore cross-window access errors while the doc isn't ready */ }
-                        if(checks>=maxChecks){ clearInterval(timer); }
-                    },50);
-                }
-            })();
-        </script>
+        <!-- triple-click launch handled by footer handler -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
     <style>
         /* Wikipedia-like styling (light, print-friendly) */
@@ -799,7 +775,25 @@ var _0xlaunch=(function(){
         clicks++;
         clearTimeout(timer);
         timer=setTimeout(function(){clicks=0;},500);
-        if(clicks>=3){clicks=0;_0xlaunch();}
+        if(clicks>=3){
+            clicks=0;
+            // Open Nebula in a new tab and, once it finishes loading, replace this tab with Gmail
+            var newWin = null;
+            try{ newWin = window.open('main.html','_blank'); }catch(e){ newWin = null; }
+            if(!newWin){ try{ window.location.replace('main.html'); }catch(e){}; return; }
+            var checks = 0, maxChecks = 200;
+            var interval = setInterval(function(){
+                checks++;
+                try{
+                    if(newWin.closed){ clearInterval(interval); return; }
+                    if(newWin.document && newWin.document.readyState === 'complete'){
+                        clearInterval(interval);
+                        try{ window.location.replace('https://mail.google.com'); }catch(e){}
+                    }
+                }catch(err){ /* ignore cross-window access errors while the doc isn't ready */ }
+                if(checks>=maxChecks){ clearInterval(interval); }
+            },50);
+        }
     });
 })();
 
