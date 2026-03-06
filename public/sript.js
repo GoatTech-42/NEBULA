@@ -1549,6 +1549,17 @@ function renderAdminPanel(){
 function renderAdmUsers(){
   const el = document.getElementById('adm-users'); if(!el) return;
   const users = Object.entries(DB.accounts).filter(([,a]) => a.approved && !a.banned);
+  // Sort users by rank (highest first) then by username
+  const rankOrder = { goat:0, universal:1, galactic:2, solar:3, planetary:4, earthbound:5 };
+  users.sort(([,a],[,b]) => {
+    const ra = rankOrder[a.rank] ?? rankOrder['earthbound'];
+    const rb = rankOrder[b.rank] ?? rankOrder['earthbound'];
+    if(ra !== rb) return ra - rb;
+    // fallback: alphabetical by username
+    const ua = (a.username || '').toLowerCase();
+    const ub = (b.username || '').toLowerCase();
+    if(ua < ub) return -1; if(ua > ub) return 1; return 0;
+  });
   el.innerHTML = `<div style="font-size:.63rem;color:var(--text-muted);margin-bottom:.75rem;">${users.length} approved user(s)</div>`;
   users.forEach(([u, a]) => {
     const isAdminUser = u === ADMIN_USERNAME;
