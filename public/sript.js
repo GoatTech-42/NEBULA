@@ -1119,11 +1119,12 @@ function buildMessage(m, idx, isFirst, ctxId, isDM){
   const content = document.createElement('div'); content.className = 'msg-content';
   if(isFirst){
     content.innerHTML = `<div class="msg-header">
-      <span class="msg-name" style="color:${rankColorText(rank)}">${esc(m.user)}</span>
+      <span class="msg-name" style="color:${rankColorText(rank)}">${getDisplayName(m.user)}</span>
       ${rankBadge(rank)}
       <span class="msg-ts">${relTime(m.time)}</span>
     </div>`;
   }
+  
 
   const textDiv = document.createElement('div'); textDiv.className = 'msg-text';
   if(m.deleted){
@@ -1336,7 +1337,7 @@ function filterMentionSearch(){
       div.style.cssText = 'display:flex;align-items:center;gap:.5rem;padding:.42rem .54rem;border-radius:7px;cursor:pointer;transition:background .14s;';
       div.onmouseenter = () => div.style.background = 'rgba(255,255,255,.06)';
       div.onmouseleave = () => div.style.background = '';
-      div.innerHTML = `<div style="width:24px;height:24px;border-radius:50%;background:${userColor(u)};display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.6rem;">${avatarLetter(u)}</div><span style="font-size:.8rem;font-weight:700;">${esc(u)}</span>`;
+      div.innerHTML = `<div style="width:24px;height:24px;border-radius:50%;background:${userColor(u)};display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.6rem;">${avatarLetter(u)}</div><span style="font-size:.8rem;font-weight:700;">${getDisplayName(u)}</span>`;
       div.addEventListener('click', () => {
         closeModal('mention-modal');
         const inputId = _mentionCtx === 'chat' ? 'chat-input' : 'dm-input';
@@ -1372,7 +1373,7 @@ function renderMembersList(){
       const div = document.createElement('div'); div.className = 'ms-item';
       div.addEventListener('click', () => openDMWith(u));
       div.innerHTML = `<div class="ms-ava" style="background:${u === ADMIN_USERNAME ? 'linear-gradient(135deg,#f43f5e,#a855f7)' : userColor(u)}">${avatarLetter(u)}</div>`
-        + `<span class="ms-name">${esc(u)}</span>${rankBadge(a.rank)}`;
+        + `<span class="ms-name">${getDisplayName(u)}</span>${rankBadge(a.rank)}`;
       list.appendChild(div);
     });
   };
@@ -1392,13 +1393,13 @@ function renderDMList(){
     const acct = DB.accounts[other]; if(!acct) return;
     const msgs    = DB.dms[k] || [];
     const last    = msgs.filter(m => !m.deleted).slice(-1)[0];
-    const preview = last ? `${last.user === myU ? 'You' : last.user}: ${last.text}` : '';
+    const preview = last ? `${last.user === myU ? 'You' : (DB.accounts[last.user] && DB.accounts[last.user].displayNameHidden ? 'Member' : last.user)}: ${last.text}` : '';
     const div     = document.createElement('div');
     div.className = `titem${activeDM === other && activeSection === 'dms' ? ' active' : ''}`;
     div.addEventListener('click', () => openDMWith(other));
     div.innerHTML = `<div style="width:22px;height:22px;border-radius:50%;background:${userColor(other)};display:inline-flex;align-items:center;justify-content:center;font-weight:800;font-size:.6rem;flex-shrink:0;">${avatarLetter(other)}</div>
       <div style="flex:1;min-width:0;margin-left:.4rem;">
-        <div class="titem-name">${esc(other)}</div>
+        <div class="titem-name">${getDisplayName(other)}</div>
         ${preview ? `<div class="titem-preview">${esc(preview.slice(0,36))}</div>` : ''}
       </div>`;
     list.appendChild(div);
@@ -1424,7 +1425,7 @@ function filterDMSearch(){
       div.onmouseenter = () => div.style.background = 'rgba(255,255,255,.06)';
       div.onmouseleave = () => div.style.background = '';
       div.innerHTML = `<div style="width:28px;height:28px;border-radius:50%;background:${userColor(u)};display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.7rem;flex-shrink:0;">${avatarLetter(u)}</div>`
-        + `<div><div style="font-size:.8rem;font-weight:700;">${esc(u)}</div>${isMod(currentUser) ? `<div style="font-size:.66rem;color:var(--text-muted);">${esc(a.name||'')}</div>` : ''}</div>`;
+        + `<div><div style="font-size:.8rem;font-weight:700;">${getDisplayName(u)}</div>${isMod(currentUser) ? `<div style="font-size:.66rem;color:var(--text-muted);">${esc(a.name||'')}</div>` : ''}</div>`;
       div.addEventListener('click', () => { closeModal('newdm-modal'); openDMWith(u); });
       res.appendChild(div);
     });
@@ -1436,10 +1437,11 @@ function openDMWith(other){
   activeDM = other; unreadDMs[other] = 0; updateDMBadge(); renderDMList();
   document.getElementById('dm-no-select').classList.add('hidden');
   const win = document.getElementById('dm-window'); win.classList.remove('hidden');
-  document.getElementById('dm-ctb-name').textContent = other;
+  const otherLabel = (DB.accounts[other] && DB.accounts[other].displayNameHidden && other !== currentUser.username) ? 'Member' : other;
+  document.getElementById('dm-ctb-name').textContent = otherLabel;
   const inp = document.getElementById('dm-input');
   if(inp){
-    inp.placeholder = `Message ${other}…`;
+  inp.placeholder = `Message ${otherLabel}…`;
     const wrap = inp.closest('.chat-input-wrap');
     if(wrap && !wrap.querySelector('.mention-btn')){
       const mb = document.createElement('button');
@@ -1462,7 +1464,8 @@ function openDMWith(other){
 async function deleteCurrentDM(){
   if(!activeDM || !currentUser) return;
   const other = activeDM;
-  if(!(await showConfirm(`Delete the conversation with ${other}? This will remove it for everyone.`, 'Delete conversation'))) return;
+  const otherLabel = (DB.accounts[other] && DB.accounts[other].displayNameHidden && other !== currentUser.username) ? 'Member' : other;
+  if(!(await showConfirm(`Delete the conversation with ${otherLabel}? This will remove it for everyone.`, 'Delete conversation'))) return;
   try{
     const k = dmKey(currentUser.username, other);
     const nd = { ...DB.dms };
@@ -1673,8 +1676,11 @@ function renderAdmProxyAccess(){
 }
 
 async function approveUser(u){
-  try{ await setDoc(REFS.accounts, { ...DB.accounts, [u]:{ ...DB.accounts[u], approved:true } }); notify(`${u} approved`,'success'); }
-  catch{ notify('Failed','error'); }
+  try{
+    // Mark account approved and hide their display name in the app
+    await setDoc(REFS.accounts, { ...DB.accounts, [u]:{ ...DB.accounts[u], approved:true, displayNameHidden:true } });
+    notify(`${u} approved`,'success');
+  }catch{ notify('Failed','error'); }
 }
 async function denyUser(u){
   if(!(await showConfirm(`Deny and delete "${u}"?`, 'Deny user'))) return;
@@ -2156,4 +2162,14 @@ function globalKeyHandler(e){
     if(activeSection === 'chat') document.getElementById('chat-input')?.focus();
     if(activeSection === 'dms')  document.getElementById('dm-input')?.focus();
   }
+}
+
+// Return a display name for UI. If the account has `displayNameHidden` set
+// and the name is not the current user's, return a masked label.
+function getDisplayName(u){
+  const acct = DB.accounts[u];
+  if(!acct) return esc(u);
+  if(currentUser && u === currentUser.username) return esc(u);
+  if(acct.displayNameHidden) return esc('Member');
+  return esc(u);
 }
