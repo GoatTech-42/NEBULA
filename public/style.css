@@ -4,9 +4,9 @@
 :root{
   /* Slightly darker base for improved contrast (tuned darker)
      — subtle change to avoid breaking contrast elsewhere */
-  --bg:#02101a;
-  --bg2:#0b2235;
-  --bg3:#112336;
+  --bg:#071827;
+  --bg2:#0f2b44;
+  --bg3:#163648;
   --sidebar-w:220px;
   --thread-w:224px;
   --members-w:196px;
@@ -30,7 +30,7 @@
   --xs-radius:4px;
   --tiny-radius:3px;
   /* Unified surface variables for cohesive look */
-  --card-bg: rgba(6,13,26,.76);
+  --card-bg: rgba(10,20,36,.80);
   --card-border: 1px solid rgba(255,255,255,.035);
   --card-shadow: 0 18px 60px rgba(0,0,0,.55);
   --surface-radius: 12px;
