@@ -733,11 +733,37 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;-webk
 }
 
 /* ═══ SYSTEM METERS (FPS & BATTERY) ═══ */
-#sys-meters{position:fixed;right:20px;bottom:18px;display:flex;flex-direction:column;gap:10px;z-index:12000;max-width:36vw;min-width:180px;}
-#sys-meters .meter{display:flex;align-items:center;justify-content:space-between;padding:.5rem .75rem;background:var(--card-bg);border:var(--card-border);border-radius:var(--surface-radius);box-shadow:var(--soft-shadow);backdrop-filter:blur(calc(var(--surface-blur) - 6px));}
-#sys-meters .meter-label{font-size:.68rem;color:var(--text-faint);font-weight:700;}
-#sys-meters .meter-value{font-weight:800;font-size:.95rem;color:var(--text);min-width:56px;text-align:right}
+/* Combined system meter — compact, polished pill */
+#sys-meters{position:fixed;right:20px;bottom:18px;z-index:12000;display:flex;align-items:center;gap:0;}
 #sys-meters.hidden{display:none}
+
+#sys-meters .sys-pill{
+  display:flex;align-items:center;gap:.9rem;padding:.45rem .7rem;border-radius:28px;
+  background:linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,.01));
+  border:1px solid rgba(255,255,255,.04);box-shadow:0 10px 40px rgba(0,0,0,.6);backdrop-filter:blur(12px);
+  min-width:170px;max-width:26vw;padding-left:.9rem;padding-right:.9rem;
+}
+
+#sys-meters .fps{
+  display:flex;flex-direction:column;align-items:flex-start;justify-content:center;flex:1;min-width:0;
+}
+#sys-meters .fps .value{font-weight:900;font-size:1.05rem;color:var(--text);line-height:1;}
+#sys-meters .fps .label{font-size:.67rem;color:var(--text-faint);font-weight:700;margin-top:-2px}
+
+#sys-meters .batt{
+  display:flex;align-items:center;gap:.5rem;padding:.24rem .55rem;border-radius:12px;background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.03);
+  font-weight:800;color:var(--text);font-size:.9rem;min-width:64px;justify-content:center
+}
+#sys-meters .batt .icon{font-size:0.95rem}
+
+/* status colors applied to the pill */
+#sys-meters.status-good .fps .value{color:var(--success)}
+#sys-meters.status-warn .fps .value{color:var(--warn)}
+#sys-meters.status-bad  .fps .value{color:var(--danger)}
+
+/* battery low/charging indicators */
+#sys-meters.charging .batt{box-shadow:0 6px 18px rgba(59,234,176,.06);border-color:rgba(59,234,176,.12)}
+#sys-meters.batt-low .batt{color:var(--danger);border-color:rgba(255,107,107,.12)}
 
 .fps-good{color: #7ef59a}
 .fps-warn{color: #ffd166}

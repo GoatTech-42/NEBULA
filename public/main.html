@@ -581,13 +581,15 @@
 
 <!-- System meters (FPS & Battery) - top-level fixed container -->
 <div id="sys-meters" class="hidden" aria-hidden="true">
-  <div class="meter fps-meter">
-    <div class="meter-label">FPS</div>
-    <div class="meter-value" id="fps-value">--</div>
-  </div>
-  <div class="meter batt-meter">
-    <div class="meter-label">Battery</div>
-    <div class="meter-value" id="batt-value">--</div>
+  <div class="sys-pill" role="status" aria-live="polite">
+    <div class="fps" title="Frames per second">
+      <div class="value" id="fps-value">--</div>
+      <div class="label">FPS</div>
+    </div>
+    <div class="batt" title="Battery level">
+      <div class="icon" id="batt-icon">—</div>
+      <div class="value" id="batt-value">--</div>
+    </div>
   </div>
 </div>
 

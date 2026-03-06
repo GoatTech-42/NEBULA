@@ -757,12 +757,13 @@ function _fpsLoop(ts){
 }
 
 function _updateFPSDisplay(fps){
-  const el = document.getElementById('fps-value'); if(!el) return;
-  el.textContent = fps + ' fps';
-  el.classList.remove('fps-good','fps-warn','fps-bad');
-  if(fps >= 50) el.classList.add('fps-good');
-  else if(fps >= 30) el.classList.add('fps-warn');
-  else el.classList.add('fps-bad');
+  const el = document.getElementById('fps-value'); const wrap = document.getElementById('sys-meters');
+  if(!el || !wrap) return;
+  el.textContent = fps;
+  wrap.classList.remove('status-good','status-warn','status-bad');
+  if(fps >= 50) wrap.classList.add('status-good');
+  else if(fps >= 30) wrap.classList.add('status-warn');
+  else wrap.classList.add('status-bad');
 }
 
 async function _initBattery(){
@@ -773,9 +774,12 @@ async function _initBattery(){
   try{
     _battery = await navigator.getBattery();
     const upd = () => {
-      const el = document.getElementById('batt-value'); if(!el) return;
+      const el = document.getElementById('batt-value'); const icon = document.getElementById('batt-icon'); const wrap = document.getElementById('sys-meters');
+      if(!el) return;
       const pct = Math.round((_battery.level || 0) * 100);
-      el.textContent = ( _battery.charging ? '⚡ ' : '' ) + pct + '%';
+      el.textContent = pct + '%';
+      if(icon) icon.textContent = _battery.charging ? '⚡' : '🔋';
+      if(wrap){ wrap.classList.toggle('charging', !!_battery.charging); wrap.classList.toggle('batt-low', pct <= 18); }
     };
     _battery.addEventListener('levelchange', upd);
     _battery.addEventListener('chargingchange', upd);
