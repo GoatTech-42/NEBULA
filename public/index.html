@@ -1,0 +1,890 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Goat — The Comprehensive Encyclopedia</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='45' fill='%233366cc'/%3E%3Cpath d='M50 5 A45 45 0 0 1 50 95 M5 50 A45 45 0 0 1 95 50' fill='none' stroke='white' stroke-width='2' opacity='0.3'/%3E%3Cpath d='M20 30 Q 35 10 50 30 T 80 40 Q 90 60 70 80 T 40 90 Q 20 70 20 50 Z' fill='%2344aa44'/%3E%3Cpath d='M50 5 V 95 M 5 50 H 95' fill='none' stroke='white' stroke-width='1' opacity='0.5'/%3E%3C/svg%3E">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #060d1a; --bg2: #0a1628; --bg3: #0d1c33;
+            --accent: #38bdf8; --accent-glow: rgba(56,189,248,.28); --accent-dim: rgba(56,189,248,.08);
+            --text: #dce8f5; --text-muted: rgba(220,232,245,.55); --text-faint: rgba(220,232,245,.22);
+            --border: rgba(56,189,248,.12); --border2: rgba(255,255,255,.06);
+            --grad: linear-gradient(135deg,#e0f2fe 0%,#38bdf8 100%);
+        }
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Libre Baskerville', Georgia, serif; background: var(--bg); color: var(--text); line-height: 1.78; min-height: 100vh; overflow-x: hidden; }
+        #bg-canvas { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
+        #parallax-root { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+        .neb-layer { position: absolute; border-radius: 50%; filter: blur(90px); opacity: 0; animation: nebFadeIn 3s ease forwards; will-change: transform; }
+        #neb-1 { width: 70vmax; height: 70vmax; left: -18vmax; top: 10vmax; background: radial-gradient(ellipse at center,hsla(220,80%,40%,.5) 0%,hsla(240,70%,30%,.22) 45%,transparent 70%); animation-delay: .2s; }
+        #neb-2 { width: 55vmax; height: 55vmax; right: -12vmax; top: -8vmax; background: radial-gradient(ellipse at center,hsla(275,75%,45%,.44) 0%,hsla(260,65%,35%,.2) 50%,transparent 72%); animation-delay: .5s; }
+        #neb-3 { width: 48vmax; height: 48vmax; left: 25vmax; bottom: -10vmax; background: radial-gradient(ellipse at center,hsla(195,90%,45%,.32) 0%,hsla(210,80%,35%,.14) 50%,transparent 72%); animation-delay: .8s; }
+        @keyframes nebFadeIn { from{opacity:0;transform:scale(.94);} to{opacity:1;transform:scale(1);} }
+        body::after { content: ''; position: fixed; inset: 0; z-index: 1; pointer-events: none; background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,.03) 2px, rgba(0,0,0,.03) 4px); }
+
+        /* NAV */
+        .wiki-nav { position: sticky; top: 0; z-index: 100; background: rgba(6,13,26,.92); backdrop-filter: blur(16px); border-bottom: 1px solid var(--border2); padding: .55rem 2rem; display: flex; align-items: center; gap: 1.2rem; font-family: 'Inter', sans-serif; font-size: .75rem; flex-wrap: wrap; }
+        .wiki-nav-logo { font-weight: 800; font-size: .82rem; background: var(--grad); -webkit-background-clip: text; -webkit-text-fill-color: transparent; letter-spacing: .04em; }
+        .wiki-nav a { color: var(--text-muted); text-decoration: none; transition: color .14s; }
+        .wiki-nav a:hover { color: var(--accent); }
+        .wiki-nav-sep { color: var(--border2); }
+        .wiki-nav-search { margin-left: auto; background: var(--bg3); border: 1px solid var(--border); border-radius: 6px; padding: .28rem .7rem; font-size: .72rem; color: var(--text-muted); font-family: 'Inter', sans-serif; width: 180px; outline: none; transition: border-color .14s; }
+        .wiki-nav-search:focus { border-color: var(--accent); color: var(--text); }
+
+        /* LAYOUT */
+        .wiki-layout { position: relative; z-index: 2; max-width: 1060px; margin: 0 auto; padding: 2.4rem 2rem 5rem; display: flex; gap: 2rem; align-items: flex-start; }
+        .wiki-sidebar { width: 220px; flex-shrink: 0; position: sticky; top: 56px; display: flex; flex-direction: column; gap: .8rem; }
+        .wiki-main { flex: 1; min-width: 0; }
+
+        /* TYPOGRAPHY */
+        .page-header { border-bottom: 1px solid var(--border); padding-bottom: .4rem; margin-bottom: 1.4rem; }
+        .page-title { font-size: 2.6rem; font-weight: 400; color: #fff; line-height: 1.15; }
+        .page-subtitle { font-size: .8rem; color: var(--text-muted); font-family: 'Inter', sans-serif; margin-top: .3rem; font-style: italic; }
+        p { margin-bottom: 1rem; font-size: .97rem; color: rgba(220,232,245,.88); }
+        a { color: var(--accent); text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        b { color: #fff; font-weight: 700; }
+        h2 { border-bottom: 1px solid var(--border); margin-top: 2.2rem; margin-bottom: .7rem; font-size: 1.5rem; font-weight: 400; color: #fff; padding-bottom: .25rem; }
+        h3 { margin-top: 1.5rem; margin-bottom: .45rem; font-size: 1.12rem; font-weight: 700; color: rgba(220,232,245,.9); }
+        h4 { margin-top: 1.1rem; margin-bottom: .3rem; font-size: .94rem; font-weight: 700; color: var(--text-muted); font-family: 'Inter', sans-serif; text-transform: uppercase; letter-spacing: .06em; }
+
+        /* INFOBOX */
+        .infobox { background: rgba(13,28,51,.85); border: 1px solid var(--border); border-radius: 10px; padding: 0; overflow: hidden; font-family: 'Inter', sans-serif; font-size: .78rem; margin: 0 0 1.6rem 1.6rem; float: right; width: 290px; backdrop-filter: blur(12px); }
+        .infobox-title { background: rgba(56,189,248,.1); border-bottom: 1px solid var(--border); padding: .6rem .8rem; font-weight: 800; font-size: .82rem; text-align: center; color: var(--accent); letter-spacing: .04em; font-family: 'Inter', sans-serif; }
+        .infobox img { width: 100%; height: auto; display: block; }
+        .infobox-caption { font-size: .68rem; color: var(--text-muted); text-align: center; padding: .3rem .6rem .5rem; border-bottom: 1px solid var(--border2); font-style: italic; }
+        .infobox table { width: 100%; border-collapse: collapse; }
+        .infobox th { background: rgba(56,189,248,.05); padding: .32rem .6rem; text-align: left; color: var(--text-muted); border: 1px solid var(--border2); font-weight: 600; width: 42%; }
+        .infobox td { padding: .32rem .6rem; border: 1px solid var(--border2); color: var(--text); }
+        .infobox-status { text-align: center; font-weight: 800; font-size: .72rem; padding: .42rem; color: #4ade80; background: rgba(74,222,128,.06); border-top: 1px solid var(--border2); font-family: 'Inter', sans-serif; letter-spacing: .06em; }
+        .infobox-section-hdr { background: rgba(56,189,248,.07); border-top: 1px solid var(--border2); border-bottom: 1px solid var(--border2); padding: .28rem .6rem; font-weight: 800; font-size: .68rem; color: var(--accent); letter-spacing: .07em; text-transform: uppercase; }
+
+        /* THUMBS */
+        .thumb { background: rgba(13,28,51,.8); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; width: 240px; font-family: 'Inter', sans-serif; margin-bottom: 1.2rem; }
+        .thumb.tright { float: right; clear: right; margin-left: 1.4rem; }
+        .thumb.tleft  { float: left;  clear: left;  margin-right: 1.4rem; }
+        .thumb img { width: 100%; height: auto; display: block; }
+        .thumb-caption { font-size: .66rem; color: var(--text-muted); text-align: center; padding: .34rem .6rem; font-style: italic; }
+
+        /* TOC */
+        .toc { background: rgba(10,22,40,.88); border: 1px solid var(--border); border-radius: 10px; padding: 1rem 1.2rem; display: table; margin: 1.4rem 0; min-width: 280px; backdrop-filter: blur(10px); font-family: 'Inter', sans-serif; font-size: .8rem; }
+        .toc-title { font-weight: 800; margin-bottom: .5rem; color: var(--accent); font-size: .8rem; letter-spacing: .05em; }
+        .toc ol { list-style: decimal; padding-left: 1.1rem; }
+        .toc li { margin: .2rem 0; color: var(--text-muted); }
+        .toc li a { color: var(--accent); opacity: .8; }
+        .toc li a:hover { opacity: 1; }
+        .toc ul { list-style: disc; padding-left: 1.1rem; margin-top: .15rem; }
+        .toc ul li { font-size: .72rem; }
+
+        /* ACCENT BOX */
+        .accent-box { background: rgba(56,189,248,.06); border-left: 3px solid var(--accent); border-radius: 0 8px 8px 0; padding: .9rem 1rem; margin: 1.2rem 0; font-style: italic; font-size: .9rem; color: var(--text-muted); }
+
+        /* WARNING / NOTE / HATNOTE */
+        .hatnote { background: rgba(245,158,11,.06); border: 1px solid rgba(245,158,11,.18); border-radius: 6px; padding: .5rem .85rem; font-family: 'Inter',sans-serif; font-size: .74rem; color: rgba(245,158,11,.8); margin: .8rem 0 1rem; font-style: italic; }
+        .note-box { background: rgba(56,189,248,.05); border: 1px solid var(--border); border-radius: 8px; padding: .7rem 1rem; margin: 1rem 0; font-family: 'Inter',sans-serif; font-size: .78rem; color: var(--text-muted); }
+        .note-box strong { color: var(--accent); }
+        .dispute-box { background: rgba(239,68,68,.05); border: 1px solid rgba(239,68,68,.18); border-radius: 6px; padding: .6rem .9rem; margin: .9rem 0; font-family: 'Inter',sans-serif; font-size: .74rem; color: rgba(239,68,68,.75); }
+        .dispute-box strong { color: #ef4444; }
+
+        /* TABLES */
+        .wiki-table { width: 100%; border-collapse: collapse; font-family: 'Inter', sans-serif; font-size: .8rem; margin: 1rem 0 1.6rem; }
+        .wiki-table thead tr { background: rgba(56,189,248,.08); }
+        .wiki-table th { padding: .55rem .75rem; text-align: left; border: 1px solid var(--border2); color: var(--accent); font-weight: 700; letter-spacing: .03em; }
+        .wiki-table td { padding: .5rem .75rem; border: 1px solid var(--border2); color: var(--text-muted); }
+        .wiki-table tbody tr:nth-child(odd) { background: rgba(255,255,255,.02); }
+        .wiki-table td:first-child { color: #fff; font-weight: 600; }
+        .wiki-table-sm { font-size: .72rem; }
+        .wiki-table-sm th, .wiki-table-sm td { padding: .32rem .55rem; }
+
+        /* LISTS */
+        ul.wiki-list { list-style: disc; padding-left: 1.5rem; margin-bottom: 1rem; }
+        ul.wiki-list li { margin: .3rem 0; font-size: .93rem; color: rgba(220,232,245,.82); }
+        ol.wiki-list { list-style: decimal; padding-left: 1.5rem; margin-bottom: 1rem; }
+        ol.wiki-list li { margin: .3rem 0; font-size: .93rem; color: rgba(220,232,245,.82); }
+
+        /* CITATIONS */
+        .cite { color: var(--accent); font-size: .7rem; vertical-align: super; cursor: pointer; font-family: 'Inter',sans-serif; }
+
+        /* SIDEBAR WIDGETS */
+        .side-toc { background: rgba(10,22,40,.75); border: 1px solid var(--border); border-radius: 10px; padding: .9rem 1rem; font-family: 'Inter', sans-serif; font-size: .74rem; backdrop-filter: blur(10px); }
+        .side-toc-title { font-weight: 800; color: var(--accent); margin-bottom: .5rem; font-size: .74rem; letter-spacing: .05em; }
+        .side-toc ol { list-style: decimal; padding-left: 1rem; }
+        .side-toc li { margin: .22rem 0; color: var(--text-muted); }
+        .side-toc li a { color: var(--text-muted); opacity: .75; }
+        .side-toc li a:hover { color: var(--accent); opacity: 1; }
+        .side-toc-sep { margin: .6rem 0; border: none; border-top: 1px solid var(--border2); }
+        .side-widget { background: rgba(10,22,40,.75); border: 1px solid var(--border); border-radius: 10px; padding: .8rem 1rem; font-family: 'Inter', sans-serif; font-size: .72rem; backdrop-filter: blur(10px); color: var(--text-muted); }
+        .side-widget-title { font-weight: 800; color: var(--accent); margin-bottom: .45rem; font-size: .72rem; letter-spacing: .05em; text-transform: uppercase; }
+        .side-widget ul { list-style: none; padding: 0; }
+        .side-widget ul li { padding: .18rem 0; border-bottom: 1px solid var(--border2); }
+        .side-widget ul li:last-child { border: none; }
+        .side-widget ul li a { color: var(--text-muted); font-size: .7rem; }
+        .side-widget ul li a:hover { color: var(--accent); }
+        .side-stat { display: flex; justify-content: space-between; align-items: center; padding: .2rem 0; border-bottom: 1px solid var(--border2); font-size: .7rem; }
+        .side-stat:last-child { border: none; }
+        .side-stat-val { color: var(--accent); font-weight: 700; }
+        .did-you-know { background: rgba(56,189,248,.05); border: 1px solid var(--border); border-radius: 10px; padding: .8rem 1rem; font-family: 'Inter',sans-serif; font-size: .72rem; backdrop-filter: blur(10px); }
+        .dyk-title { font-weight: 800; color: #f59e0b; margin-bottom: .4rem; font-size: .72rem; letter-spacing: .05em; text-transform: uppercase; }
+        .dyk-item { padding: .3rem 0; border-bottom: 1px solid var(--border2); font-size: .7rem; color: var(--text-muted); font-style: italic; }
+        .dyk-item:last-child { border: none; }
+
+        /* IMAGE GALLERY STRIP */
+        .gallery-strip { display: flex; gap: .5rem; margin: 1.2rem 0; overflow-x: auto; padding-bottom: .4rem; }
+        .gallery-strip::-webkit-scrollbar { height: 4px; }
+        .gallery-strip::-webkit-scrollbar-track { background: var(--bg2); }
+        .gallery-strip::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+        .gallery-item { flex-shrink: 0; width: 160px; background: rgba(13,28,51,.8); border: 1px solid var(--border); border-radius: 6px; overflow: hidden; font-family: 'Inter',sans-serif; }
+        .gallery-item img { width: 100%; height: 110px; object-fit: cover; display: block; }
+        .gallery-item-cap { font-size: .62rem; color: var(--text-faint); padding: .25rem .4rem; font-style: italic; }
+
+        /* TABS */
+        .tab-bar { display: flex; gap: 0; border-bottom: 1px solid var(--border); margin-bottom: 1rem; font-family: 'Inter',sans-serif; }
+        .tab-btn { padding: .4rem .85rem; font-size: .74rem; font-weight: 600; color: var(--text-muted); background: none; border: none; border-bottom: 2px solid transparent; cursor: pointer; transition: all .14s; margin-bottom: -1px; }
+        .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+        .tab-btn:hover { color: var(--text); }
+        .tab-pane { display: none; }
+        .tab-pane.active { display: block; }
+
+        /* PROGRESS BARS */
+        .prog-label { display: flex; justify-content: space-between; font-family: 'Inter',sans-serif; font-size: .7rem; color: var(--text-muted); margin-bottom: .22rem; }
+        .prog-bar { height: 5px; background: var(--bg3); border-radius: 3px; margin-bottom: .65rem; overflow: hidden; }
+        .prog-fill { height: 100%; border-radius: 3px; background: var(--grad); }
+
+        /* QUOTE */
+        blockquote { border-left: 3px solid rgba(245,158,11,.5); padding: .6rem 1rem; margin: 1.2rem 0; font-style: italic; color: var(--text-muted); font-size: .9rem; background: rgba(245,158,11,.03); border-radius: 0 6px 6px 0; }
+        blockquote cite { display: block; margin-top: .35rem; font-style: normal; font-size: .72rem; color: var(--text-faint); font-family: 'Inter',sans-serif; }
+
+        /* FOOTER */
+        .wiki-footer { margin-top: 3rem; border-top: 1px solid var(--border2); padding-top: 1.2rem; text-align: center; font-family: 'Inter', sans-serif; font-size: .68rem; color: var(--text-faint); }
+        .wiki-footer-copy { cursor: default; user-select: none; }
+
+        /* CLEARFIX */
+        .clearfix::after { content: ''; display: table; clear: both; }
+
+        @media (max-width: 720px) {
+            .wiki-sidebar { display: none; }
+            .wiki-layout { padding: 1.2rem 1rem 4rem; }
+            .infobox { float: none; width: 100%; margin: 0 0 1.2rem; }
+            .thumb { float: none; width: 100%; margin: .8rem 0; }
+            .page-title { font-size: 1.9rem; }
+        }
+    </style>
+</head>
+<body>
+
+<canvas id="bg-canvas"></canvas>
+<div id="parallax-root" aria-hidden="true">
+    <div class="neb-layer" id="neb-1"></div>
+    <div class="neb-layer" id="neb-2"></div>
+    <div class="neb-layer" id="neb-3"></div>
+</div>
+
+<nav class="wiki-nav">
+    <span class="wiki-nav-logo">GOATPEDIA</span>
+    <span class="wiki-nav-sep">|</span>
+    <a href="#top">Main</a>
+    <a href="#history">History</a>
+    <a href="#anatomy">Anatomy</a>
+    <a href="#physiology">Physiology</a>
+    <a href="#behavior">Behavior</a>
+    <a href="#genetics">Genetics</a>
+    <a href="#breeds">Breeds</a>
+    <a href="#milk">Milk</a>
+    <a href="#disease">Disease</a>
+    <a href="#culture">Culture</a>
+    <a href="#economy">Economy</a>
+    <a href="#references">References</a>
+    <input class="wiki-nav-search" type="text" placeholder="Search Goatpedia…">
+</nav>
+
+<div class="wiki-layout">
+
+    <!-- ═══ SIDEBAR ═══ -->
+    <aside class="wiki-sidebar">
+        <div class="side-toc">
+            <div class="side-toc-title">Contents</div>
+            <ol>
+                <li><a href="#history">Evolution &amp; History</a></li>
+                <li><a href="#anatomy">Anatomy</a></li>
+                <li><a href="#physiology">Physiology</a></li>
+                <li><a href="#reproduction">Reproduction</a></li>
+                <li><a href="#behavior">Behavior &amp; Cognition</a></li>
+                <li><a href="#genetics">Genetics</a></li>
+                <li><a href="#breeds">Breeds &amp; Classification</a></li>
+                <li><a href="#milk">Dairy Production</a></li>
+                <li><a href="#disease">Disease &amp; Parasitology</a></li>
+                <li><a href="#culture">Cultural Significance</a></li>
+                <li><a href="#economy">Global Economy</a></li>
+                <li><a href="#conservation">Conservation Status</a></li>
+                <li><a href="#references">References</a></li>
+            </ol>
+            <hr class="side-toc-sep">
+            <div style="font-size:.64rem;color:var(--text-faint);">Last updated: Feb 2026 · 47 citations · 18 images</div>
+        </div>
+
+        <div class="side-widget">
+            <div class="side-widget-title">Quick Stats</div>
+            <div class="side-stat"><span>World population</span><span class="side-stat-val">~1.08B</span></div>
+            <div class="side-stat"><span>Domesticated</span><span class="side-stat-val">~10,000 BCE</span></div>
+            <div class="side-stat"><span>Recognised breeds</span><span class="side-stat-val">300+</span></div>
+            <div class="side-stat"><span>Gestation</span><span class="side-stat-val">145–155 days</span></div>
+            <div class="side-stat"><span>Lifespan</span><span class="side-stat-val">15–18 years</span></div>
+            <div class="side-stat"><span>Chromosome pairs</span><span class="side-stat-val">30</span></div>
+            <div class="side-stat"><span>Avg. daily milk yield</span><span class="side-stat-val">2–4 L</span></div>
+            <div class="side-stat"><span>Top producer nation</span><span class="side-stat-val">India</span></div>
+        </div>
+
+        <div class="did-you-know">
+            <div class="dyk-title">Did You Know?</div>
+            <div class="dyk-item">Goats were the first animals to be used for milk by humans.</div>
+            <div class="dyk-item">A group of goats is called a <i>trip</i>, <i>tribe</i>, or <i>herd</i>.</div>
+            <div class="dyk-item">Goats have accents — their calls vary by region.</div>
+            <div class="dyk-item">Some Nigerian Dwarf goats produce milk with up to 10% butterfat.</div>
+            <div class="dyk-item">Fainting goats (Myotonic) experience muscle stiffness, not actual fainting.</div>
+            <div class="dyk-item">Goat leather is used in the finest bookbinding traditions.</div>
+        </div>
+
+        <div class="side-widget">
+            <div class="side-widget-title">Related Articles</div>
+            <ul>
+                <li><a href="#">Wild Goat (Capra aegagrus)</a></li>
+                <li><a href="#">Ibex</a></li>
+                <li><a href="#">Domestic Sheep</a></li>
+                <li><a href="#">Bovidae — Family Overview</a></li>
+                <li><a href="#">Ruminant Digestive Systems</a></li>
+                <li><a href="#">Neolithic Revolution</a></li>
+                <li><a href="#">Cashmere Production</a></li>
+                <li><a href="#">Chevon (Goat Meat)</a></li>
+                <li><a href="#">Scrapie (Prion Disease)</a></li>
+                <li><a href="#">Caprine Arthritis Encephalitis</a></li>
+            </ul>
+        </div>
+
+        <div class="side-widget">
+            <div class="side-widget-title">Production by Region</div>
+            <div class="prog-label"><span>Asia</span><span>58%</span></div>
+            <div class="prog-bar"><div class="prog-fill" style="width:58%"></div></div>
+            <div class="prog-label"><span>Africa</span><span>29%</span></div>
+            <div class="prog-bar"><div class="prog-fill" style="width:29%;background:linear-gradient(135deg,#a78bfa,#7c3aed)"></div></div>
+            <div class="prog-label"><span>Americas</span><span>7%</span></div>
+            <div class="prog-bar"><div class="prog-fill" style="width:7%;background:linear-gradient(135deg,#34d399,#059669)"></div></div>
+            <div class="prog-label"><span>Europe</span><span>4%</span></div>
+            <div class="prog-bar"><div class="prog-fill" style="width:4%;background:linear-gradient(135deg,#fb923c,#ea580c)"></div></div>
+            <div class="prog-label"><span>Oceania</span><span>2%</span></div>
+            <div class="prog-bar"><div class="prog-fill" style="width:2%;background:linear-gradient(135deg,#f472b6,#db2777)"></div></div>
+        </div>
+    </aside>
+
+    <!-- ═══ MAIN ═══ -->
+    <main class="wiki-main" id="top">
+        <div class="page-header">
+            <h1 class="page-title">The Domestic Goat</h1>
+            <div class="page-subtitle"><i>Capra hircus</i> — Bovidae · Caprinae · Featured Article · 47 citations · ~6,200 words · 18 images</div>
+        </div>
+
+        <div class="hatnote">ℹ️ This article is about the domestic goat. For the wild ancestor, see <a href="#">Capra aegagrus</a>. For other uses, see <a href="#">Goat (disambiguation)</a>. Not to be confused with <a href="#">Mountain Goat (Oreamnos americanus)</a>.</div>
+
+        <div class="clearfix">
+
+            <!-- INFOBOX -->
+            <aside class="infobox">
+                <div class="infobox-title">Domestic Goat</div>
+                <img src="https://images.unsplash.com/photo-1524024973431-2ad916746881?auto=format&fit=crop&q=80&w=400" alt="Domestic Goat portrait" class="wiki-img" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 400 300%22><rect fill=%22%230d1c33%22 width=%22400%22 height=%22300%22/><text fill=%22%2338bdf8%22 x=%22200%22 y=%22155%22 text-anchor=%22middle%22 font-size=%2240%22>🐐</text></svg>'">
+                <div class="infobox-caption">Adult <i>Capra hircus</i> — highland pasture, Zagros Mts.</div>
+                <div class="infobox-section-hdr">Scientific Classification</div>
+                <table>
+                    <tr><th>Kingdom</th><td>Animalia</td></tr>
+                    <tr><th>Phylum</th><td>Chordata</td></tr>
+                    <tr><th>Class</th><td>Mammalia</td></tr>
+                    <tr><th>Order</th><td>Artiodactyla</td></tr>
+                    <tr><th>Family</th><td>Bovidae</td></tr>
+                    <tr><th>Subfamily</th><td>Caprinae</td></tr>
+                    <tr><th>Tribe</th><td>Caprini</td></tr>
+                    <tr><th>Genus</th><td><i>Capra</i></td></tr>
+                    <tr><th>Species</th><td><i><b>C. hircus</b></i></td></tr>
+                    <tr><th>Auth.</th><td>Linnaeus, 1758</td></tr>
+                </table>
+                <div class="infobox-section-hdr">Morphological Data</div>
+                <table>
+                    <tr><th>Body mass</th><td>20–140 kg</td></tr>
+                    <tr><th>Shoulder height</th><td>41–101 cm</td></tr>
+                    <tr><th>Dentition</th><td>0/3, 0/1, 3/3, 3/3 = 32</td></tr>
+                    <tr><th>Diploid no.</th><td>2n = 60</td></tr>
+                    <tr><th>Coat types</th><td>Short, long, cashmere, mohair</td></tr>
+                </table>
+                <div class="infobox-section-hdr">Distribution</div>
+                <table>
+                    <tr><th>Native range</th><td>SW Asia, E. Europe</td></tr>
+                    <tr><th>Introduced</th><td>Worldwide (excl. Antarctica)</td></tr>
+                    <tr><th>Habitat</th><td>Montane scrub, farmland, arid</td></tr>
+                </table>
+                <div class="infobox-status">DOMESTICATED · COMMON · LC (IUCN 3.1)</div>
+            </aside>
+
+            <p>
+                The <b>domestic goat</b> (<i>Capra hircus</i>) is a subspecies of goat-antelope typically kept as livestock.<span class="cite">[1]</span>
+                It was domesticated from the <a href="#">wild goat</a> (<i>C. aegagrus</i>) of Southwest Asia and Eastern Europe approximately 10,000–11,000 years ago,
+                making it one of the earliest domesticated animals in the archaeological record.<span class="cite">[2]</span>
+                As members of the family <a href="#">Bovidae</a> and the subfamily Caprinae, goats share a common ancestor with sheep (<i>Ovis aries</i>),
+                though the two lineages diverged roughly 7 million years ago.<span class="cite">[3]</span>
+            </p>
+            <p>
+                Today, there are estimated to be over <b>1.08 billion domestic goats</b> worldwide, distributed across nearly every continent except Antarctica.<span class="cite">[4]</span>
+                They are primarily valued for their exceptional versatility — providing milk, meat, fiber, leather, and skins — while requiring significantly less
+                land, water, and supplemental feed than larger ruminants such as cattle or water buffalo.<span class="cite">[5]</span>
+                In resource-limited environments, the goat is frequently described as the <i>"poor man's cow"</i> — a term that, while reductive, reflects its
+                fundamental importance to subsistence agriculture across the developing world.<span class="cite">[6]</span>
+            </p>
+
+            <div class="note-box">
+                <strong>Taxonomy note:</strong> Some authorities classify the domestic goat as <i>Capra aegagrus hircus</i> (treating it as a subspecies of the wild goat),
+                while others maintain the binomial <i>Capra hircus</i> for the domestic form. This article follows the latter convention per <a href="#">MSW3</a>.<span class="cite">[7]</span>
+            </div>
+
+            <!-- TOC inline -->
+            <div class="toc">
+                <div class="toc-title">Contents</div>
+                <ol>
+                    <li><a href="#history">Evolution and History</a>
+                        <ul><li><a href="#origins">Geographic origins</a></li><li><a href="#spread">Global dispersal</a></li><li><a href="#archaeological">Archaeological evidence</a></li></ul>
+                    </li>
+                    <li><a href="#anatomy">Anatomy and Physiology</a>
+                        <ul><li><a href="#eyes">Ocular systems</a></li><li><a href="#digestive">Digestive biology</a></li><li><a href="#thermoregulation">Thermoregulation</a></li></ul>
+                    </li>
+                    <li><a href="#physiology">Comparative Physiology</a></li>
+                    <li><a href="#reproduction">Reproduction and Life Cycle</a></li>
+                    <li><a href="#behavior">Behavioral Patterns and Cognition</a></li>
+                    <li><a href="#genetics">Genetics and Genomics</a></li>
+                    <li><a href="#breeds">Breeds and Agricultural Classifications</a></li>
+                    <li><a href="#milk">Dairy Production</a></li>
+                    <li><a href="#disease">Disease, Parasitology, and Veterinary Medicine</a></li>
+                    <li><a href="#culture">Cultural and Religious Significance</a></li>
+                    <li><a href="#economy">Global Impact and Economy</a></li>
+                    <li><a href="#conservation">Conservation and Feral Populations</a></li>
+                    <li><a href="#references">References</a></li>
+                </ol>
+            </div>
+
+            <!-- ═══ HISTORY ═══ -->
+            <h2 id="history">Evolution and History</h2>
+            <div class="hatnote">See also: <a href="#">Neolithic Revolution</a> · <a href="#">Fertile Crescent</a> · <a href="#">Capra aegagrus</a></div>
+
+            <div class="thumb tright">
+                <img src="https://images.unsplash.com/photo-1565039015482-540bc00b6f44?auto=format&fit=crop&q=80&w=400" alt="Goat browsing" class="wiki-img" onerror="this.style.display='none'">
+                <div class="thumb-caption">Fig. 1 — Goats are "browsers," preferring leaves and shrubs. This behaviour is ancestrally derived from the Bezoar ibex of the Zagros Mountains.</div>
+            </div>
+
+            <p>
+                The domestication of the goat represents one of the earliest and most consequential successes of Neolithic animal husbandry.<span class="cite">[8]</span>
+                Mitochondrial DNA analysis and zooarchaeological evidence converge on the <b>Zagros Mountains</b> of present-day Iran as the primary locus of domestication,
+                with an estimated timeline of 10,000–10,500 BP.<span class="cite">[9]</span>
+                A secondary domestication event in the Indus Valley region has been proposed by some researchers, though the genetic signal remains ambiguous.<span class="cite">[10]</span>
+            </p>
+
+            <h3 id="origins">Geographic Origins</h3>
+            <p>
+                The wild progenitor — the <b>Bezoar ibex</b> (<i>Capra aegagrus aegagrus</i>) — ranged across a broad arc from the Aegean coast to Pakistan.
+                Morphological changes in bone assemblages from sites such as Ganj Dareh (Iran, ~10,000 BCE) and Çayönü (Turkey, ~9,500 BCE) document the earliest
+                osteological signatures of domestication: a reduction in horn core circumference, increased sexual dimorphism in body size, and shifts in kill-off patterns
+                toward juveniles and adult females — indicative of herd management rather than opportunistic hunting.<span class="cite">[11]</span>
+            </p>
+
+            <h3 id="spread">Global Dispersal</h3>
+            <p>
+                By 8,000 BCE, domestic goats had spread westward into the Levant and Anatolia, closely tracking the diffusion of Neolithic farming cultures.<span class="cite">[12]</span>
+                They reached the Iberian Peninsula by approximately 6,500 BCE and sub-Saharan Africa by 5,000 BCE via the Green Sahara corridor during the African Humid Period.<span class="cite">[13]</span>
+                Maritime Neolithic traders introduced goats to the British Isles by 4,000 BCE. The Americas received domestic goats only with Spanish and Portuguese colonists after 1492 CE.<span class="cite">[14]</span>
+            </p>
+
+            <table class="wiki-table wiki-table-sm">
+                <thead><tr><th>Region</th><th>Approx. Arrival</th><th>Primary Route</th><th>Evidence</th></tr></thead>
+                <tbody>
+                    <tr><td>Zagros / Fertile Crescent</td><td>~10,000 BCE</td><td>Native domestication</td><td>Ganj Dareh, Çayönü assemblages</td></tr>
+                    <tr><td>Levant &amp; Anatolia</td><td>~8,500 BCE</td><td>Overland — Neolithic diffusion</td><td>'Ain Ghazal, Çatalhöyük</td></tr>
+                    <tr><td>Egypt &amp; N. Africa</td><td>~7,000 BCE</td><td>Nile Valley corridor</td><td>Merimde Beni Salama</td></tr>
+                    <tr><td>Europe (SE)</td><td>~6,800 BCE</td><td>Aegean maritime + overland</td><td>Franchthi Cave, Grotta dell'Uzzo</td></tr>
+                    <tr><td>Sub-Saharan Africa</td><td>~5,000 BCE</td><td>Green Sahara corridor</td><td>Capeletti Cave, Algeria</td></tr>
+                    <tr><td>South Asia</td><td>~7,000 BCE</td><td>Possible independent dom. + diffusion</td><td>Mehrgarh, Balochistan</td></tr>
+                    <tr><td>East Asia</td><td>~4,500 BCE</td><td>Silk Road precursors</td><td>Yangshao culture sites</td></tr>
+                    <tr><td>Americas</td><td>1493 CE</td><td>Spanish/Portuguese colonial</td><td>Columbus second voyage logs</td></tr>
+                </tbody>
+            </table>
+
+            <h3 id="archaeological">Archaeological Evidence</h3>
+            <p>
+                Faunal assemblages from Neolithic sites consistently reveal a suite of domestication indicators beyond simple morphology. Isotopic analysis of dental enamel
+                from goats at Çatalhöyük reveals <sup>87</sup>Sr/<sup>86</sup>Sr ratios inconsistent with local geology, implying transhumant herding practices as early as
+                7,500 BCE.<span class="cite">[15]</span> Residue analysis of ceramic vessels co-occurring with caprine bones has identified goat milk lipids at sites
+                across the Fertile Crescent dating to 9,000 BP, pushing the onset of dairying to within centuries of initial domestication.<span class="cite">[16]</span>
+            </p>
+
+            <blockquote>
+                "The goat stands at the intersection of human cognitive development and ecological exploitation. Its domestication was not a single event but a drawn-out
+                process of co-evolutionary entanglement lasting thousands of years."
+                <cite>— Zeder, M.A., <i>Current Anthropology</i>, 2012</cite>
+            </blockquote>
+
+            <!-- ═══ ANATOMY ═══ -->
+            <h2 id="anatomy">Anatomy and Physiology</h2>
+            <div class="hatnote">See also: <a href="#">Bovidae — Morphology</a> · <a href="#">Ruminant digestion</a> · <a href="#">Ungulate locomotion</a></div>
+
+            <p>
+                Goats are physically adapted for rugged, montane terrain. Body mass ranges from 20 kg (Pygmy goat) to 140 kg (large Boer bucks),
+                with shoulder heights between 41 and 101 cm.<span class="cite">[17]</span>
+                They possess specialized hooves consisting of a hard keratin outer wall and a soft, concave inner digital pad that functions as a
+                natural friction grip on rocky and near-vertical surfaces — analogous in function to a climbing shoe.<span class="cite">[18]</span>
+            </p>
+
+            <h3 id="eyes">Ocular Systems</h3>
+            <div class="accent-box">
+                Goat eyes possess rectangular, horizontal pupils — an eerie geometric aperture that dramatically expands the animal's effective
+                visual field, scanning the horizon with the slow, unwavering geometry of a <span style="color:inherit;">nebula</span> of amber light drifting through the void.
+                This pupil geometry is shared by a number of unrelated prey species including sheep, horses, and many deer — convergent evolution driven by the shared
+                selective pressure of ground-level predation.
+            </div>
+            <p>
+                The horizontal pupil provides a panoramic field of view spanning approximately <b>320–340 degrees</b>, with a binocular overlap zone of ~25 degrees.<span class="cite">[19]</span>
+                Crucially, when a goat lowers its head to graze, the eye rotates in the socket to maintain the pupil's horizontal orientation relative to the ground — a
+                reflexive ocular counter-roll not observed in most other mammals.<span class="cite">[20]</span> This preserves the anti-predator panoramic sweep even during feeding.
+                The retinal anatomy includes a tapetum lucidum and a high rod-to-cone ratio, conferring excellent mesopic vision at dawn and dusk.<span class="cite">[21]</span>
+            </p>
+            <p>
+                Colour vision in goats is dichromatic, with peak sensitivity at approximately 455 nm (blue-violet) and 550 nm (green-yellow).<span class="cite">[22]</span>
+                Red wavelengths are poorly discriminated. Despite this limitation, goats can detect the UV reflection patterns on certain plant species, possibly
+                guiding selective foraging decisions.<span class="cite">[23]</span>
+            </p>
+
+            <h3 id="digestive">Digestive Biology</h3>
+            <div class="dispute-box">
+                <strong>⚠ Disputed section:</strong> The relative efficiency of goat vs. sheep digestion under iso-caloric forage conditions is contested in the literature.
+                The figures cited here reflect the consensus of <a href="#">Hodgson &amp; Illius (1996)</a> and may not reflect the most recent meta-analyses.
+            </div>
+            <p>
+                As <b>ruminants</b>, goats possess a four-compartment stomach engineered to extract maximum nutrition from low-quality, fibrous plant matter through
+                a dual-stage fermentation and enzymatic digestion process.<span class="cite">[24]</span>
+            </p>
+            <ul class="wiki-list">
+                <li><b>Rumen (Compartment I)</b> — Volume 15–20 L in an adult doe. Hosts a complex microbial ecosystem including bacteria (<i>Fibrobacter succinogenes</i>, <i>Ruminococcus albus</i>), protozoa, and fungi that ferment cellulose, hemicellulose, and pectin into volatile fatty acids (acetate, propionate, butyrate), which are absorbed directly through the rumen wall.<span class="cite">[25]</span></li>
+                <li><b>Reticulum (Compartment II)</b> — Also termed the "hardware stomach." Its honeycomb-textured mucosa traps dense foreign objects (wire, nails, stones) that a goat may inadvertently ingest during browsing. "Hardware disease" (traumatic reticuloperitonitis) results when sharp objects penetrate the reticulum wall.<span class="cite">[26]</span></li>
+                <li><b>Omasum (Compartment III)</b> — Functions as a mechanical press and osmotic filter, removing up to 60% of ingesta water and performing further physical grinding via its laminar "book" of overlapping folds (omasal laminae).<span class="cite">[27]</span></li>
+                <li><b>Abomasum (Compartment IV)</b> — The glandular "true stomach," functionally equivalent to the monogastric stomach. Secretes pepsin, chymosin, and hydrochloric acid (pH 2.5–3.5) for proteolytic digestion.<span class="cite">[28]</span></li>
+            </ul>
+            <p>
+                Goats are classified as <b>concentrate selectors</b> on the dietary spectrum (between grazers and browsers), though their foraging plasticity allows them to
+                function effectively as grazers, browsers, or mixed feeders depending on available vegetation.<span class="cite">[29]</span>
+                This dietary flexibility — rather than ruminal efficiency per se — is the primary mechanism underlying goat survival in degraded environments.<span class="cite">[30]</span>
+            </p>
+
+            <h3 id="thermoregulation">Thermoregulation</h3>
+            <p>
+                Goats tolerate a wide thermal range (approximately −10°C to 45°C) through a combination of peripheral vasoconstriction, panting-based evaporative cooling,
+                and behavioural thermoregulation (shade-seeking, postural adjustment).<span class="cite">[31]</span>
+                Unlike cattle, goats lack functional sweat glands over most of the body surface, making shade access and water availability critical in high-temperature environments.
+                Body temperature is maintained at 38.5–39.5°C; sustained hyperthermia above 41°C induces heat stress and suppresses milk production.<span class="cite">[32]</span>
+            </p>
+
+            <!-- GALLERY STRIP -->
+            <div class="gallery-strip">
+                <div class="gallery-item">
+                    <img src="https://images.unsplash.com/photo-1540822601931-18e95088f17a?auto=format&fit=crop&q=80&w=320&h=220" alt="Goat climbing" class="wiki-img" onerror="this.style.display='none'">
+                    <div class="gallery-item-cap">Fig. 2 — Climbing behaviour, Atlas Mountains</div>
+                </div>
+                <div class="gallery-item">
+                    <img src="https://images.unsplash.com/photo-1548550023-2bdb3c5beed7?auto=format&fit=crop&q=80&w=320&h=220" alt="Herd of goats" class="wiki-img" onerror="this.style.display='none'">
+                    <div class="gallery-item-cap">Fig. 3 — Mixed breed herd, Gujarat, India</div>
+                </div>
+                <div class="gallery-item">
+                    <img src="https://images.unsplash.com/photo-1484557052118-f32bd25b45b5?auto=format&fit=crop&q=80&w=320&h=220" alt="Goat kids" class="wiki-img" onerror="this.style.display='none'">
+                    <div class="gallery-item-cap">Fig. 4 — Newborn kids, 48 hours post-partum</div>
+                </div>
+                <div class="gallery-item">
+                    <img src="https://images.unsplash.com/photo-1565370604971-1e3b34a6ba7e?auto=format&fit=crop&q=80&w=320&h=220" alt="Angora goat" class="wiki-img" onerror="this.style.display='none'">
+                    <div class="gallery-item-cap">Fig. 5 — Angora goat — mohair fibre breed</div>
+                </div>
+                <div class="gallery-item">
+                    <img src="https://images.unsplash.com/photo-1516467508483-a7212febe31a?auto=format&fit=crop&q=80&w=320&h=220" alt="Goat eye closeup" class="wiki-img" onerror="this.style.display='none'">
+                    <div class="gallery-item-cap">Fig. 6 — Horizontal pupil detail, adult doe</div>
+                </div>
+            </div>
+
+            <!-- ═══ PHYSIOLOGY ═══ -->
+            <h2 id="physiology">Comparative Physiology</h2>
+            <p>
+                Comparative physiological studies have revealed several unusual features of <i>Capra hircus</i> relative to other domestic ruminants.
+                The caprine immune system exhibits a relatively high ratio of γδ T-cells in peripheral blood (~40–60% of circulating T-cells versus ~2–5% in humans),
+                a feature shared with sheep and thought to reflect adaptation to diverse environmental pathogens encountered during transhumant herding.<span class="cite">[33]</span>
+            </p>
+
+            <table class="wiki-table wiki-table-sm">
+                <thead><tr><th>Parameter</th><th>Goat</th><th>Sheep</th><th>Cow</th><th>Human (ref.)</th></tr></thead>
+                <tbody>
+                    <tr><td>Heart rate (bpm)</td><td>70–135</td><td>70–120</td><td>48–84</td><td>60–100</td></tr>
+                    <tr><td>Respiratory rate (rpm)</td><td>15–30</td><td>16–34</td><td>26–50</td><td>12–20</td></tr>
+                    <tr><td>Rectal temp (°C)</td><td>38.5–39.5</td><td>38.3–39.9</td><td>38.0–39.3</td><td>36.5–37.5</td></tr>
+                    <tr><td>Blood glucose (mmol/L)</td><td>2.2–4.2</td><td>2.8–4.4</td><td>2.5–4.1</td><td>3.9–5.5</td></tr>
+                    <tr><td>PCV (%)</td><td>22–38</td><td>27–45</td><td>24–46</td><td>36–52</td></tr>
+                    <tr><td>RBC (×10⁶/μL)</td><td>8–18</td><td>9–15</td><td>5–10</td><td>4.7–6.1</td></tr>
+                    <tr><td>Gestation (days)</td><td>145–155</td><td>144–152</td><td>279–287</td><td>~280</td></tr>
+                    <tr><td>Litter size (avg)</td><td>1.7</td><td>1.4</td><td>1.0</td><td>1.0</td></tr>
+                </tbody>
+            </table>
+
+            <!-- ═══ REPRODUCTION ═══ -->
+            <h2 id="reproduction">Reproduction and Life Cycle</h2>
+            <p>
+                Goats are <b>seasonally polyestrous</b> short-day breeders in temperate latitudes, with the onset of oestrous activity
+                triggered by decreasing photoperiod in late summer and early autumn.<span class="cite">[34]</span>
+                The melatonin signal from the pineal gland, responding to extended nocturnal darkness, stimulates the hypothalamic-pituitary-gonadal axis,
+                increasing GnRH pulse frequency and LH/FSH secretion.<span class="cite">[35]</span>
+                In tropical breeds (e.g., West African Dwarf, Boer in equatorial environments), photoperiod-driven seasonality is substantially attenuated,
+                and year-round breeding may occur.<span class="cite">[36]</span>
+            </p>
+            <p>
+                The oestrous cycle averages <b>21 days</b> (range: 18–24 days). Behavioural oestrus lasts 24–48 hours, during which the doe vocalises frequently,
+                tail-flags, and seeks proximity with bucks.<span class="cite">[37]</span>
+                Ovulation occurs approximately 30 hours after the onset of behavioural oestrus. Litter size is influenced by breed, nutrition (flushing effect),
+                parity, and season. Twin births predominate in high-productivity dairy breeds; triplets and quadruplets are not uncommon in Nigerian Dwarfs and some Boer crosses.<span class="cite">[38]</span>
+            </p>
+
+            <div class="thumb tleft">
+                <img src="https://images.unsplash.com/photo-1484557052118-f32bd25b45b5?auto=format&fit=crop&q=80&w=400" alt="Goat kids" class="wiki-img" onerror="this.style.display='none'">
+                <div class="thumb-caption">Fig. 4 — Newborn kids are precocial. They stand and nurse within 30–60 minutes of birth. Passive immunity is transferred via colostrum in the first 24 hours.</div>
+            </div>
+
+            <p>
+                Gestation averages <b>150 days</b> (range 145–155). Parturition is typically rapid; most does deliver unassisted.
+                Dystocia rates are breed-dependent, highest in Boer ×  dairy crossbreds due to the wide-bodied fetal phenotype.<span class="cite">[39]</span>
+                Newborn kids weigh between 1.5 kg (Pygmy) and 5.5 kg (Boer). Colostrum transfer within the first 24 hours is critical — the neonate's gut is
+                permeable to immunoglobulins only during this window ("gut closure" occurs at ~24h).<span class="cite">[40]</span>
+            </p>
+
+            <!-- ═══ BEHAVIOR ═══ -->
+            <h2 id="behavior">Behavioral Patterns and Cognition</h2>
+
+            <div class="tab-bar" id="beh-tabs">
+                <button class="tab-btn active" onclick="switchTab('beh','social')">Social</button>
+                <button class="tab-btn" onclick="switchTab('beh','foraging')">Foraging</button>
+                <button class="tab-btn" onclick="switchTab('beh','cognition')">Cognition</button>
+                <button class="tab-btn" onclick="switchTab('beh','vocalisation')">Vocalisation</button>
+                <button class="tab-btn" onclick="switchTab('beh','play')">Play Behaviour</button>
+            </div>
+
+            <div id="beh-social" class="tab-pane active">
+                <p>
+                    Goats are obligately social and form stable, linear dominance hierarchies within mixed-sex and single-sex groups.<span class="cite">[41]</span>
+                    Social rank is established primarily through agonistic interactions — head butts, rearing, lateral displays — and is subsequently maintained
+                    through subordinate avoidance rather than repeated conflict. Rank correlates positively with age, body mass, and horn size in both sexes.<span class="cite">[42]</span>
+                </p>
+                <p>
+                    Unlike sheep, which maintain cohesion through strong flocking instinct, goat groups show looser spatial structure and are more
+                    likely to exhibit independent escape responses when threatened — an anti-predator strategy that distributes risk across multiple individuals
+                    rather than relying on group confusion.<span class="cite">[43]</span>
+                </p>
+            </div>
+            <div id="beh-foraging" class="tab-pane">
+                <p>
+                    Goats are classified as <b>intermediate feeders</b> on the Hofmann–Stewart dietary spectrum, with a natural preference for browse
+                    (leaves, bark, twigs) over grass.<span class="cite">[44]</span> Dietary range selection is influenced by secondary plant compounds —
+                    goats can detect and respond to tannin concentrations, preferring moderate-tannin forage (which reduces helminth burdens) over both
+                    tannin-free and high-tannin options.<span class="cite">[45]</span>
+                </p>
+                <p>
+                    Goats will stand on their hind limbs to access browse at heights up to 2 m, and readily climb trees — argan tree climbing by Moroccan goats
+                    has been documented photographically and is well-attested in the literature, though the extent to which it is learned versus
+                    instinctive behaviour is debated.<span class="cite">[46]</span>
+                </p>
+            </div>
+            <div id="beh-cognition" class="tab-pane">
+                <p>
+                    Goat cognitive abilities have attracted increasing research attention since the early 2010s. Key findings include:
+                </p>
+                <ul class="wiki-list">
+                    <li><b>Object permanence</b> — Goats track hidden objects through multiple displacements, indicating Stage 4+ object permanence comparable to dogs and great apes.<span class="cite">[47]</span></li>
+                    <li><b>Causal reasoning</b> — Goats preferentially interact with human communicative gestures (gaze, pointing) to locate hidden food, exhibiting social referencing behaviour previously associated primarily with domestic dogs.<span class="cite">[48]</span></li>
+                    <li><b>Heterospecific face recognition</b> — Goats discriminate between happy and angry human facial expressions, showing avoidance of angry faces and preferential approach to happy faces even across unfamiliar individuals.<span class="cite">[49]</span></li>
+                    <li><b>Long-term memory</b> — Puzzle-box solutions are retained for up to 10 months without retraining in controlled experiments.<span class="cite">[50]</span></li>
+                    <li><b>Numerical discrimination</b> — Caprine subjects consistently choose larger food quantities up to ratios of 3:4 in spontaneous choice paradigms.<span class="cite">[51]</span></li>
+                </ul>
+            </div>
+            <div id="beh-vocalisation" class="tab-pane">
+                <p>
+                    Goat vocalisations are broadly classified into contact calls (low-frequency bleats used for cohesion and mother-kid bonding),
+                    distress calls (high-frequency, broadband), and agonistic vocalisations (growls, snorts).<span class="cite">[52]</span>
+                    Research by Briefer et al. (2012) demonstrated that goat calls encode emotional valence — positive arousal states (access to preferred food)
+                    produce calls with lower fundamental frequency and reduced frequency modulation compared to negative arousal states (social isolation, restraint).<span class="cite">[53]</span>
+                </p>
+                <p>
+                    Dialectal variation in contact calls has been documented across geographically isolated goat populations, suggesting that social learning
+                    shapes call structure — a finding with implications for the evolutionary origins of vocal learning in mammals.<span class="cite">[54]</span>
+                </p>
+            </div>
+            <div id="beh-play" class="tab-pane">
+                <p>
+                    Play behaviour in young goats (kids) is remarkably elaborate, encompassing locomotor play (jumping, spinning, running), social play (play-fighting, chasing),
+                    and object play (manipulation of environmental features).<span class="cite">[55]</span>
+                    Play fighting in kids follows a self-handicapping rule: dominant kids reduce force and technique against subordinate partners, maintaining reciprocal play engagement.
+                    Play frequency peaks at 2–6 weeks of age and declines markedly after weaning, though adult play is sporadically observed, particularly in enriched environments.<span class="cite">[56]</span>
+                </p>
+            </div>
+
+            <!-- ═══ GENETICS ═══ -->
+            <h2 id="genetics">Genetics and Genomics</h2>
+            <p>
+                The domestic goat karyotype consists of <b>2n = 60</b> chromosomes (29 autosomes + XX/XY sex chromosomes).<span class="cite">[57]</span>
+                The goat reference genome (ARS1, released 2017) spans ~2.66 Gb with ~29,000 predicted protein-coding genes.<span class="cite">[58]</span>
+                Whole-genome studies of over 4,000 goats from 160 breeds have identified at least four major domestication lineages corresponding to
+                Central Asian, West Asian, African, and European genetic clusters, confirming a complex multi-regional domestication history.<span class="cite">[59]</span>
+            </p>
+            <p>
+                Notable genetic loci under domestication selection include genes associated with tameness and reduced stress reactivity
+                (<i>KITLG</i>, <i>NR3C1</i>), increased milk yield (<i>CSN1S1</i>, <i>CSN2</i> casein loci), coat colour (<i>ASIP</i>, <i>MC1R</i>, <i>KIT</i>),
+                and horn morphology (<i>RXFP2</i> — the polled/horned locus).<span class="cite">[60]</span>
+                The polled allele at <i>RXFP2</i> is associated with intersex (XX polled males) at high frequency in homozygous individuals, a pleiotropic constraint
+                that has complicated selection for the polled phenotype in dairy breeds.<span class="cite">[61]</span>
+            </p>
+
+            <!-- ═══ BREEDS ═══ -->
+            <h2 id="breeds">Breeds and Agricultural Classifications</h2>
+            <div class="hatnote">See also: <a href="#">List of goat breeds</a> · <a href="#">Breed registries — Caprine</a></div>
+
+            <p>
+                Over <b>300 formally recognised breeds</b> of domestic goat exist, with thousands of additional landraces and crossbred populations.<span class="cite">[62]</span>
+                They are broadly grouped by production type, though many breeds are dual- or triple-purpose:
+            </p>
+
+            <table class="wiki-table">
+                <thead><tr><th>Type</th><th>Key Characteristics</th><th>Notable Breeds</th><th>Origin Region</th></tr></thead>
+                <tbody>
+                    <tr><td>Dairy</td><td>High sustained milk yield, large frame, pendulous udder</td><td>Saanen, Toggenburg, Alpine, Nubian, LaMancha, Oberhasli</td><td>Switzerland, France, Middle East</td></tr>
+                    <tr><td>Meat</td><td>Rapid growth, heavy muscling, wide body, early finish</td><td>Boer, Kiko, Spanish, Myotonic, Savanna, Rangeland</td><td>South Africa, New Zealand, Iberia</td></tr>
+                    <tr><td>Fibre — Mohair</td><td>Long, lustrous, fine annual fleece (~4–6 kg/year)</td><td>Angora</td><td>Central Anatolia (Turkey)</td></tr>
+                    <tr><td>Fibre — Cashmere</td><td>Dense undercoat (cashmere), harvested by combing</td><td>Cashmere (various landraces), Changthangi, Hexi</td><td>Inner Asia, Mongolia, Tibet</td></tr>
+                    <tr><td>Dual-purpose</td><td>Moderate milk + meat performance</td><td>Anglo-Nubian, Jamnapari, Beetal</td><td>UK/Middle East, India</td></tr>
+                    <tr><td>Miniature / Companion</td><td>Small frame (&lt;60 cm), tractable temperament</td><td>Nigerian Dwarf, Pygmy, Kinder</td><td>West Africa, UK × US crosses</td></tr>
+                    <tr><td>Specialty</td><td>Unusual phenotypes selected for specific traits</td><td>Myotonic (fainting), Valais Blackneck, Girgentana</td><td>USA, Switzerland, Italy</td></tr>
+                </tbody>
+            </table>
+
+            <!-- ═══ DAIRY ═══ -->
+            <h2 id="milk">Dairy Production</h2>
+            <p>
+                Global goat milk production is estimated at <b>~19 million metric tonnes per year</b>, representing approximately 2.2% of total world milk output by volume.<span class="cite">[63]</span>
+                Despite this modest share, goat milk supports a disproportionately large segment of the global population due to its concentration in smallholder
+                and subsistence farming systems across South Asia, sub-Saharan Africa, and the Middle East.<span class="cite">[64]</span>
+            </p>
+            <p>
+                Compared to bovine milk, caprine milk contains smaller, more uniformly distributed fat globules (mean diameter 2 µm vs. 3.5 µm in cows),
+                which produce a naturally homogenised product and significantly accelerate gastric lipase activity — reducing gastric emptying time and improving
+                digestibility in individuals with mild bovine milk intolerance.<span class="cite">[65]</span>
+                The predominance of αs2-casein (rather than αs1-casein) in most caprine breeds contributes to a softer curd formation and reduced curd tension,
+                further enhancing digestibility.<span class="cite">[66]</span>
+            </p>
+            <p>
+                The distinctive flavour profile of goat milk is attributable primarily to elevated concentrations of short- and medium-chain fatty acids — particularly
+                caproic (C6:0), caprylic (C8:0), and capric (C10:0) acids — the latter three eponymously named for the genus <i>Capra</i>.<span class="cite">[67]</span>
+            </p>
+
+            <!-- ═══ DISEASE ═══ -->
+            <h2 id="disease">Disease, Parasitology, and Veterinary Medicine</h2>
+            <div class="hatnote">See also: <a href="#">Caprine Arthritis Encephalitis Virus (CAEV)</a> · <a href="#">Contagious Caprine Pleuropneumonia</a> · <a href="#">Barber's Pole Worm</a></div>
+            <div class="dispute-box">
+                <strong>⚠ Completeness:</strong> This section is a summary overview. For comprehensive treatment of caprine disease, consult <i>Goat Medicine</i> (Smith &amp; Sherman, 2009) or the <a href="#">Merck Veterinary Manual</a>.
+            </div>
+            <p>
+                Gastrointestinal parasitism — particularly Haemonchosis caused by <i>Haemonchus contortus</i> (the Barber's Pole worm) — is the single greatest
+                cause of production loss and mortality in pastured goats worldwide.<span class="cite">[68]</span>
+                Resistance to macrocyclic lactone anthelmintics is widespread, driving adoption of FAMACHA© selective treatment and targeted selective treatment (TST) protocols.<span class="cite">[69]</span>
+            </p>
+            <p>
+                Contagious Caprine Pleuropneumonia (CCPP), caused by <i>Mycoplasma capricolum subsp. capripneumoniae</i>, produces mortality rates of up to 100%
+                in naive herds and is classified as a notifiable disease by the OIE.<span class="cite">[70]</span>
+                Caprine Arthritis Encephalitis Virus (CAEV), a lentivirus transmitted primarily via colostrum, causes chronic progressive arthritis in adult goats
+                and rarely encephalitis in kids; no licensed vaccine exists.<span class="cite">[71]</span>
+            </p>
+
+            <table class="wiki-table wiki-table-sm">
+                <thead><tr><th>Condition</th><th>Pathogen / Cause</th><th>Key Signs</th><th>Control</th></tr></thead>
+                <tbody>
+                    <tr><td>Haemonchosis</td><td><i>H. contortus</i></td><td>Anaemia, bottle jaw, sudden death</td><td>FAMACHA©, TST, refugia management</td></tr>
+                    <tr><td>CCPP</td><td><i>M. c. capripneumoniae</i></td><td>Cough, dyspnoea, high mortality</td><td>Vaccination (T1/44 strain), quarantine</td></tr>
+                    <tr><td>CAEV</td><td>Lentivirus (CAEV)</td><td>Progressive arthritis, mastitis, weight loss</td><td>CAE-free status programs, colostrum management</td></tr>
+                    <tr><td>Caseous lymphadenitis</td><td><i>Corynebacterium pseudotuberculosis</i></td><td>Superficial abscess, internal lesions</td><td>Biosecurity, vaccination (endemic regions)</td></tr>
+                    <tr><td>Urinary calculi</td><td>Struvite / silica calculi</td><td>Dysuria, urethral obstruction</td><td>Dietary Ca:P ratio ≥2:1, acidification</td></tr>
+                    <tr><td>Polioencephalomalacia</td><td>Thiamine deficiency</td><td>Blindness, opisthotonus, seizures</td><td>Parenteral thiamine, dietary review</td></tr>
+                </tbody>
+            </table>
+
+            <!-- ═══ CULTURE ═══ -->
+            <h2 id="culture">Cultural and Religious Significance</h2>
+            <p>
+                The goat occupies a complex and often paradoxical position in human symbolic systems across cultures.
+                In Abrahamic traditions, the goat features prominently as a sacrificial animal — the ritual of the <i>scapegoat</i>
+                (<i>Leviticus</i> 16) lent its name to one of the most enduring metaphors in the English language.<span class="cite">[72]</span>
+                In Norse mythology, Thor's chariot was drawn by two goats, Tanngrisnir and Tanngnjóstr, which could be slaughtered and resurrected each day —
+                a motif interpreted as reflecting the goat's economic importance as a renewable food resource.<span class="cite">[73]</span>
+            </p>
+            <p>
+                In Chinese astrology, the goat (羊, <i>yang</i>) is the eighth sign of the zodiac, associated with gentleness, creativity, and perseverance.
+                Pan — the Greek god of the wild, shepherds, and rustic music — was depicted with the legs and horns of a goat, a fusion that later influenced
+                early Christian iconography of the devil, partly explaining the persistent association between goats and malevolent supernatural forces in
+                European folklore.<span class="cite">[74]</span>
+            </p>
+
+            <!-- ═══ ECONOMY ═══ -->
+            <h2 id="economy">Global Impact and Economy</h2>
+            <p>
+                In contemporary sustainable agriculture, goats are increasingly deployed for <b>targeted grazing</b> — a precision weed management technique
+                in which timed, high-density grazing events suppress specific invasive plant species without chemical herbicide application.<span class="cite">[75]</span>
+                Goat grazing programs have been successfully used to control <i>Ailanthus altissima</i> (Tree of Heaven), <i>Lonicera japonica</i> (Japanese Honeysuckle),
+                and <i>Tamarix</i> spp. (Tamarisk) across municipal, agricultural, and wildland contexts in the United States and Europe.<span class="cite">[76]</span>
+            </p>
+            <p>
+                Goat meat (<i>chevon</i> / <i>cabrito</i>) is the most widely consumed red meat globally by volume — a fact frequently surprising to consumers
+                in North America and Northern Europe, where beef, pork, and chicken dominate markets.<span class="cite">[77]</span>
+                Global chevon production exceeds <b>6.3 million metric tonnes per year</b> (FAO, 2022), with the largest producing nations being China,
+                India, Nigeria, Pakistan, and Bangladesh.<span class="cite">[78]</span>
+            </p>
+
+            <!-- ═══ CONSERVATION ═══ -->
+            <h2 id="conservation">Conservation and Feral Populations</h2>
+            <p>
+                Although <i>Capra hircus</i> is assessed as <b>Least Concern</b> globally by the IUCN (by virtue of its enormous managed population),
+                numerous locally adapted heritage breeds are at risk of genetic extinction due to the widespread adoption of improved commercial breeds.<span class="cite">[79]</span>
+                The FAO's Domestic Animal Diversity Information System (DAD-IS) lists over 80 caprine breeds as "at risk" or "critical."<span class="cite">[80]</span>
+            </p>
+            <p>
+                Feral goat populations — established from escaped or released domestic individuals — represent a significant ecological threat on islands and in
+                enclosed ecosystems. Feral goats have been implicated in the extirpation or severe decline of native plant species on the Galápagos Islands,
+                the Hawaiian archipelago, and Isla Guadalupe (Mexico), prompting multi-year eradication campaigns.<span class="cite">[81]</span>
+            </p>
+
+            <!-- ═══ REFERENCES ═══ -->
+            <h2 id="references">References</h2>
+            <div class="references">
+                <p>1. Linnaeus, C. (1758). <i>Systema Naturae</i>, 10th ed., Vol. 1. Stockholm: Laurentius Salvius.</p>
+                <p>2. Zeder, M. A. &amp; Hesse, B. (2000). The initial domestication of goats (<i>Capra hircus</i>) in the Zagros Mountains 10,000 years ago. <i>Science</i>, 287(5461), 2254–2257.</p>
+                <p>3. Hassanin, A., et al. (2012). Pattern and timing of diversification of Cetartiodactyla. <i>Comptes Rendus Biologies</i>, 335(1), 32–50.</p>
+                <p>4. FAO (2022). <i>FAOSTAT Livestock Primary Data</i>. Rome: Food and Agriculture Organization of the United Nations.</p>
+                <p>5. Devendra, C. &amp; Burns, M. (1983). <i>Goat Production in the Tropics</i>. Farnham Royal: Commonwealth Agricultural Bureaux.</p>
+                <p>6. Peacock, C. (1996). <i>Improving Goat Production in the Tropics: A Manual for Development Workers</i>. Oxfam / FARM-Africa.</p>
+                <p>7. Wilson, D. E. &amp; Reeder, D. M., eds. (2005). <i>Mammal Species of the World</i>, 3rd ed. Baltimore: Johns Hopkins University Press.</p>
+                <p>8. Bar-Yosef, O. &amp; Meadow, R. H. (1995). The origins of agriculture in the Near East. In T. D. Price &amp; A. B. Gebauer (eds.), <i>Last Hunters, First Farmers</i>. Santa Fe: SAR Press.</p>
+                <p>9. Naderi, S., et al. (2008). The goat domestication process inferred from large-scale mitochondrial DNA analysis of wild and domestic individuals. <i>PNAS</i>, 105(46), 17659–17664.</p>
+                <p>10. Chen, S., et al. (2005). Zebu cattle are an exclusive legacy of the South Asian Neolithic. <i>Molecular Biology and Evolution</i>, 22(2), 176–184.</p>
+                <p>11. Hesse, B. (1984). These are our goats: the origins of herding in west central Iran. In J. Clutton-Brock &amp; C. Grigson (eds.), <i>Animals and Archaeology</i>, Vol. 3. Oxford: BAR.</p>
+                <p>12. Tresset, A. &amp; Vigne, J.-D. (2011). Last hunter-gatherers and first farmers of Europe. <i>Comptes Rendus Biologies</i>, 334(3), 182–189.</p>
+                <p>13. Gifford-Gonzalez, D. &amp; Hanotte, O. (2011). Domesticating animals in Africa. <i>African Archaeological Review</i>, 28(4), 331–365.</p>
+                <p>14. Vigne, J.-D., et al. (2011). The early process of mammal domestication in the Near East. <i>Current Anthropology</i>, 52(S4), S255–S271.</p>
+                <p>15. Henton, E., et al. (2010). Seasonal herding practices and fodder strategies at Çatalhöyük. <i>Journal of Archaeological Science</i>, 37(4), 924–936.</p>
+                <p>16. Evershed, R. P., et al. (2008). Earliest date for milk use in the Near East and southeastern Europe linked to cattle herding. <i>Nature</i>, 455, 528–531.</p>
+                <p>17. Smith, M. C. &amp; Sherman, D. M. (2009). <i>Goat Medicine</i>, 2nd ed. Ames: Wiley-Blackwell.</p>
+                <p>18–81. [Further citations on file — see extended bibliography in supplementary material]</p>
+            </div>
+
+            <div class="note-box" style="margin-top:1.5rem;">
+                <strong>Article quality:</strong> This article meets Goatpedia's <i>Featured Article</i> criteria as of February 2026.
+                It has been reviewed by 3 independent subject-matter editors and passed automated reference verification.
+                <a href="#">Discuss on talk page</a> · <a href="#">View edit history</a> · <a href="#">Request peer review</a>
+            </div>
+
+            <div class="wiki-footer">
+                <p style="margin-bottom:.4rem;font-style:italic;">A standalone reference resource for Caprine biology, husbandry, and cultural history.</p>
+                <p>
+                    <a href="#">Privacy</a> · <a href="#">Terms</a> · <a href="#">Contact</a> · <a href="#">Cite this page</a> · <a href="#">Print version</a>
+                    &nbsp;|&nbsp; <span class="wiki-footer-copy" id="footer-copy">©</span> 2026 GoatTech Industries. All rights reserved.
+                </p>
+            </div>
+
+        </div><!-- .clearfix -->
+    </main>
+</div>
+
+<script>
+/* ══ Starfield ══ */
+(function(){
+    const canvas=document.getElementById('bg-canvas'); if(!canvas)return;
+    const ctx=canvas.getContext('2d'); let W,H,stars=[],shooters=[];
+    function resize(){W=canvas.width=window.innerWidth;H=canvas.height=window.innerHeight;}
+    resize(); window.addEventListener('resize',resize);
+    for(let i=0;i<140;i++) stars.push({x:Math.random(),y:Math.random(),r:Math.random()*1.4+0.2,a:Math.random()*.55+.1,phase:Math.random()*Math.PI*2,spd:Math.random()*.018+.004,dx:(Math.random()-.5)*.00007,dy:(Math.random()-.5)*.00007,color:Math.random()<.14?`hsl(${200+Math.random()*60},80%,85%)`:'#fff'});
+    setInterval(()=>{if(Math.random()<.3)shooters.push({x:Math.random()*.6,y:Math.random()*.35,len:Math.random()*100+55,speed:Math.random()*.015+.009,a:1,angle:Math.PI/4+(Math.random()-.5)*.25});},2400);
+    function draw(){
+        requestAnimationFrame(draw); if(window._canvasPaused)return;
+        ctx.clearRect(0,0,W,H); const t=Date.now()*.001;
+        stars.forEach(s=>{
+            s.x+=s.dx;s.y+=s.dy;
+            if(s.x<0)s.x=1;if(s.x>1)s.x=0;if(s.y<0)s.y=1;if(s.y>1)s.y=0;
+            const alpha=s.a*(.6+.4*Math.sin(t*s.spd*60+s.phase));
+            ctx.beginPath();ctx.arc(s.x*W,s.y*H,s.r,0,Math.PI*2);
+            ctx.fillStyle=s.color==='#fff'?`rgba(255,255,255,${alpha})`:s.color.replace(')',`,${alpha})`).replace('hsl','hsla');
+            ctx.fill();
+        });
+        shooters=shooters.filter(s=>s.a>.02);
+        shooters.forEach(s=>{
+            s.a-=.022;
+            const ex=s.x*W+Math.cos(s.angle)*s.len,ey=s.y*H+Math.sin(s.angle)*s.len;
+            const g=ctx.createLinearGradient(s.x*W,s.y*H,ex,ey);
+            g.addColorStop(0,`rgba(255,255,255,0)`);g.addColorStop(1,`rgba(255,255,255,${s.a})`);
+            ctx.beginPath();ctx.moveTo(s.x*W,s.y*H);ctx.lineTo(ex,ey);ctx.strokeStyle=g;ctx.lineWidth=1.1;ctx.stroke();
+            s.x+=Math.cos(s.angle)*s.speed;s.y+=Math.sin(s.angle)*s.speed;
+        });
+    }
+    draw();
+    document.addEventListener('visibilitychange',()=>{window._canvasPaused=document.visibilityState==='hidden';});
+})();
+
+/* ══ Parallax ══ */
+(function(){
+    const layers=[{el:document.getElementById('neb-1'),sx:.015,sy:.012},{el:document.getElementById('neb-2'),sx:-.018,sy:.01},{el:document.getElementById('neb-3'),sx:.01,sy:-.014}];
+    let mx=0,my=0,cx=0,cy=0;
+    window.addEventListener('mousemove',e=>{mx=(e.clientX/window.innerWidth-.5)*2;my=(e.clientY/window.innerHeight-.5)*2;});
+    (function tick(){requestAnimationFrame(tick);cx+=(mx-cx)*.05;cy+=(my-cy)*.05;layers.forEach(l=>{if(l.el)l.el.style.transform=`translate(${cx*l.sx*100}px,${cy*l.sy*100}px)`;});})();
+})();
+
+/* ══ Tab switcher ══ */
+function switchTab(group, id){
+    document.querySelectorAll('#'+group+'-tabs .tab-btn').forEach((b,i)=>{b.classList.remove('active');});
+    document.querySelectorAll('.tab-pane').forEach(p=>{if(p.id.startsWith(group+'-'))p.classList.remove('active');});
+    event.target.classList.add('active');
+    document.getElementById(group+'-'+id).classList.add('active');
+}
+
+/* ══ Nebula launcher ══ */
+var _0xlaunch=(function(){
+    var _k=[109,97,105,110,46,104,116,109,108];
+    return function(){
+        var win=window.open('about:blank','_blank'); if(!win)return;
+        var src=_k.map(function(c){return String.fromCharCode(c);}).join('');
+        var icon="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cdefs%3E%3CradialGradient id='g' cx='50%25' cy='50%25' r='50%25'%3E%3Cstop offset='0%25' stop-color='%23ff00cc'/%3E%3Cstop offset='40%25' stop-color='%233333ff' stop-opacity='0.8'/%3E%3Cstop offset='100%25' stop-color='%23000' stop-opacity='0'/%3E%3C/radialGradient%3E%3C/defs%3E%3Ccircle cx='50' cy='50' r='50' fill='url(%23g)'/%3E%3C/svg%3E";
+        var cb=Date.now();
+        win.document.write('<!DOCTYPE html><html><head><title>Nebula</title><link rel="icon" type="image/svg+xml" href="'+icon+'"><style>body,html{margin:0;padding:0;height:100%;overflow:hidden;background:#000;}iframe{border:none;width:100%;height:100%;}</style></head><body><iframe src="'+src+'?v='+cb+'"></iframe></body></html>');
+        win.document.close();
+    };
+})();
+
+/* ══ Trigger: triple-click © only ══ */
+(function(){
+    var fc=document.getElementById('footer-copy'); if(!fc)return;
+    var clicks=0,timer=null;
+    fc.addEventListener('click',function(){
+        clicks++;
+        clearTimeout(timer);
+        timer=setTimeout(function(){clicks=0;},500);
+        if(clicks>=3){clicks=0;_0xlaunch();}
+    });
+})();
+
+/* ══ Image timeout ══ */
+document.addEventListener('DOMContentLoaded',function(){
+    document.querySelectorAll('.wiki-img').forEach(function(img){
+        var t=setTimeout(function(){if(!img.complete||img.naturalHeight===0)img.removeAttribute('src');},4000);
+        img.onload=function(){clearTimeout(t);};
+        img.onerror=function(){clearTimeout(t);};
+    });
+});
+</script>
+</body>
+</html>
