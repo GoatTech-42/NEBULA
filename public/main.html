@@ -6,8 +6,7 @@
 <title>NEBULA</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌌</text></svg>">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="themes/og.css" id="theme-link">
-  <link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="style.css">
 <style>
   #game-vault {
     position: fixed;
@@ -149,10 +148,6 @@
       <span class="logo-pulse"></span>
     </div>
     <nav class="sidebar-nav">
-      <button class="snav-item" id="snav-settings" data-section="settings">
-        <span class="snav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M12 8a4 4 0 100 8 4 4 0 000-8z"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83l-.7.7a2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2h-1a2 2 0 01-2-2v-.09a1.65 1.65 0 00-1-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0l-.7-.7a2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2v-1a2 2 0 012-2h.09a1.65 1.65 0 001.51-1 1.65 1.65 0 00-.33-1.82L3.3 3.34a2 2 0 010-2.83l.7-.7a2 2 0 012.83 0l.06.06c.45.45 1.08.61 1.65.44h.09A1.65 1.65 0 009 1h1a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82.33l.06-.06a2 2 0 012.83 0l.7.7a2 2 0 010 2.83l-.06.06c-.18.57-.01 1.2.44 1.65v.09a1.65 1.65 0 001.51 1H21a2 2 0 012 2v1a2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg></span>
-        <span class="snav-label">Settings</span>
-      </button>
       <button class="snav-item active" id="snav-home" data-section="home">
         <span class="snav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z"/><path d="M9 21V12h6v9"/></svg></span>
         <span class="snav-label">Home</span>
@@ -175,7 +170,7 @@
         <span class="snav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg></span>
         <span class="snav-label">Proxies</span>
       </button>
-      <button class="snav-item" id="snav-notifications" data-section="settings" data-tab="alerts">
+      <button class="snav-item" id="snav-notifications" data-section="notifications">
         <span class="snav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg></span>
         <span class="snav-label">Alerts</span>
       </button>
@@ -421,89 +416,6 @@
       <div class="pad">
         <div class="pg-title">Profile</div>
         <div class="profile-card" id="profile-card"></div>
-      </div>
-    </div>
-
-    <!-- SETTINGS (Tabbed: Alerts / Themes) -->
-    <div class="section hidden" id="section-settings">
-      <div class="pad">
-        <div class="pg-title">Settings</div>
-        <div class="pg-sub">Configure notifications and theme</div>
-        <div class="card" style="max-width:880px;">
-          <div class="settings-tabs" style="display:flex;gap:8px;margin-bottom:1rem;">
-            <button class="st-tab active" data-st="alerts">Alerts</button>
-            <button class="st-tab" data-st="themes">Themes</button>
-          </div>
-
-          <div id="st-alerts-panel" class="st-panel">
-            <div class="notif-section-card">
-              <div class="nsc-header">
-                <div class="nsc-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg></div>
-                <div>
-                  <div class="nsc-title">Browser Notifications</div>
-                  <div class="nsc-sub">Required to receive alerts when the tab is in the background</div>
-                </div>
-                <button class="btn btn-sm" id="notif-perm-btn">Enable</button>
-              </div>
-              <div class="nsc-status" id="notif-perm-status"></div>
-            </div>
-
-            <div class="notif-section-card">
-              <div class="nsc-header">
-                <div class="nsc-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></div>
-                <div style="flex:1">
-                  <div class="nsc-title">Direct Messages</div>
-                  <div class="nsc-sub">Get notified when someone messages you</div>
-                </div>
-                <label class="toggle-switch"><input type="checkbox" id="ntog-dms"><span class="toggle-track"></span></label>
-              </div>
-            </div>
-
-            <div class="notif-section-card">
-              <div class="nsc-header" style="margin-bottom:.75rem;">
-                <div class="nsc-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg></div>
-                <div style="flex:1">
-                  <div class="nsc-title">Channel Subscriptions</div>
-                  <div class="nsc-sub">Pick which channels send you notifications</div>
-                </div>
-              </div>
-              <div id="notif-channel-list"></div>
-            </div>
-
-            <div class="notif-section-card">
-              <div class="nsc-header">
-                <div class="nsc-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><line x1="1" y1="1" x2="23" y2="23"/></svg></div>
-                <div style="flex:1">
-                  <div class="nsc-title">Mute All</div>
-                  <div class="nsc-sub">Override everything — no notifications at all</div>
-                </div>
-                <label class="toggle-switch"><input type="checkbox" id="ntog-mute"><span class="toggle-track"></span></label>
-              </div>
-            </div>
-          </div>
-
-          <div id="st-themes-panel" class="st-panel hidden">
-            <div style="display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap;">
-              <div id="theme-thumbs" style="display:flex;gap:12px;flex-wrap:wrap;min-width:260px;"></div>
-              <div style="flex:1;min-width:260px;">
-                <div style="font-weight:800;margin-bottom:.5rem;">Themes</div>
-                <div style="font-size:.9rem;color:var(--text-muted);margin-bottom:.6rem;">Pick a theme. Click a thumbnail to preview instantly, then Save to persist.</div>
-                <div style="display:flex;gap:10px;align-items:center;">
-                  <div style="display:flex;flex-direction:column;gap:6px;min-width:160px;">
-                    <label style="font-size:.78rem;font-weight:700;">Theme</label>
-                    <select id="st-theme-select" class="field-input" style="min-width:160px;padding:.44rem .6rem;border-radius:8px;"></select>
-                  </div>
-                  <div style="flex:1;color:var(--text-muted);font-size:.9rem;">Themes folder is <code>public/themes/</code>. Add more themes to extend.</div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div style="margin-top:1.1rem;display:flex;justify-content:flex-end;gap:8px;">
-            <button class="btn btn-ghost" id="st-reset-btn">Reset</button>
-            <button class="btn" id="st-save-btn">Save</button>
-          </div>
-        </div>
       </div>
     </div>
 

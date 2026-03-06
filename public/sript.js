@@ -548,7 +548,7 @@ function updateSidebarProfile(){
 ══════════════════════════════════════════ */
 function wireStaticListeners(){
   document.querySelectorAll('.snav-item[data-section]').forEach(btn => {
-    btn.addEventListener('click', () => showSection(btn.dataset.section, btn.dataset.tab));
+    btn.addEventListener('click', () => showSection(btn.dataset.section));
   });
   document.querySelectorAll('.home-card[data-section]').forEach(card => {
     card.addEventListener('click', () => showSection(card.dataset.section));
@@ -736,7 +736,7 @@ function startListeners(){
 /* ══════════════════════════════════════════
    SECTIONS
 ══════════════════════════════════════════ */
-function showSection(s, tab){
+function showSection(s){
   if(s === 'proxy'  && !canAccessProxy(currentUser)){ notify('Access denied','error'); return; }
   if(s === 'games'  && !canAccessGames(currentUser)){ notify('Access denied','error'); return; }
   if(s === 'admin'  && !isMod(currentUser)){ notify('Access denied','error'); return; }
@@ -751,7 +751,7 @@ function showSection(s, tab){
   if(s === 'admin')         renderAdminPanel();
   if(s === 'proxy')         renderProxies();
   if(s === 'profile')       loadProfileSection();
-  if(s === 'settings') renderSettings(tab || 'alerts');
+  if(s === 'notifications') renderNotifSection();
   // Toggle system meters (FPS & Battery) when on Home
   try{ toggleSystemMeters(s === 'home'); }catch(e){}
 }
@@ -2125,114 +2125,3 @@ function globalKeyHandler(e){
     if(activeSection === 'dms')  document.getElementById('dm-input')?.focus();
   }
 }
-
-/* ══════════════════════════════════════════
-   SETTINGS
-══════════════════════════════════════════ */
-async function renderSettings(tab = 'alerts'){
-  const st = JSON.parse(localStorage.getItem('nebula_settings')||'{}');
-  document.getElementById('st-desktop-notifs').checked = !!st.desktopNotifications;
-  document.getElementById('st-mute-all').checked = !!st.muteAll;
-  const select = document.getElementById('st-theme-select');
-  const thumbs = document.getElementById('theme-thumbs');
-  if(select){
-    select.innerHTML = '<option>Loading…</option>'; select.disabled = true;
-    try{
-      const res = await fetch('themes/themes.json', { cache: 'no-store' });
-      const list = await res.json();
-      select.innerHTML = '';
-      list.forEach(name => {
-        const o = document.createElement('option'); o.value = name; o.textContent = name.toUpperCase();
-        select.appendChild(o);
-      });
-      // live preview when user picks a theme
-      select.onchange = (e) => { applyTheme(e.target.value); highlightThumb(e.target.value); };
-      select.value = st.theme || (list[0] || 'og');
-      select.disabled = list.length <= 1;
-
-      // render thumbnails
-      if(thumbs){
-        thumbs.innerHTML = '';
-        const swatches = {
-          og: { bg:'linear-gradient(135deg,#667eea,#764ba2)', fg:'#0b1220' },
-          dark: { bg:'#0b0b0b', fg:'#ffffff' },
-          light: { bg:'linear-gradient(135deg,#ffffff,#dbeafe)', fg:'#0b1220' }
-        };
-        list.forEach(name => {
-          const t = document.createElement('div'); t.className = 'theme-thumb'; t.dataset.theme = name;
-          const s = swatches[name] || { bg:'#222', fg:'#fff' };
-          t.style.background = s.bg;
-          t.innerHTML = `<div class="tt-label" style="color:${s.fg};">${name.toUpperCase()}</div>`;
-          t.onclick = () => { select.value = name; applyTheme(name); highlightThumb(name); };
-          thumbs.appendChild(t);
-        });
-      }
-    }catch(e){ select.innerHTML = '<option>og</option>'; select.value = 'og'; select.disabled = true; }
-  }
-  // Wire Save/Reset
-  document.getElementById('st-save-btn').onclick = saveSettings;
-  document.getElementById('st-reset-btn').onclick = () => {
-    localStorage.removeItem('nebula_settings'); setCookie('nebula_theme','og',365); applyTheme('og'); renderSettings(tab); notify('Settings reset','success');
-  };
-
-  // Tab wiring
-  document.querySelectorAll('.st-tab').forEach(btn => {
-    btn.onclick = () => {
-      document.querySelectorAll('.st-tab').forEach(b=>b.classList.remove('active'));
-      btn.classList.add('active');
-      const t = btn.dataset.st;
-      document.getElementById('st-alerts-panel').classList.toggle('hidden', t !== 'alerts');
-      document.getElementById('st-themes-panel').classList.toggle('hidden', t !== 'themes');
-      if(t === 'alerts') renderNotifSection();
-    };
-  });
-
-  // activate requested tab
-  const activeTab = tab || 'alerts';
-  const wantBtn = Array.from(document.querySelectorAll('.st-tab')).find(b => b.dataset.st === activeTab);
-  if(wantBtn) wantBtn.click();
-  else document.querySelectorAll('.st-tab')[0]?.click();
-}
-
-function highlightThumb(name){
-  document.querySelectorAll('.theme-thumb').forEach(t => t.classList.toggle('active', t.dataset.theme === name));
-}
-
-function saveSettings(){
-  const st = {
-    desktopNotifications: !!document.getElementById('st-desktop-notifs').checked,
-    muteAll: !!document.getElementById('st-mute-all').checked,
-    theme: document.getElementById('st-theme-select')?.value || 'og'
-  };
-  localStorage.setItem('nebula_settings', JSON.stringify(st));
-  applyTheme(st.theme);
-  // also persist theme in a cookie for automatic selection
-  setCookie('nebula_theme', st.theme, 365);
-  notify('Settings saved','success');
-}
-
-function applyTheme(name){
-  const link = document.getElementById('theme-link');
-  if(!link) return;
-  link.href = `themes/${name}.css`;
-}
-
-// Cookie helpers
-function setCookie(name, value, days){
-  let expires = '';
-  if(days){ const d = new Date(); d.setTime(d.getTime() + (days*24*60*60*1000)); expires = '; expires=' + d.toUTCString(); }
-  document.cookie = name + '=' + encodeURIComponent(value) + expires + '; path=/';
-}
-function getCookie(name){
-  const v = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
-  return v ? decodeURIComponent(v.pop()) : null;
-}
-
-// apply saved theme at startup (cookie takes precedence)
-try{
-  (function(){
-    const cookieTheme = getCookie('nebula_theme');
-    if(cookieTheme){ applyTheme(cookieTheme); return; }
-    const s = JSON.parse(localStorage.getItem('nebula_settings')||'{}'); applyTheme(s.theme || 'og');
-  })();
-}catch(e){}
