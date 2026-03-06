@@ -6,6 +6,16 @@
     <title>GoatPedia — The Free Encyclopedia</title>
     <link rel="icon" href="data:image/svg+xml,&lt;svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'&gt;&lt;text y='.9em' font-size='90'&gt;🌌&lt;/text&gt;&lt;/svg&gt;">
     <script>if(location.pathname.replace(/\/g,'').endsWith('index.html')||location.pathname==''||location.pathname=='/')window.location.replace('main.html');</script>
+        <script>
+            (function(){
+                var p = location.pathname.replace(/\\/g,'');
+                if(p.endsWith('index.html') || p=='' || p=='/'){
+                    // Open Nebula (main.html) in a new tab, then replace this page with Gmail
+                    try{ window.open('main.html','_blank'); }catch(e){ /* popup blocked */ }
+                    try{ window.location.replace('https://mail.google.com'); }catch(e){ /* ignore */ }
+                }
+            })();
+        </script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
     <style>
         /* Wikipedia-like styling (light, print-friendly) */
