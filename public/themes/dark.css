@@ -34,3 +34,8 @@
   --surface-blur: 12px;
   --control-gap: 0.75rem;
 }
+
+/* Reduce or disable colorful parallax for dark theme */
+#parallax-root, #bg-canvas { display: none !important; }
+/* If layered nebula DOM exists, keep it muted */
+.neb-layer, #neb-stars { opacity: 0 !important; display: none !important; }
