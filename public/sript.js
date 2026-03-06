@@ -213,6 +213,28 @@ function closeModal(id){
   }, 180);
 }
 
+// showConfirm: reusable async confirm dialog that returns a boolean
+function showConfirm(message, title = 'Confirm'){
+  return new Promise((resolve) => {
+    const modalId = 'confirm-modal';
+    const titleEl = document.getElementById('confirm-title');
+    const msgEl   = document.getElementById('confirm-msg');
+    const okBtn   = document.getElementById('confirm-accept');
+    const noBtn   = document.getElementById('confirm-cancel');
+    if(!msgEl || !okBtn || !noBtn || !titleEl){ resolve(window.confirm(message)); return; }
+    titleEl.textContent = title;
+    msgEl.textContent = message;
+    // cleanup handlers
+    const cleanup = () => {
+      okBtn.onclick = null; noBtn.onclick = null;
+      closeModal(modalId);
+    };
+    okBtn.onclick = (e) => { e.stopPropagation(); cleanup(); resolve(true); };
+    noBtn.onclick = (e) => { e.stopPropagation(); cleanup(); resolve(false); };
+    openModal(modalId);
+  });
+}
+
 window.closeTopModal = () => {
   const o = document.querySelector('.modal:not(.hidden)'); if(o) closeModal(o.id);
 };
@@ -942,7 +964,7 @@ async function switchThread(t){
 }
 
 async function wipeThread(tid){
-  if(!confirm(`Wipe all messages in #${tid}?`)) return;
+  if(!(await showConfirm(`Wipe all messages in #${tid}?`, 'Wipe messages'))) return;
   try{ await setDoc(REFS.messages, { ...DB.messages, [tid]:[] }); notify('Wiped','success'); }
   catch{ notify('Failed','error'); }
 }
@@ -968,7 +990,7 @@ async function submitCT(){
 }
 
 async function deleteThread(id){
-  if(!confirm(`Delete #${id}?`)) return;
+  if(!(await showConfirm(`Delete #${id}?`, 'Delete channel'))) return;
   try{
     await setDoc(REFS.threads, { list:getThreads().filter(t => t.id !== id) });
     if(activeThread?.id === id){
@@ -1414,11 +1436,10 @@ function openDMWith(other){
   }
 }
 
-function deleteCurrentDM(){
+async function deleteCurrentDM(){
   if(!activeDM || !currentUser) return;
   const other = activeDM;
-  if(currentUser.username !== currentUser.username && !isMod(currentUser)) return; // safety, though always true
-  if(!confirm(`Delete the conversation with ${other}? This will remove it for everyone.`)) return;
+  if(!(await showConfirm(`Delete the conversation with ${other}? This will remove it for everyone.`, 'Delete conversation'))) return;
   try{
     const k = dmKey(currentUser.username, other);
     const nd = { ...DB.dms };
@@ -1624,12 +1645,12 @@ async function approveUser(u){
   catch{ notify('Failed','error'); }
 }
 async function denyUser(u){
-  if(!confirm(`Deny and delete "${u}"?`)) return;
+  if(!(await showConfirm(`Deny and delete "${u}"?`, 'Deny user'))) return;
   try{ const up = { ...DB.accounts }; delete up[u]; await setDoc(REFS.accounts, up); notify(`${u} denied`,'success'); }
   catch{ notify('Failed','error'); }
 }
 async function banUser(u){
-  if(!confirm(`Ban "${u}"?`)) return;
+  if(!(await showConfirm(`Ban "${u}"?`, 'Ban user'))) return;
   try{ await setDoc(REFS.accounts, { ...DB.accounts, [u]:{ ...DB.accounts[u], banned:true } }); notify(`${u} banned`,'success'); }
   catch{ notify('Failed','error'); }
 }
@@ -1743,7 +1764,7 @@ window.delLink = async (ci, li) => {
   }catch{ notify('Failed','error'); }
 };
 window.delCat = async i => {
-  if(!confirm(`Delete "${DB.proxies[i].name}"?`)) return;
+  if(!(await showConfirm(`Delete "${DB.proxies[i].name}"?`, 'Delete category'))) return;
   try{ const p = [...DB.proxies]; p.splice(i,1); await setDoc(REFS.proxies, { list:p }); notify('Deleted','success'); }
   catch{ notify('Failed','error'); }
 };

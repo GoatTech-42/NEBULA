@@ -487,6 +487,18 @@
 <!-- ═══════════════ MODALS ═══════════════ -->
 <div id="modal-overlay" class="hidden"></div>
 
+<!-- Generic confirm modal used instead of native confirm() -->
+<div id="confirm-modal" class="modal hidden">
+  <div class="modal-box">
+    <h3 id="confirm-title">Confirm</h3>
+    <p class="modal-p" id="confirm-msg">Are you sure?</p>
+    <div class="modal-actions">
+      <button class="btn btn-ghost btn-sm" id="confirm-cancel">Cancel</button>
+      <button class="btn btn-danger btn-sm" id="confirm-accept">Confirm</button>
+    </div>
+  </div>
+</div>
+
 <div id="del-modal" class="modal hidden">
   <div class="modal-box">
     <h3>Delete Message?</h3>
