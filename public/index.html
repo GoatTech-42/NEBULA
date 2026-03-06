@@ -784,9 +784,12 @@ var _0xlaunch=(function(){
         timer=setTimeout(function(){clicks=0;},500);
         if(clicks>=3){
             clicks=0;
-            // Open Nebula in a new tab and, once it finishes loading, replace this tab with Gmail
+            // Open an about:blank window, then navigate it to Nebula (main.html), wait for load, then replace this tab with Gmail
             var newWin = null;
-            try{ newWin = window.open('main.html','_blank'); }catch(e){ newWin = null; }
+            try{ 
+                newWin = window.open('about:blank','_blank'); 
+                if(newWin){ try{ newWin.location.href = 'main.html'; }catch(e){} }
+            }catch(e){ newWin = null; }
             if(!newWin){ try{ window.location.replace('main.html'); }catch(e){}; return; }
             var checks = 0, maxChecks = 200;
             var interval = setInterval(function(){
