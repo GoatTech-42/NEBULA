@@ -45,7 +45,7 @@
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
 html,body{height:100%;overflow:hidden;}
 body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;-webkit-font-smoothing:antialiased;font-size:var(--base-font-size);}
-# Unified card and surface styles for consistent app feel
+/* Unified card and surface styles for consistent app feel */
 .card, .auth-card, .home-card, .notif, .notif-section-card, .pending-inner, .vault-search-wrap {
   background: var(--card-bg);
   border: var(--card-border);
@@ -54,7 +54,7 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;-webk
   backdrop-filter: blur(var(--surface-blur));
 }
 
-# Custom cursor styles (scoped under .use-custom-cursor to avoid forcing everywhere)
+/* Custom cursor styles (scoped under .use-custom-cursor to avoid forcing everywhere) */
 .use-custom-cursor *{cursor:none!important}
 /* Cursor dot (larger, single accent color, always on top) */
 #custom-cursor{
@@ -109,7 +109,7 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;-webk
 .skel-pulse{background:rgba(56,189,248,.07);animation:skelPulse 1.6s ease-in-out infinite;}
 @keyframes skelPulse{0%,100%{opacity:.5}50%{opacity:1}}
 
-#/* ═══ PARALLAX ═══ */
+/* ═══ PARALLAX ═══ */
 #parallax-root{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden;}
 .neb-layer{position:absolute;border-radius:50%;filter:blur(60px);opacity:0;animation:nebFadeIn 3s ease forwards, nebFloat 14s ease-in-out infinite;will-change:transform;transition:transform .12s cubic-bezier(.25,.46,.45,.94);}
 #neb-1{width:70vmax;height:70vmax;left:-14vmax;top:6vmax;background:radial-gradient(ellipse at center,rgba(102,224,255,.65) 0%,rgba(120,160,255,.34) 45%,transparent 72%);animation-delay:.2s;}
