@@ -2057,6 +2057,8 @@ function openZone(z){
       document.getElementById('vault-title').textContent = 'VAULT: ' + z.name.toUpperCase();
       vault.dataset.zoneId = z.id;
       vault.style.display = 'flex';
+      // Ensure custom cursor is fully hidden whenever a game is open (even over the top bar)
+      try{ document.documentElement.classList.add('game-cursor-hidden'); }catch(e){}
     })
     .catch(e => { if(e?.name !== 'AbortError') notify('Failed to load game','error'); });
 }
@@ -2082,6 +2084,9 @@ function doCloseGame(){
 
   const title = document.getElementById('vault-title');
   if(title) title.textContent = 'NEBULA VAULT';
+
+  // Remove the game-open cursor hide flag so custom cursor returns
+  try{ document.documentElement.classList.remove('game-cursor-hidden'); }catch(e){}
 
   const modal = document.getElementById('game-close-modal');
   if(modal && !modal.classList.contains('hidden')){
