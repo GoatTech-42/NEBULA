@@ -99,7 +99,8 @@ const esc = s => { const d = document.createElement('div'); d.textContent = s; r
 const deb = (fn, w) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), w); }; };
 
 // Temporarily disable animations (used when switching threads/DMs to avoid UI motion)
-function brieflyDisableAnimations(ms = 140){
+// Increase default duration so the UI class toggles complete before re-enabling animations
+function brieflyDisableAnimations(ms = 500){
   try{
     document.documentElement.classList.add('no-anim');
     setTimeout(() => document.documentElement.classList.remove('no-anim'), ms);
