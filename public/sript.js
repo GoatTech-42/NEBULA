@@ -103,7 +103,19 @@ const deb = (fn, w) => { let t; return (...a) => { clearTimeout(t); t = setTimeo
 function brieflyDisableAnimations(ms = 500){
   try{
     document.documentElement.classList.add('no-anim');
-    setTimeout(() => document.documentElement.classList.remove('no-anim'), ms);
+    // Also apply to sidebar and lists in case some animations are scoped there
+    const sidebar = document.getElementById('sidebar');
+    const threadList = document.getElementById('thread-list');
+    const dmList = document.getElementById('dm-list');
+    if(sidebar) sidebar.classList.add('no-anim');
+    if(threadList) threadList.classList.add('no-anim');
+    if(dmList) dmList.classList.add('no-anim');
+    setTimeout(() => {
+      document.documentElement.classList.remove('no-anim');
+      if(sidebar) sidebar.classList.remove('no-anim');
+      if(threadList) threadList.classList.remove('no-anim');
+      if(dmList) dmList.classList.remove('no-anim');
+    }, ms);
   }catch(e){}
 }
 
