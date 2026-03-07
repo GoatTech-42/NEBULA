@@ -57,9 +57,9 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;-webk
 /* Custom cursor styles (scoped under .use-custom-cursor to avoid forcing everywhere) */
 .use-custom-cursor *{cursor:none!important}
 /* Cursor dot (larger, single accent color, always on top) */
-/* Increase cursor size by 1.5x from previous 10px -> 15px */
+/* Slightly smaller cursor dot (reduced 2px from 15px -> 13px) */
 #custom-cursor{
-  position:fixed;left:50%;top:50%;width:15px;height:15px;background:var(--accent);border-radius:50%;pointer-events:none;z-index:99999;transform:translate(-50%,-50%) scale(1);transition:transform .12s cubic-bezier(.2,.9,.2,1),background .18s ease,opacity .12s ease;box-shadow:0 6px 20px rgba(79,201,234,.12);will-change:transform,opacity
+  position:fixed;left:50%;top:50%;width:13px;height:13px;background:var(--accent);border-radius:50%;pointer-events:none;z-index:99999;transform:translate(-50%,-50%) scale(1);transition:transform .12s cubic-bezier(.2,.9,.2,1),background .18s ease,opacity .12s ease;box-shadow:0 6px 20px rgba(79,201,234,.12);will-change:transform,opacity
 }
 /* Cursor ring (larger, subtle border using accent) */
 #custom-cursor-ring{
