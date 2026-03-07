@@ -129,148 +129,17 @@ export function initCanvas(){
    PARALLAX NEBULA
 ══════════════════════════════════════════ */
 export function initParallax(){
-  const layerDefs = [
-    { id: 'neb-1', speedX: 0.022, speedY: 0.016 },
-    { id: 'neb-2', speedX: 0.038, speedY: 0.028 },
-    { id: 'neb-3', speedX: 0.014, speedY: 0.02  },
-  ];
-
-  const layers = layerDefs
-    .map(def => ({ ...def, el: document.getElementById(def.id) }))
-    .filter(l => l.el);
-
-  if(!layers.length) return;
-
-  // Smoothed current position and raw target
-  let targetX  = 0, targetY  = 0;
-  let currentX = 0, currentY = 0;
-  const INTENSITY = 1.6; // multiplier for mouse movement to increase perceived depth
-
-  // ── Idle drift ─────────────────────────────────────────────────────────
-  // Keeps the nebula gently moving even when the user isn't interacting.
-  // Two independent sinusoids at different periods create an organic feel.
-  const IDLE_AMP_X  = 0.18;   // max ±18% of range
-  const IDLE_AMP_Y  = 0.12;
-  const IDLE_FREQ_X = 0.00018; // radians per ms
-  const IDLE_FREQ_Y = 0.00011;
-  let   idleActive  = true;    // suppressed while user is actively moving
-  let   idleTimeout = null;
-  let   startTime   = performance.now();
-
-  function idleOffset(now){
-    if(!idleActive) return { x: 0, y: 0 };
-    const t = now - startTime;
-    return {
-      x: Math.sin(t * IDLE_FREQ_X) * IDLE_AMP_X,
-      y: Math.cos(t * IDLE_FREQ_Y + 1.2) * IDLE_AMP_Y,
-    };
-  }
-
-  function suppressIdle(){
-    idleActive = false;
-    clearTimeout(idleTimeout);
-    // Resume idle drift 4 s after the last user interaction
-    idleTimeout = setTimeout(() => { idleActive = true; }, 4000);
-  }
-
-  // ── Mouse parallax ──────────────────────────────────────────────────────
-  window.addEventListener('mousemove', e => {
-    suppressIdle();
-    targetX = (e.clientX / window.innerWidth  - 0.5) * 2;
-    targetY = (e.clientY / window.innerHeight - 0.5) * 2;
+  // Parallax intentionally disabled per user request — keep nebula layers static
+  const ids = ['neb-1','neb-2','neb-3','neb-stars'];
+  ids.forEach(id => {
+    const el = document.getElementById(id);
+    if(el){
+      el.style.transform = 'translate(0px, 0px)';
+      el.style.animation = 'none';
+      el.style.opacity = '1';
+    }
   });
-
-  // ── Gyroscope parallax (mobile) ─────────────────────────────────────────
-  // beta  = front/back tilt  (degrees)
-  // gamma = left/right tilt  (degrees)
-  // We treat "phone held upright" (beta ≈ 45°) as the neutral position.
-  let gyroAttached = false;
-
-  function attachGyro(){
-    if(gyroAttached) return;
-    gyroAttached = true;
-    window.addEventListener('deviceorientation', e => {
-      if(e.gamma === null || e.beta === null) return;
-      suppressIdle();
-      // Clamp to ±30° and normalise to –1 … +1
-      targetX = Math.max(-1, Math.min(1,  e.gamma          / 30));
-      targetY = Math.max(-1, Math.min(1, (e.beta - 45)     / 30));
-    }, { passive: true });
-  }
-
-  function requestGyro(){
-    // iOS 13+ requires an explicit user-gesture permission request
-    if(
-      typeof DeviceOrientationEvent !== 'undefined' &&
-      typeof DeviceOrientationEvent.requestPermission === 'function'
-    ){
-      DeviceOrientationEvent.requestPermission()
-        .then(state => { if(state === 'granted') attachGyro(); })
-        .catch(() => {});
-    } else {
-      attachGyro();
-    }
-  }
-
-  // Attach gyro on first touch so we don't trigger the iOS permission
-  // dialog before any user gesture.
-  window.addEventListener('touchstart', requestGyro, { once: true, passive: true });
-
-  // Also try immediately on non-iOS Android (no permission needed)
-  if(
-    typeof DeviceOrientationEvent !== 'undefined' &&
-    typeof DeviceOrientationEvent.requestPermission !== 'function'
-  ){
-    attachGyro();
-  }
-
-  // ── Reduced-motion: skip animation entirely ──────────────────────────────
-  const prefersReducedMotion =
-    window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-  if(prefersReducedMotion){
-    // Just ensure the layers are visible at rest position
-    layers.forEach(({ el }) => { el.style.transform = 'translate(0px, 0px)'; });
-    return;
-  }
-
-  // ── Main animation loop ──────────────────────────────────────────────────
-  const LERP = 0.06; // smoothing factor — lower = more lag, higher = snappier
-
-  // Ensure `parallaxRoot` is declared in this scope to avoid ReferenceError
-  let parallaxRoot = null;
-
-  function animate(now){
-    requestAnimationFrame(animate);
-    if(window._canvasPaused) return;
-
-    const idle = idleOffset(now);
-    // amplify user input for stronger depth, then add idle drift
-    const finalX = targetX * INTENSITY + idle.x;
-    const finalY = targetY * INTENSITY + idle.y;
-
-    // Exponential lerp toward target
-    currentX += (finalX - currentX) * LERP;
-    currentY += (finalY - currentY) * LERP;
-
-    // Slight 3D rotation of the whole parallax root for extra depth
-    if(!parallaxRoot) parallaxRoot = document.getElementById('parallax-root');
-    if(parallaxRoot){
-      const rotY = currentX * 6; // degrees
-      const rotX = -currentY * 4; // degrees (invert for natural tilt)
-      parallaxRoot.style.transform = `perspective(900px) rotateX(${rotX.toFixed(2)}deg) rotateY(${rotY.toFixed(2)}deg)`;
-    }
-
-    layers.forEach(({ el, speedX, speedY }) => {
-      const tx = currentX * speedX * window.innerWidth;
-      const ty = currentY * speedY * window.innerHeight;
-      // scale slightly based on layer speed to reinforce depth
-      const depthScale = 1 + (speedX + speedY) * 0.06;
-      el.style.transform = `translate(${tx.toFixed(2)}px, ${ty.toFixed(2)}px) scale(${depthScale.toFixed(3)})`;
-    });
-  }
-
-  requestAnimationFrame(animate);
+  return;
 }
 
 export function initCursor(){
