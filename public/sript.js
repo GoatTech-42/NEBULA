@@ -98,6 +98,14 @@ const saveNotifPrefsData = p => localStorage.setItem(NOTIF_KEY, JSON.stringify(p
 const esc = s => { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; };
 const deb = (fn, w) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), w); }; };
 
+// Temporarily disable animations (used when switching threads/DMs to avoid UI motion)
+function brieflyDisableAnimations(ms = 140){
+  try{
+    document.documentElement.classList.add('no-anim');
+    setTimeout(() => document.documentElement.classList.remove('no-anim'), ms);
+  }catch(e){}
+}
+
 const filt = t => {
   PROFANITY.forEach(w => {
     const rx = new RegExp('(?<![a-z0-9])' + w.split('').join('[^a-z0-9]*') + '(?![a-z0-9])', 'gi');
@@ -960,6 +968,7 @@ async function submitTPass(){
 }
 
 async function switchThread(t){
+  brieflyDisableAnimations();
   if(switching) return; switching = true;
   if(activeThread) clearTyping(activeThread.id, false);
   activeThread = t; unreadThreads[t.id] = 0; newMsgCount = 0; atBottom = true;
@@ -1432,6 +1441,7 @@ function filterDMSearch(){
 }
 
 function openDMWith(other){
+  brieflyDisableAnimations();
   if(!DB.accounts[other]){ notify('User not found','error'); return; }
   if(activeDM) clearTyping(activeDM, true);
   activeDM = other; unreadDMs[other] = 0; updateDMBadge(); renderDMList();
