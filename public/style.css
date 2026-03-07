@@ -112,9 +112,9 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;-webk
 /* ═══ PARALLAX ═══ */
 #parallax-root{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden;}
 .neb-layer{position:absolute;border-radius:50%;filter:blur(60px);opacity:0;animation:nebFadeIn 3s ease forwards, nebFloat 14s ease-in-out infinite;will-change:transform;transition:transform .12s cubic-bezier(.25,.46,.45,.94);}
-#neb-1{width:70vmax;height:70vmax;left:-14vmax;top:6vmax;background:radial-gradient(ellipse at center,rgba(102,224,255,.65) 0%,rgba(120,160,255,.34) 45%,transparent 72%);animation-delay:.2s;}
-#neb-2{width:55vmax;height:55vmax;right:-10vmax;top:-6vmax;background:radial-gradient(ellipse at center,rgba(182,120,255,.62) 0%,rgba(150,110,230,.28) 50%,transparent 76%);animation-delay:.5s;}
-#neb-3{width:48vmax;height:48vmax;left:22vmax;bottom:-6vmax;background:radial-gradient(ellipse at center,rgba(110,200,255,.5) 0%,rgba(90,150,230,.22) 50%,transparent 76%);animation-delay:.8s;}
+#neb-1{width:160vmax;height:160vmax;left:-40vmax;top:-20vmax;background:radial-gradient(ellipse at center,rgba(102,224,255,.75) 0%,rgba(120,160,255,.36) 45%,transparent 78%);animation-delay:.2s;}
+#neb-2{width:130vmax;height:130vmax;right:-36vmax;top:-26vmax;background:radial-gradient(ellipse at center,rgba(182,120,255,.68) 0%,rgba(150,110,230,.30) 50%,transparent 78%);animation-delay:.5s;}
+#neb-3{width:120vmax;height:120vmax;left:30vmax;bottom:-30vmax;background:radial-gradient(ellipse at center,rgba(110,200,255,.6) 0%,rgba(90,150,230,.26) 50%,transparent 78%);animation-delay:.8s;}
 #neb-stars{position:absolute;inset:0;opacity:.7;pointer-events:none;background-image:radial-gradient(1px 1px at 12% 18%,rgba(255,255,255,.55) 0%,transparent 100%),radial-gradient(1px 1px at 34% 72%,rgba(255,255,255,.4) 0%,transparent 100%),radial-gradient(1.5px 1.5px at 58% 9%,rgba(200,230,255,.7) 0%,transparent 100%),radial-gradient(1px 1px at 77% 55%,rgba(255,255,255,.45) 0%,transparent 100%),radial-gradient(1px 1px at 90% 28%,rgba(255,255,255,.35) 0%,transparent 100%),radial-gradient(1.5px 1.5px at 6% 88%,rgba(200,230,255,.5) 0%,transparent 100%),radial-gradient(1px 1px at 48% 43%,rgba(255,255,255,.3) 0%,transparent 100%),radial-gradient(1px 1px at 21% 62%,rgba(255,255,255,.5) 0%,transparent 100%),radial-gradient(1px 1px at 65% 80%,rgba(200,220,255,.4) 0%,transparent 100%),radial-gradient(1px 1px at 83% 91%,rgba(255,255,255,.28) 0%,transparent 100%);}
 @keyframes nebFadeIn{from{opacity:0;transform:scale(.94);}to{opacity:1;transform:scale(1);}}
 @keyframes nebFloat{
