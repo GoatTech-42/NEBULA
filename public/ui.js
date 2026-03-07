@@ -307,4 +307,35 @@ export function initCursor(){
     const isText = t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable;
     if(isText) dot.classList.add('cursor-text'); else dot.classList.remove('cursor-text');
   }, { passive: true });
+
+  // Add hover state for interactive elements
+  const isInteractive = el => {
+    if(!el || el.nodeType !== 1) return false;
+    const tag = el.tagName;
+    if(tag === 'A' || tag === 'BUTTON' || tag === 'INPUT' || tag === 'TEXTAREA' || el.hasAttribute('role') && el.getAttribute('role').includes('button')) return true;
+    if(el.classList && /btn|send-btn|mention-btn|mab|titem/.test(el.className)) return true;
+    return false;
+  };
+  document.addEventListener('pointerover', e => {
+    let el = e.target;
+    while(el && el !== document.documentElement){ if(isInteractive(el)){ dot.classList.add('cursor-hover'); ring.classList.add('cursor-hover'); return; } el = el.parentElement; }
+  }, { passive: true });
+  document.addEventListener('pointerout', e => {
+    let el = e.relatedTarget || e.target;
+    // clear hover when pointer leaves the interactive element
+    setTimeout(() => { dot.classList.remove('cursor-hover'); ring.classList.remove('cursor-hover'); }, 30);
+  }, { passive: true });
+
+  // Hide cursor when over the game iframe (#game-frame) so the game's native cursor appears
+  const gameFrame = document.getElementById('game-frame');
+  if(gameFrame){
+    gameFrame.addEventListener('mouseenter', () => { document.documentElement.classList.add('game-cursor-hidden'); });
+    gameFrame.addEventListener('mouseleave', () => { document.documentElement.classList.remove('game-cursor-hidden'); });
+    // Also hide when entering the vault container (covers iframe area)
+    const vault = document.getElementById('game-vault');
+    if(vault){
+      vault.addEventListener('mouseenter', () => { document.documentElement.classList.add('game-cursor-hidden'); });
+      vault.addEventListener('mouseleave', () => { document.documentElement.classList.remove('game-cursor-hidden'); });
+    }
+  }
 }

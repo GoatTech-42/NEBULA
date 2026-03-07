@@ -56,11 +56,25 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;-webk
 
 /* Custom cursor styles (scoped under .use-custom-cursor to avoid forcing everywhere) */
 .use-custom-cursor *{cursor:none!important}
-#custom-cursor{position:fixed;width:8px;height:8px;background:var(--accent);border-radius:50%;pointer-events:none;z-index:99999;transform:translate(-50%,-50%);transition:transform .1s ease,background .2s ease;mix-blend-mode:difference}
-#custom-cursor-ring{position:fixed;width:32px;height:32px;border:1.5px solid rgba(56,189,248,.55);border-radius:50%;pointer-events:none;z-index:99998;transform:translate(-50%,-50%);transition:width .2s ease,height .2s ease,border-color .2s ease}
-#custom-cursor.cursor-click{transform:translate(-50%,-50%) scale(1.8);background:#fff}
-#custom-cursor-ring.cursor-click{width:20px;height:20px;border-color:var(--accent)}
+/* Cursor dot */
+#custom-cursor{
+  position:fixed;left:50%;top:50%;width:10px;height:10px;background:var(--accent);border-radius:50%;pointer-events:none;z-index:99999;transform:translate(-50%,-50%) scale(1);transition:transform .12s cubic-bezier(.2,.9,.2,1),background .18s ease,opacity .18s ease;mix-blend-mode:difference;box-shadow:0 6px 20px rgba(79,201,234,.14);will-change:transform,opacity
+}
+/* Cursor ring */
+#custom-cursor-ring{
+  position:fixed;left:50%;top:50%;width:34px;height:34px;border:1.5px solid rgba(56,189,248,.42);border-radius:50%;pointer-events:none;z-index:99998;transform:translate(-50%,-50%) scale(1);transition:transform .18s cubic-bezier(.16,1,.3,1),width .18s ease,height .18s ease,border-color .18s ease,opacity .18s ease;will-change:transform,opacity
+}
+#custom-cursor.cursor-click{transform:translate(-50%,-50%) scale(1.6);background:#fff}
+#custom-cursor-ring.cursor-click{transform:translate(-50%,-50%) scale(.8);width:20px;height:20px;border-color:var(--accent)}
 #custom-cursor.cursor-text{width:3px;height:18px;border-radius:2px}
+
+/* Hovering interactive elements */
+#custom-cursor-ring.cursor-hover{transform:translate(-50%,-50%) scale(1.18);border-color:var(--accent);box-shadow:0 6px 26px rgba(79,201,234,.12)}
+#custom-cursor.cursor-hover{transform:translate(-50%,-50%) scale(1.15);box-shadow:0 8px 30px rgba(79,201,234,.18)}
+
+/* Hide the custom cursor (e.g., when entering an iframe/game) */
+.use-custom-cursor.game-cursor-hidden #custom-cursor,
+.use-custom-cursor.game-cursor-hidden #custom-cursor-ring{opacity:0;transform:translate(-50%,-50%) scale(.6);pointer-events:none}
 
 /* Standardize spacing inside cards */
 .card{padding:var(--surface-padding);}
