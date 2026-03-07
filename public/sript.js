@@ -1209,8 +1209,23 @@ async function sendMessage(){
     input.value = ''; updateCharCtr();
     clearTyping(activeThread.id, false);
     renderMessages();
-    const mw = document.getElementById('messages-wrap');
-    if(mw){ mw.scrollTop = mw.scrollHeight; atBottom = true; newMsgCount = 0; }
+      const mw = document.getElementById('messages-wrap');
+      if(mw){ mw.scrollTop = mw.scrollHeight; atBottom = true; newMsgCount = 0; }
+      // animate the newly sent message (respect prefers-reduced-motion)
+      try{
+        if(!window.matchMedia || !window.matchMedia('(prefers-reduced-motion: reduce)').matches){
+          requestAnimationFrame(() => {
+            const last = document.querySelector('#messages .msg:last-child');
+            if(last){
+              last.classList.add('msg-sent');
+              const cleanup = () => { last.classList.remove('msg-sent'); last.removeEventListener('animationend', cleanup); };
+              last.addEventListener('animationend', cleanup);
+              // fallback remove
+              setTimeout(cleanup, 500);
+            }
+          });
+        }
+      }catch(e){}
   }catch{ notify('Failed to send','error'); }
   finally{ if(sb) sb.disabled = false; input.focus(); }
 }
@@ -1534,6 +1549,20 @@ async function sendDM(){
     clearTyping(activeDM, true);
     renderDMMessages();
     const mw = document.getElementById('dm-messages-wrap'); if(mw) mw.scrollTop = mw.scrollHeight;
+    // animate the newly sent DM
+    try{
+      if(!window.matchMedia || !window.matchMedia('(prefers-reduced-motion: reduce)').matches){
+        requestAnimationFrame(() => {
+          const last = document.querySelector('#dm-messages .msg:last-child');
+          if(last){
+            last.classList.add('msg-sent');
+            const cleanup = () => { last.classList.remove('msg-sent'); last.removeEventListener('animationend', cleanup); };
+            last.addEventListener('animationend', cleanup);
+            setTimeout(cleanup, 500);
+          }
+        });
+      }
+    }catch(e){}
   }catch{ notify('Failed to send','error'); }
 }
 
