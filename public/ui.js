@@ -272,3 +272,39 @@ export function initParallax(){
 
   requestAnimationFrame(animate);
 }
+
+export function initCursor(){
+  // Respect reduced motion and touch devices
+  if(('ontouchstart' in window) || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const dot = document.getElementById('custom-cursor');
+  const ring = document.getElementById('custom-cursor-ring');
+  if(!dot || !ring) return;
+  // Enable custom cursor CSS scope
+  document.documentElement.classList.add('use-custom-cursor');
+
+  let mx = window.innerWidth/2, my = window.innerHeight/2;
+  let rx = mx, ry = my;
+
+  document.addEventListener('mousemove', e => {
+    mx = e.clientX; my = e.clientY;
+    dot.style.left = mx + 'px'; dot.style.top = my + 'px';
+  }, { passive: true });
+
+  function loop(){
+    requestAnimationFrame(loop);
+    rx += (mx - rx) * 0.12; ry += (my - ry) * 0.12;
+    ring.style.left = rx.toFixed(1) + 'px'; ring.style.top = ry.toFixed(1) + 'px';
+  }
+  loop();
+
+  document.addEventListener('mousedown', () => { dot.classList.add('cursor-click'); ring.classList.add('cursor-click'); });
+  document.addEventListener('mouseup', () => { dot.classList.remove('cursor-click'); ring.classList.remove('cursor-click'); });
+
+  // Toggle text cursor when hovering inputs / contenteditable
+  document.addEventListener('pointerover', e => {
+    const t = e.target;
+    if(!t) return;
+    const isText = t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable;
+    if(isText) dot.classList.add('cursor-text'); else dot.classList.remove('cursor-text');
+  }, { passive: true });
+}

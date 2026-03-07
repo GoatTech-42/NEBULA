@@ -1,7 +1,7 @@
 // script.js — NEBULA core (Firebase, auth, state, chat, DMs, admin, proxies, vault, UI)
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
 import { getFirestore, doc, onSnapshot, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
-import { initCanvas, initParallax } from "./ui.js";
+import { initCanvas, initParallax, initCursor } from "./ui.js";
 
 const firebaseConfig = {
   apiKey: "__FIREBASE_API_KEY__",
@@ -502,6 +502,7 @@ async function loadAccounts(){
 (async () => {
   initCanvas();
   initParallax();
+  try{ initCursor(); }catch(e){/* ignore */}
   showSkeleton();
   try{
     const saved = localStorage.getItem('nebula_sess');
