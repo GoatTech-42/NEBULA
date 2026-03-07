@@ -800,6 +800,12 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;-webk
   --stagger-step:40ms;
 }
 
+/* Utility class to temporarily disable animations/transitions (used when switching threads/DMs) */
+.no-anim *{transition:none!important;animation:none!important}
+
+/* Hide developer/system meters that appear in the corner */
+#sys-meters{display:none !important}
+
 /* Gentle, unobtrusive transitions for common properties */
 *{transition:color var(--motion-med) var(--motion-ease),background-color var(--motion-med) var(--motion-ease),box-shadow var(--motion-med) var(--motion-ease),border-color var(--motion-med) var(--motion-ease),opacity var(--motion-med) var(--motion-ease),transform var(--motion-med) var(--motion-ease)}
 
