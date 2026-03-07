@@ -100,21 +100,6 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;-webk
   #custom-cursor, #custom-cursor-ring{animation:none!important;transition:none!important}
 }
 
-/* Disable animations and transitions inside chat and DM pages for snappier UX */
-#section-chat, #section-dms { animation: none !important; transition: none !important; }
-#section-chat *, #section-dms * { animation: none !important; transition: none !important; }
-
-/* Message send animation (explicitly allowed for .msg-sent) */
-@keyframes msgSend{
-  0%{transform:translateY(8px) scale(.98);opacity:0}
-  60%{transform:translateY(-4px) scale(1.02);opacity:1}
-  100%{transform:translateY(0) scale(1);opacity:1}
-}
-#section-chat .msg-sent, #section-dms .msg-sent{animation:msgSend .34s cubic-bezier(.16,1,.3,1) !important;transform-origin:center;}
-@media (prefers-reduced-motion: reduce){
-  #section-chat .msg-sent, #section-dms .msg-sent{animation:none!important}
-}
-
 /* Hovering interactive elements */
 #custom-cursor-ring.cursor-hover{transform:translate(-50%,-50%) scale(1.18);border-color:var(--accent);box-shadow:0 6px 26px rgba(79,201,234,.12)}
 #custom-cursor.cursor-hover{transform:translate(-50%,-50%) scale(1.15);box-shadow:0 8px 30px rgba(79,201,234,.18)}

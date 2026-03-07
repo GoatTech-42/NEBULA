@@ -99,23 +99,10 @@ const esc = s => { const d = document.createElement('div'); d.textContent = s; r
 const deb = (fn, w) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), w); }; };
 
 // Temporarily disable animations (used when switching threads/DMs to avoid UI motion)
-// Increase default duration so the UI class toggles complete before re-enabling animations
-function brieflyDisableAnimations(ms = 500){
+function brieflyDisableAnimations(ms = 140){
   try{
     document.documentElement.classList.add('no-anim');
-    // Also apply to sidebar and lists in case some animations are scoped there
-    const sidebar = document.getElementById('sidebar');
-    const threadList = document.getElementById('thread-list');
-    const dmList = document.getElementById('dm-list');
-    if(sidebar) sidebar.classList.add('no-anim');
-    if(threadList) threadList.classList.add('no-anim');
-    if(dmList) dmList.classList.add('no-anim');
-    setTimeout(() => {
-      document.documentElement.classList.remove('no-anim');
-      if(sidebar) sidebar.classList.remove('no-anim');
-      if(threadList) threadList.classList.remove('no-anim');
-      if(dmList) dmList.classList.remove('no-anim');
-    }, ms);
+    setTimeout(() => document.documentElement.classList.remove('no-anim'), ms);
   }catch(e){}
 }
 
@@ -1221,23 +1208,8 @@ async function sendMessage(){
     input.value = ''; updateCharCtr();
     clearTyping(activeThread.id, false);
     renderMessages();
-      const mw = document.getElementById('messages-wrap');
-      if(mw){ mw.scrollTop = mw.scrollHeight; atBottom = true; newMsgCount = 0; }
-      // animate the newly sent message (respect prefers-reduced-motion)
-      try{
-        if(!window.matchMedia || !window.matchMedia('(prefers-reduced-motion: reduce)').matches){
-          requestAnimationFrame(() => {
-            const last = document.querySelector('#messages .msg:last-child');
-            if(last){
-              last.classList.add('msg-sent');
-              const cleanup = () => { last.classList.remove('msg-sent'); last.removeEventListener('animationend', cleanup); };
-              last.addEventListener('animationend', cleanup);
-              // fallback remove
-              setTimeout(cleanup, 500);
-            }
-          });
-        }
-      }catch(e){}
+    const mw = document.getElementById('messages-wrap');
+    if(mw){ mw.scrollTop = mw.scrollHeight; atBottom = true; newMsgCount = 0; }
   }catch{ notify('Failed to send','error'); }
   finally{ if(sb) sb.disabled = false; input.focus(); }
 }
@@ -1561,20 +1533,6 @@ async function sendDM(){
     clearTyping(activeDM, true);
     renderDMMessages();
     const mw = document.getElementById('dm-messages-wrap'); if(mw) mw.scrollTop = mw.scrollHeight;
-    // animate the newly sent DM
-    try{
-      if(!window.matchMedia || !window.matchMedia('(prefers-reduced-motion: reduce)').matches){
-        requestAnimationFrame(() => {
-          const last = document.querySelector('#dm-messages .msg:last-child');
-          if(last){
-            last.classList.add('msg-sent');
-            const cleanup = () => { last.classList.remove('msg-sent'); last.removeEventListener('animationend', cleanup); };
-            last.addEventListener('animationend', cleanup);
-            setTimeout(cleanup, 500);
-          }
-        });
-      }
-    }catch(e){}
   }catch{ notify('Failed to send','error'); }
 }
 
