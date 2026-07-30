@@ -91,5 +91,3 @@
  MIT — see `LICENSE`.
 
  ---
-
- If you'd like further edits (tone, examples, or shorter/longer variants), tell me which section to focus on.
